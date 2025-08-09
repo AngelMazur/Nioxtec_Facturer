@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nioxtec Facturer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        form {
+            margin-bottom: 2rem;
+            border: 1px solid #ddd;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+        input, select {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.25rem;
+        }
+        button {
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        .message {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .message.success {
+            background-color: #e7f9e7;
+            color: #2e662e;
+        }
+        .message.error {
+            background-color: #fde7e7;
+            color: #8a1f1f;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Nioxtec Facturer</h1>
+    <div id="message" class="message" style="display:none;"></div>
+
+    <h2>Crear nuevo cliente</h2>
+    <form id="client-form">
+        <label>Nombre:<input type="text" name="name" required></label>
+        <label>CIF/NIF:<input type="text" name="cif" required></label>
+        <label>Dirección:<input type="text" name="address" required></label>
+        <label>Email:<input type="email" name="email" required></label>
+        <label>Teléfono:<input type="text" name="phone" required></label>
+        <label>IBAN:<input type="text" name="iban"></label>
+        <button type="submit">Guardar cliente</button>
+    </form>
+
+    <h2>Crear nueva factura/proforma</h2>
+    <form id="invoice-form">
+        <label>Número:<input type="text" name="number" required></label>
+        <label>Fecha:<input type="date" name="date" required></label>
+        <label>Tipo:
+            <select name="type">
+                <option value="factura">Factura</option>
+                <option value="proforma">Proforma</option>
+            </select>
+        </label>
+        <label>Cliente:
+            <select name="client_id" id="client-select" required>
+                <option value="">Seleccione...</option>
+            </select>
+        </label>
+        <h3>Líneas</h3>
+        <div id="items-container"></div>
+        <button type="button" id="add-item">Añadir línea</button>
+        <button type="submit">Guardar documento</button>
+    </form>
+
+    <h2>Facturas y proformas</h2>
+    <table id="invoice-table">
+        <thead>
+            <tr>
+                <th>Número</th>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Tipo</th>
+                <th>Total</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<script>
+// Mostrar mensajes de éxito o error
+function showMessage(text, type = 'success') {
+    const msgDiv = document.getElementById('message');
+    msgDiv.className = 'message ' + type;
+    msgDiv.textContent = text;
+    msgDiv.style.display = 'block';
+    setTimeout(() => {
+        msgDiv.style.display = 'none';
+    }, 4000);
+}
+
+// Cargar clientes en el selector
+async function loadClients() {
+    const res = await fetch('/clients');
+    const clients = await res.json();
+    const select = document.getElementById('client-select');
+    // Vaciar opciones
+    select.innerHTML = '<option value="">Seleccione...</option>';
+    clients.forEach(c => {
+        const option = document.createElement('option');
+        option.value = c.id;
+        option.textContent = c.name;
+        select.appendChild(option);
+    });
+    return clients;
+}
+
+// Cargar facturas
+async function loadInvoices() {
+    const res = await fetch('/invoices');
+    const invoices = await res.json();
+    const tableBody = document.querySelector('#invoice-table tbody');
+    tableBody.innerHTML = '';
+    // Necesitamos también los clientes para mostrar su nombre
+    const clientsRes = await fetch('/clients');
+    const clients = await clientsRes.json();
+    invoices.forEach(inv => {
+        const tr = document.createElement('tr');
+        const client = clients.find(c => c.id === inv.client_id);
+        tr.innerHTML = `
+            <td>${inv.number}</td>
+            <td>${inv.date}</td>
+            <td>${client ? client.name : inv.client_id}</td>
+            <td>${inv.type}</td>
+            <td>${inv.total.toFixed(2)}</td>
+            <td><button data-id="${inv.id}" data-number="${inv.number}">Descargar PDF</button></td>
+        `;
+        tableBody.appendChild(tr);
+    });
+}
+
+// Añadir una nueva fila de item
+function addItemRow() {
+    const container = document.getElementById('items-container');
+    const div = document.createElement('div');
+    div.className = 'item-row';
+    div.innerHTML = `
+        <label>Descripción:<input type="text" name="description" required></label>
+        <label>Unidades:<input type="number" name="units" value="1" min="1" required></label>
+        <label>Precio unitario:<input type="number" step="0.01" name="unit_price" value="0" required></label>
+        <label>IVA (%):<input type="number" step="0.01" name="tax_rate" value="21" required></label>
+        <hr>`;
+    container.appendChild(div);
+}
+
+// Crear cliente
+document.getElementById('client-form').addEventListener('submit', async function(ev) {
+    ev.preventDefault();
+    const data = Object.fromEntries(new FormData(ev.target));
+    const res = await fetch('/clients', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    if (res.ok) {
+        showMessage('Cliente guardado', 'success');
+        ev.target.reset();
+        await loadClients();
+    } else {
+        showMessage('Error al guardar cliente', 'error');
+    }
+});
+
+// Crear factura o proforma
+document.getElementById('invoice-form').addEventListener('submit', async function(ev) {
+    ev.preventDefault();
+    const formData = new FormData(ev.target);
+    const items = [];
+    document.querySelectorAll('.item-row').forEach(row => {
+        items.push({
+            description: row.querySelector('[name="description"]').value,
+            units: parseInt(row.querySelector('[name="units"]').value),
+            unit_price: parseFloat(row.querySelector('[name="unit_price"]').value),
+            tax_rate: parseFloat(row.querySelector('[name="tax_rate"]').value)
+        });
+    });
+    const payload = {
+        number: formData.get('number'),
+        date: formData.get('date'),
+        type: formData.get('type'),
+        client_id: parseInt(formData.get('client_id')),
+        items: items
+    };
+    const res = await fetch('/invoices', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+        const data = await res.json();
+        showMessage('Documento creado. ID: ' + data.id, 'success');
+        ev.target.reset();
+        document.getElementById('items-container').innerHTML = '';
+        await loadInvoices();
+    } else {
+        const err = await res.json();
+        showMessage('Error: ' + (err.error || 'al guardar documento'), 'error');
+    }
+});
+
+// Evento para añadir línea
+document.getElementById('add-item').addEventListener('click', addItemRow);
+
+// Manejar descarga de PDFs con delegación de eventos
+document.getElementById('invoice-table').addEventListener('click', async function(ev) {
+    if (ev.target.tagName === 'BUTTON') {
+        const id = ev.target.getAttribute('data-id');
+        const number = ev.target.getAttribute('data-number');
+        try {
+            const res = await fetch(`/invoices/${id}/pdf`);
+            if (!res.ok) {
+                throw new Error('No se pudo generar PDF');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${number}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (e) {
+            showMessage('Error al descargar PDF', 'error');
+        }
+    }
+});
+
+// Inicializar
+async function init() {
+    await loadClients();
+    addItemRow();
+    await loadInvoices();
+}
+init();
+</script>
+</body>
+</html>
