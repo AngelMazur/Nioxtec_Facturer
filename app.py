@@ -290,7 +290,7 @@ def create_invoice():
     )
     db.session.add(invoice)
     try:
-        db.session.flush()  # flush to obtain invoice.id
+    db.session.flush()  # flush to obtain invoice.id
     except IntegrityError as e:
         db.session.rollback()
         return jsonify({'error': 'El número de factura ya existe'}), 409
@@ -669,6 +669,15 @@ def register():
 
 @app.post('/api/auth/login')
 def login():
+    """
+    Authenticate user and return JWT access token.
+    
+    Validates username/password combination and returns JWT token for API access.
+    Token expires after 30 days.
+    
+    Returns:
+        JSON: Access token on success or error message on failure
+    """
     data = request.get_json(force=True)
     username = data.get('username')
     password = data.get('password')

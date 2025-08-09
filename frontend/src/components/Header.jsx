@@ -1,6 +1,19 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 
+/**
+ * Header component with navigation and mobile dropdown menu.
+ * 
+ * Features:
+ * - Company logo with link to home
+ * - Desktop navigation menu
+ * - Mobile hamburger menu with dropdown
+ * - Responsive design with Tailwind CSS
+ * 
+ * @param {Object} props
+ * @param {React.ReactNode} props.children - Navigation items to render
+ * @returns {JSX.Element} Header component
+ */
 export default function Header({ children }) {
   const [open, setOpen] = useState(false)
   return (
