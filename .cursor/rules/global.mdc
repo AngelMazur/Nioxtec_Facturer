@@ -1,0 +1,11 @@
+---
+description: Estándares globales del repo
+alwaysApply: true
+---
+
+- Escribe código claro, comenta lo no obvio y añade docstrings en Python.
+- No hardcodees secretos. Usa variables de entorno y `.env` (sin subirlo).
+- Proponer mejoras sin romper: mantén compatibilidad y deja TODOs concretos.
+- Mensajes de commit: **Conventional Commits** (`feat: ...`, `fix: ...`).
+- Si cambias dependencias, **actualiza** `requirements.txt` o `package.json` y los **Dockerfile**/compose.
+- Genera cambios mínimos y atómicos; evita PRs gigantes.

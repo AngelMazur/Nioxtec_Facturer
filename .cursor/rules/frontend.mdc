@@ -1,0 +1,15 @@
+---
+description: Frontend React + Vite + Tailwind + Zustand
+globs: ["**/*.tsx","**/*.ts","**/*.jsx","**/vite.config.*","**/tailwind.config.*"]
+alwaysApply: false
+---
+
+- Componentes **funcionales**, hooks y **estado global con Zustand** (slices + selectors).
+- **Tailwind**: utilidades; evita CSS en línea salvo casos puntuales.
+- **Rutas**: usa React Router y **code splitting por ruta** con `React.lazy` + `Suspense`.
+- **A11y básica**: labels en formularios, semántica correcta, `aria-*` cuando proceda.
+- Formularios: valida en cliente (zod/yup opcional). Feedback de error claro.
+- **Renderizado**: memoriza con `React.memo`/`useMemo` si hay listas pesadas.
+- **Env**: lee `import.meta.env.*` (no expongas secretos).
+- **E2E** futuro: prepara ids estables (`data-testid`) si creas nuevos componentes.
+- Al generar código, **no introduzcas librerías pesadas** sin justificar.
