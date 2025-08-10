@@ -39,6 +39,7 @@ from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
+from typing import Tuple
 
 # Cargar variables de entorno desde .env si existe
 load_dotenv()
@@ -60,6 +61,36 @@ try:
     import pdfkit  # type: ignore
 except Exception:
     pdfkit = None
+
+def _resolve_pdfkit_configuration():
+    """Return a pdfkit configuration resolving wkhtmltopdf path on Windows if needed."""
+    if pdfkit is None:
+        return None
+    try:
+        from shutil import which
+        wkhtml_path = os.getenv('WKHTMLTOPDF_PATH') or which('wkhtmltopdf')
+        if not wkhtml_path:
+            # Common Windows install paths
+            candidates = [
+                r"C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe",
+                r"C:\\Program Files (x86)\\wkhtmltopdf\\bin\\wkhtmltopdf.exe",
+            ]
+            for p in candidates:
+                if os.path.isfile(p):
+                    wkhtml_path = p
+                    break
+        return pdfkit.configuration(wkhtmltopdf=wkhtml_path) if wkhtml_path else pdfkit.configuration()
+    except Exception:
+        return None
+
+# Fallback PDF generator (pure Python) when WeasyPrint/wkhtmltopdf are unavailable
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import mm
+    reportlab_available = True
+except Exception:
+    reportlab_available = False
 import io
 
 # -----------------------------------------------------------------------------
@@ -173,6 +204,92 @@ def calculate_totals(items):
     tax_sum = sum(item['units'] * item['unit_price'] * (item['tax_rate'] / 100) for item in items)
     total_sum = subtotal_sum + tax_sum
     return subtotal_sum, tax_sum, total_sum
+
+
+def _generate_pdf_fallback(invoice: 'Invoice', client: 'Client', company: 'CompanyConfig', items) -> bytes:
+    """Generate a very simple PDF using ReportLab as a last-resort fallback.
+    Avoids external binaries. Intended only when WeasyPrint/pdfkit are unavailable.
+    """
+    if not reportlab_available:
+        abort(500, description='No hay motor PDF disponible. Instale wkhtmltopdf o WeasyPrint.')
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    y = height - 20 * mm
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(20 * mm, y, f"{company.name if company and getattr(company, 'name', None) else 'Empresa'}")
+    y -= 8 * mm
+    c.setFont("Helvetica", 10)
+    if company:
+        c.drawString(20 * mm, y, f"CIF: {company.cif or ''}  Tel: {company.phone or ''}")
+        y -= 6 * mm
+        c.drawString(20 * mm, y, f"{company.address or ''}")
+        y -= 10 * mm
+
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(20 * mm, y, f"{invoice.type.title()} {invoice.number}")
+    y -= 6 * mm
+    c.setFont("Helvetica", 10)
+    c.drawString(20 * mm, y, f"Fecha: {invoice.date.isoformat()}")
+    y -= 10 * mm
+
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(20 * mm, y, "Cliente")
+    y -= 6 * mm
+    c.setFont("Helvetica", 10)
+    c.drawString(20 * mm, y, f"{client.name}  CIF: {client.cif}")
+    y -= 6 * mm
+    c.drawString(20 * mm, y, f"{client.address}")
+    y -= 10 * mm
+
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(20 * mm, y, "Descripción")
+    c.drawString(110 * mm, y, "Unidades")
+    c.drawString(140 * mm, y, "Precio")
+    c.drawString(170 * mm - 10 * mm, y, "IVA%")
+    y -= 5 * mm
+    c.line(20 * mm, y, 190 * mm, y)
+    y -= 5 * mm
+    c.setFont("Helvetica", 10)
+    subtotal_sum, tax_sum, total_sum = calculate_totals([
+        {
+            'units': it.units,
+            'unit_price': it.unit_price,
+            'tax_rate': it.tax_rate,
+        } for it in items
+    ])
+    for it in items:
+        if y < 30 * mm:
+            c.showPage()
+            y = height - 20 * mm
+            c.setFont("Helvetica", 10)
+        c.drawString(20 * mm, y, (it.description or '')[:80])
+        c.drawRightString(135 * mm, y, f"{it.units}")
+        c.drawRightString(165 * mm, y, f"{it.unit_price:.2f} €")
+        c.drawRightString(190 * mm, y, f"{it.tax_rate:.2f}")
+        y -= 6 * mm
+
+    y -= 6 * mm
+    c.line(120 * mm, y, 190 * mm, y)
+    y -= 8 * mm
+    c.setFont("Helvetica-Bold", 11)
+    c.drawRightString(165 * mm, y, "Subtotal:")
+    c.drawRightString(190 * mm, y, f"{subtotal_sum:.2f} €")
+    y -= 6 * mm
+    c.setFont("Helvetica", 11)
+    c.drawRightString(165 * mm, y, "Impuestos:")
+    c.drawRightString(190 * mm, y, f"{tax_sum:.2f} €")
+    y -= 6 * mm
+    c.setFont("Helvetica-Bold", 12)
+    c.drawRightString(165 * mm, y, "Total:")
+    c.drawRightString(190 * mm, y, f"{total_sum:.2f} €")
+
+    c.showPage()
+    c.save()
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
 
 
 # -----------------------------------------------------------------------------
@@ -290,8 +407,8 @@ def create_invoice():
     )
     db.session.add(invoice)
     try:
-    db.session.flush()  # flush to obtain invoice.id
-    except IntegrityError as e:
+        db.session.flush()  # flush to obtain invoice.id
+    except IntegrityError:
         db.session.rollback()
         return jsonify({'error': 'El número de factura ya existe'}), 409
     for item in items_data:
@@ -604,26 +721,24 @@ def invoice_pdf(invoice_id):
                                company=company, items=items, logo_uri=logo_uri)
     filename = f"{invoice.type}_{invoice.number}.pdf"
     file_path = os.path.join(DOWNLOAD_FOLDER, filename)
+    pdf_bytes = None
     if use_weasyprint:
         try:
             pdf_io = io.BytesIO()
             HTML(string=rendered).write_pdf(target=pdf_io)
             pdf_bytes = pdf_io.getvalue()
-        except Exception as e:
-            # Fall back to pdfkit if any error occurs in WeasyPrint.
-            if pdfkit is None:
-                abort(500, description='No hay motor PDF disponible. Instale wkhtmltopdf o desactive USE_WEASYPRINT.')
-            pdf_bytes = pdfkit.from_string(rendered, False)
-    else:
-        # pdfkit.from_string returns PDF binary when output_path=False
-        # Ensure wkhtmltopdf binary is available in your system PATH.
-        if pdfkit is None:
-            abort(500, description='wkhtmltopdf no disponible. Instale wkhtmltopdf o active USE_WEASYPRINT=true con dependencias de WeasyPrint.')
-        options = {
-            'enable-local-file-access': None,
-        }
-        # Provide base URL to resolve relative CSS/images if needed
-        pdf_bytes = pdfkit.from_string(rendered, False, options=options)
+        except Exception:
+            pdf_bytes = None
+    if pdf_bytes is None and pdfkit is not None:
+        try:
+            options = { 'enable-local-file-access': None }
+            cfg = _resolve_pdfkit_configuration()
+            pdf_bytes = pdfkit.from_string(rendered, False, options=options, configuration=cfg)
+        except Exception:
+            pdf_bytes = None
+    if pdf_bytes is None:
+        # Last‑resort fallback
+        pdf_bytes = _generate_pdf_fallback(invoice, client, company, items)
     # Save the PDF to the downloads folder
     with open(file_path, 'wb') as f:
         f.write(pdf_bytes)
