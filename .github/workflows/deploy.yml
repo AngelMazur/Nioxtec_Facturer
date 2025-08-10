@@ -1,0 +1,41 @@
+name: Deploy to Production (Windows Self‑Hosted)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on:
+      - self-hosted
+      - windows
+      - nioxtec
+    timeout-minutes: 30
+    steps:
+      - name: Preflight – PowerShell policy
+        shell: powershell
+        run: |
+          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+
+      - name: Ejecutar script de despliegue en el servidor
+        shell: powershell
+        run: |
+          C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\deploy_prod.ps1
+
+      - name: Health‑check API
+        shell: powershell
+        run: |
+          try {
+            $code = (Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 10).StatusCode
+            if ($code -ne 200) { Write-Error "API health returned $code"; exit 1 }
+          } catch { Write-Error $_.Exception.Message; exit 1 }
+
+
