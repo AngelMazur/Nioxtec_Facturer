@@ -715,7 +715,8 @@ def invoice_pdf(invoice_id):
         )
     items = invoice.items
     # Build absolute file URI for logo to avoid network issues in wkhtmltopdf
-    logo_path = os.path.join(STATIC_FOLDER, 'logo_invoice.png')
+    # Use 'logo.png' by default
+    logo_path = os.path.join(STATIC_FOLDER, 'logo.png')
     logo_uri = f"file://{logo_path}"
     rendered = render_template('invoice_template.html', invoice=invoice, client=client,
                                company=company, items=items, logo_uri=logo_uri)
