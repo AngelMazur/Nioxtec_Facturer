@@ -281,3 +281,5 @@ For support and questions:
 ---
 
 **Built with ❤️ for small businesses and freelancers**
+
+<!-- chore(ci): trigger GitHub Actions; nota dev: si el servidor Vite falla en macOS por "crypto.hash is not a function", puedes usar `npm run build && npx serve -s dist -l 8080` para servir el frontend en local. -->
