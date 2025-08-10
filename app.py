@@ -92,6 +92,7 @@ try:
 except Exception:
     reportlab_available = False
 import io
+from pathlib import Path
 
 # -----------------------------------------------------------------------------
 # Flask configuration
@@ -702,22 +703,25 @@ def invoice_pdf(invoice_id):
     invoice = Invoice.query.get_or_404(invoice_id)
     client = invoice.client
     company = CompanyConfig.query.first()
-    # Ensure we have company data; otherwise create default dummy
+    # If DB has no company row, we still pass a lightweight object with defaults, but DO NOT persist
     if not company:
-        company = CompanyConfig(
-            name='Mi Empresa',
-            cif='A00000000',
-            address='Dirección de ejemplo',
-            email='info@example.com',
-            phone='000 000 000',
-            iban='',
+        class _CompanyDefault:
+            name='Mi Empresa'
+            cif='A00000000'
+            address='Dirección de ejemplo'
+            email='info@example.com'
+            phone='000 000 000'
+            iban=''
             website=''
-        )
+        company = _CompanyDefault()
     items = invoice.items
     # Build absolute file URI for logo to avoid network issues in wkhtmltopdf
-    # Use 'logo.png' by default
-    logo_path = os.path.join(STATIC_FOLDER, 'logo.png')
-    logo_uri = f"file://{logo_path}"
+    # Use a proper file URI (file:///C:/...) and forward slashes
+    logo_path = os.path.join(STATIC_FOLDER, 'logo_invoice.png')
+    try:
+        logo_uri = Path(logo_path).resolve().as_uri()
+    except Exception:
+        logo_uri = 'file:///' + logo_path.replace('\\', '/')
     rendered = render_template('invoice_template.html', invoice=invoice, client=client,
                                company=company, items=items, logo_uri=logo_uri)
     filename = f"{invoice.type}_{invoice.number}.pdf"

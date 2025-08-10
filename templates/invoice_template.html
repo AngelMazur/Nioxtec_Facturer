@@ -44,29 +44,47 @@
             text-align: right;
         }
         /* Sección de datos */
+        .info-separator {
+            border-top: 1px solid #000;
+            margin: 0.35cm 0 0.2cm 0;
+        }
         .info-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+            display: table;
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 0; /* sin margen lateral extra: alinea con la línea inferior */
             margin-bottom: 0.6cm; /* compactar separación antes de la tabla */
-            gap: 12px;
         }
         .info-block {
-            width: 48%;
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+            padding: 0 4px; /* margen interno mínimo, respeta ancho total */
         }
-        .info-block.right {
-            text-align: right;
-        }
+        .info-block.right { text-align: right; padding-left: 4px; padding-right: 4px; }
         .info-block h3 {
             font-size: 14px;
             font-weight: bold;
-            margin-bottom: 4px;
-            border-bottom: 1px solid #000;
             display: inline-block;
+            padding-bottom: 2px;
+            margin-bottom: 6px;
+            margin-top: 0;
         }
         .info-block p {
             margin: 2px 0;
+            line-height: 1.25;
+            white-space: normal;
+            overflow-wrap: break-word; /* evita desbordes en emails/IBANs */
+            word-break: break-word;
+            hyphens: auto;
+            max-width: 100%;
         }
+        /* Limitar ancho del texto para forzar salto similar al IBAN (~30ch) */
+        /* Forzar un ancho de columna de texto que provoque salto similar al IBAN */
+        .info-inner { width: 260px; max-width: 260px; }
+        .info-inner.left { text-align: left; margin-right: auto; }
+        .info-inner.right { text-align: right; margin-left: auto; }
         /* Tabla de conceptos */
         table {
             width: 100%;
@@ -115,39 +133,45 @@
 <body>
     <!-- Cabecera -->
     <div class="top-row">
-        <div>
-            <div class="doc-type">{{ invoice.type|upper }}</div>
-            <div class="number-box">
-                <div><strong>Nº:</strong> {{ invoice.number }}</div>
-                <div><strong>Fecha:</strong> {{ invoice.date.strftime('%d/%m/%Y') }}</div>
+        <div style="display:grid; grid-template-columns: 1fr auto; align-items:start; gap: 12px;">
+            <div>
+                <div class="doc-type">{{ invoice.type|upper }}</div>
+                <div class="number-box">
+                    <div><strong>Nº:</strong> {{ invoice.number }}</div>
+                    <div><strong>Fecha:</strong> {{ invoice.date.strftime('%d/%m/%Y') }}</div>
+                </div>
             </div>
-        </div>
-        <div class="logo">
-            <img src="{{ logo_uri }}" alt="NIOXTEC" style="height:auto; width:180px;" />
+            <div class="logo">
+                <img src="{{ logo_uri }}" alt="NIOXTEC" style="height:auto; width:180px;" />
+            </div>
         </div>
     </div>
 
     <!-- Datos del cliente y del emisor -->
-    <div class="info-section">
-        <div class="info-block">
+    <div class="info-section" style="grid-template-columns: 1fr 1fr;">
+        <div class="info-block" style="align-self:start;">
             <h3>DATOS DEL CLIENTE</h3>
-            <p><strong>{{ client.name }}</strong></p>
-            <p>CIF: {{ client.cif }}</p>
-            <p>{{ client.address }}</p>
-            <p>{{ client.email }}</p>
-            <p>{{ client.phone }}</p>
-            {% if client.iban %}<p>IBAN: {{ client.iban }}</p>{% endif %}
+            <div class="info-inner left">
+                <p><strong>{{ client.name }}</strong></p>
+                <p>CIF: {{ client.cif }}</p>
+                <p>{{ client.address }}</p>
+                <p>{{ client.email }}</p>
+                <p>{{ client.phone }}</p>
+                {% if client.iban %}<p>IBAN: {{ client.iban }}</p>{% endif %}
+            </div>
         </div>
-        <div class="info-block right">
+        <div class="info-block right" style="align-self:start;">
             <h3>DATOS DEL EMISOR</h3>
-            <p><strong>{{ company.name or '' }}</strong></p>
-            <p>CIF: {{ company.cif or '' }}</p>
-            <p>{{ company.address or '' }}</p>
-            <p>{{ company.email or '' }}</p>
-            <p>{{ company.phone or '' }}</p>
-            {% if company.iban %}<p>IBAN: {{ company.iban }}</p>{% endif %}
-            {% if company.website %}<p>{{ company.website }}</p>{% endif %}
+            <div style="display:grid; grid-template-columns: 1fr; justify-items: end;" class="info-inner right">
+                <p><strong>José Luis Condolo Cuenca</strong></p>
+                <p>CIF:  12450905Q</p>
+                <p>C/Hacienda de pavones, 150 28030, Madrid, España</p>
+                <p>info@nioxtec</p>
+                <p>613 094 653</p>
+            </div>
         </div>
+    </div>
+    <div class="info-separator"></div>
     </div>
 
     <!-- Detalle de conceptos -->
