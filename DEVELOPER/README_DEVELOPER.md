@@ -70,6 +70,49 @@ schtasks /Run /TN "Nioxtec Frontend"
 iwr https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 10
 ```
 
+Importante: este despliegue NO toca la base de datos (`app.db`). Solo para/arranca servicios, hace backup preventivo del fichero y actualiza código / dependencias / build del frontend. Si introduces cambios de esquema, define un plan de migración explícito.
+
+## Desarrollo en macOS y despliegue a producción (Windows)
+
+### macOS – entorno de pruebas
+Backend:
+```bash
+cd ~/Nioxtec_Facturer
+python3 -m venv venv
+source venv/bin/activate
+export FLASK_DEBUG=true
+export ENABLE_TALISMAN=false
+export FORCE_HTTPS=false
+python app.py
+```
+
+Frontend:
+```bash
+cd ~/Nioxtec_Facturer/frontend
+npm i
+npm run dev  # http://localhost:5173
+```
+
+### Flujo de despliegue desde macOS
+1. Sube tus cambios al remoto:
+```bash
+git add -A && git commit -m "feat: ..." && git push
+```
+2. En el servidor Windows, lanza el despliegue:
+```powershell
+C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\deploy_prod.ps1
+```
+Esto actualizará el código/producto en Madrid sin modificar la base de datos.
+
+### Despliegue con un clic (tarea programada)
+Crea una tarea para el despliegue (script incluido) y ejecútala cuando quieras:
+```powershell
+# Registrar una vez
+C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\register_deploy_task.ps1
+# Ejecutar cada vez que quieras desplegar
+schtasks /Run /TN "Nioxtec Deploy"
+```
+
 ## Scripts de un clic
 
 Están en `DEVELOPER/scripts/`:
