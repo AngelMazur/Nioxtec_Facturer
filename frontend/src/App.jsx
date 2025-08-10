@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { Toaster } from 'react-hot-toast'
-import DarkModeToggle from './components/DarkModeToggle'
 import { useStore } from './store/store'
 import { Link, useNavigate } from 'react-router-dom'
 import Header from './components/Header'
@@ -28,8 +27,7 @@ export default function App() {
   const { token, logout } = useStore()
   return (
     <BrowserRouter>
-      {/* Botón de modo oscuro siempre visible */}
-      <DarkModeToggle />
+      {/* Modo oscuro forzado globalmente; sin conmutador */}
       <Suspense fallback={<div className="container-page py-8">Cargando…</div>}>
         {token && (
           <Header>

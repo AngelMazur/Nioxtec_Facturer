@@ -40,7 +40,7 @@ export default function Clientes() {
   return (
     <main className="mx-auto max-w-6xl p-4 space-y-8">
       <h2 className="text-2xl font-bold">Clientes</h2>
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-800 p-4 rounded-lg border border-gray-700">
         <label className="flex flex-col gap-1"><span className="text-sm text-gray-500">Nombre</span><input className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand" name="name" value={form.name} onChange={handleChange} required /></label>
         <label className="flex flex-col gap-1"><span className="text-sm text-gray-500">CIF/NIF</span><input className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand" name="cif" value={form.cif} onChange={handleChange} required /></label>
         <label className="flex flex-col gap-1 sm:col-span-2"><span className="text-sm text-gray-500">Dirección</span><input className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand" name="address" value={form.address} onChange={handleChange} required /></label>
@@ -52,7 +52,7 @@ export default function Clientes() {
         </div>
       </form>
       <section>
-        <h3 className="text-xl font-semibold mb-2">Listado</h3>
+         <h3 className="text-xl font-semibold mb-2">Listado</h3>
         {loading ? (
           <Skeleton count={5} height={30} className="mb-2" />
         ) : (
@@ -63,7 +63,7 @@ export default function Clientes() {
             <div>Contacto</div>
             <button className="text-right hover:underline" onClick={()=>setSort(s=>({ field: 'created_at', dir: s.dir==='asc'?'desc':'asc' }))}>Creado</button>
           </div>
-          <ul className="space-y-2">
+           <ul className="space-y-2">
             {clients
               .slice()
               .sort((a,b)=>{
@@ -74,15 +74,15 @@ export default function Clientes() {
                 return String(av).localeCompare(String(bv), 'es', { numeric: true })*dir
               })
               .map((client) => (
-              <li key={client.id} className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
+              <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
                   <div className="font-medium">{client.name}</div>
                   <div className="text-gray-500">{client.cif}</div>
-                  <div className="text-sm text-gray-500 break-words">
+                  <div className="text-sm text-gray-400 break-words">
                     <div>{client.email}</div>
                     <div>{client.phone}</div>
                   </div>
-                  <div className="text-sm text-gray-500 sm:text-right">{client.created_at ? client.created_at.slice(0,10) : ''}</div>
+                  <div className="text-sm text-gray-400 sm:text-right">{client.created_at ? client.created_at.slice(0,10) : ''}</div>
                 </div>
               </li>
             ))}

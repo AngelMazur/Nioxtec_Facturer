@@ -142,7 +142,7 @@ export default function Facturas() {
       <h2 className="text-2xl font-bold">Facturas / Proformas</h2>
       <form
         onSubmit={handleSubmit}
-        className="space-y-4 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700"
+        className="space-y-4 bg-gray-800 p-4 rounded-lg border border-gray-700"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
@@ -200,7 +200,7 @@ export default function Facturas() {
         {form.items.map((item, idx) => (
           <div
             key={idx}
-            className="grid grid-cols-1 sm:grid-cols-4 gap-2 border border-gray-200 dark:border-gray-700 p-2 rounded"
+            className="grid grid-cols-1 sm:grid-cols-4 gap-2 border border-gray-700 p-2 rounded"
           >
             <label className="flex flex-col gap-1">
               <span className="text-sm text-gray-500">Descripción</span>
@@ -276,7 +276,7 @@ export default function Facturas() {
             animate={{ opacity: 1 }}
             className="space-y-2"
           >
-            <div className="hidden sm:grid grid-cols-6 gap-2 text-xs text-gray-500 px-2">
+            <div className="hidden sm:grid grid-cols-6 gap-2 text-xs text-gray-400 px-2">
               <button className="text-left hover:underline" onClick={()=>setSort(s=>({ field: 'number', dir: s.dir==='asc'?'desc':'asc' }))}>Número</button>
               <button className="text-left hover:underline" onClick={()=>setSort(s=>({ field: 'client_id', dir: s.dir==='asc'?'desc':'asc' }))}>Cliente</button>
               <button className="text-center hover:underline" onClick={()=>setSort(s=>({ field: 'date', dir: s.dir==='asc'?'desc':'asc' }))}>Fecha</button>
@@ -307,17 +307,17 @@ export default function Facturas() {
                 <button
                   key={inv.id}
                   onClick={() => openPreview(inv.id)}
-                  className="w-full text-left"
+                   className="w-full text-left"
                 >
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
+                  <div className="p-3 bg-gray-800 border border-gray-700 rounded">
                     <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-center">
                       <div className="font-medium">{inv.number}</div>
-                      <div className="text-gray-500">{clientName}</div>
-                      <div className="text-sm text-gray-500 sm:text-center">
+                      <div className="text-gray-400">{clientName}</div>
+                      <div className="text-sm text-gray-400 sm:text-center">
                         {inv.date?.slice(0, 10)}
                       </div>
                       <div className="text-xs uppercase sm:text-center">{inv.type}</div>
-                      <div className="font-semibold text-gray-900 dark:text-gray-100 sm:text-right">
+                      <div className="font-semibold text-gray-100 sm:text-right">
                         {(inv.total ?? 0).toFixed(2)} €
                       </div>
                       <div className="text-sm text-right flex sm:justify-end gap-3">

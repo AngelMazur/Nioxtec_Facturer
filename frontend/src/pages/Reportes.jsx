@@ -53,27 +53,27 @@ export default function Reportes() {
       <h2 className="text-2xl font-bold">Reportes</h2>
 
       <section className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800">
           <div className="text-sm text-gray-500">Año</div>
           <input className="mt-1 border border-gray-300 dark:border-gray-700 p-2 rounded w-full" type="number" value={year} onChange={(e)=>setYear(Number(e.target.value))} />
         </div>
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800">
           <div className="text-sm text-gray-500">Mes</div>
-          <select className="mt-1 border border-gray-300 dark:border-gray-700 p-2 rounded w-full" value={month} onChange={(e)=>setMonth(Number(e.target.value))}>
+          <select className="mt-1 border border-gray-700 p-2 rounded w-full bg-gray-900" value={month} onChange={(e)=>setMonth(Number(e.target.value))}>
             {months.map((m, i) => <option key={m} value={i+1}>{m}</option>)}
           </select>
         </div>
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800">
           <div className="text-sm text-gray-500">Facturación anual</div>
           <div className="text-2xl font-semibold">{summary.total_year.toFixed(2)} €</div>
         </div>
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-end gap-2">
+        <div className="rounded-lg border border-gray-700 p-4 flex items-end gap-2 bg-gray-800">
           <button onClick={downloadClients} className="bg-primary text-white px-3 py-2 rounded">Exportar clientes XLSX</button>
           <button onClick={downloadInvoices} className="bg-secondary text-white px-3 py-2 rounded">Exportar facturas XLSX</button>
         </div>
       </section>
 
-      <section className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 relative">
+      <section className="rounded-lg border border-gray-700 p-4 relative bg-gray-800">
         <div className="text-sm text-gray-500 mb-2">Ingresos por mes</div>
         <div className="grid grid-cols-12 gap-3 h-64">
           {months.map((m, idx) => {
@@ -99,7 +99,7 @@ export default function Reportes() {
                   }}
                   onMouseLeave={()=>setTip(null)}
                 >
-                  <div className="absolute bottom-0 left-0 right-0 rounded-sm bg-cyan-500/70 dark:bg-cyan-400/80" style={{ height: `${heightPct}%` }} />
+                  <div className="absolute bottom-0 left-0 right-0 rounded-sm bg-cyan-400/80" style={{ height: `${heightPct}%` }} />
                 </div>
                 <div className="text-xs text-gray-500">{m}</div>
               </div>
@@ -116,12 +116,12 @@ export default function Reportes() {
         )}
       </section>
 
-      <section className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      <section className="rounded-lg border border-gray-700 p-4 bg-gray-800">
         <div className="text-sm text-gray-500">Facturación mensual ({months[month-1]} {year})</div>
         <div className="text-2xl font-semibold">{(heatmap && Object.values(heatmap.by_day || {}).reduce((a,b)=>a+Number(b||0),0)).toFixed(2)} €</div>
       </section>
 
-      <section className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+      <section className="rounded-lg border border-gray-700 p-4 space-y-3 bg-gray-800">
         <div className="text-sm text-gray-500">Heatmap de ingresos (día del mes)</div>
         <div className="grid grid-cols-7 gap-1">
           {Array.from({length: 31}).map((_, i) => {
