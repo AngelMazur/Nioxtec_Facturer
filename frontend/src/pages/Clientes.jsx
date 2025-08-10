@@ -10,6 +10,9 @@ export default function Clientes() {
   const [sort, setSort] = useState({ field: 'created_at', dir: 'desc' })
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ name: '', cif: '', address: '', email: '', phone: '', iban: '' })
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 10
+  const [userSorted, setUserSorted] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -31,7 +34,9 @@ export default function Clientes() {
       const res = await apiPost('/clients', form, token)
       toast.success('Cliente guardado')
       setForm({ name: '', cif: '', address: '', email: '', phone: '', iban: '' })
-      setClients([...clients, { id: res.id, ...form }])
+      // Añadir arriba del todo y fijar como destacado en render (independiente del orden)
+      setClients([{ id: res.id, ...form, created_at: new Date().toISOString(), __pinned: true }, ...clients])
+      setCurrentPage(1)
     } catch {
       toast.error('Error al guardar')
     }
@@ -58,35 +63,74 @@ export default function Clientes() {
         ) : (
           <>
           <div className="hidden sm:grid grid-cols-4 gap-2 text-xs text-gray-500 px-2">
-            <button className="text-left hover:underline" onClick={()=>setSort(s=>({ field: 'name', dir: s.dir==='asc'?'desc':'asc' }))}>Nombre</button>
-            <button className="text-left hover:underline" onClick={()=>setSort(s=>({ field: 'cif', dir: s.dir==='asc'?'desc':'asc' }))}>CIF/NIF</button>
+            <button className="text-left hover:underline" onClick={()=>{ setSort(s=>({ field: 'name', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Nombre</button>
+            <button className="text-left hover:underline" onClick={()=>{ setSort(s=>({ field: 'cif', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>CIF/NIF</button>
             <div>Contacto</div>
-            <button className="text-right hover:underline" onClick={()=>setSort(s=>({ field: 'created_at', dir: s.dir==='asc'?'desc':'asc' }))}>Creado</button>
+            <button className="text-right hover:underline" onClick={()=>{ setSort(s=>({ field: 'created_at', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Creado</button>
           </div>
-           <ul className="space-y-2">
-            {clients
-              .slice()
-              .sort((a,b)=>{
-                const dir = sort.dir==='asc'?1:-1
-                const av = a[sort.field] || ''
-                const bv = b[sort.field] || ''
-                if (sort.field==='created_at') return (av||'').localeCompare(bv||'')*dir
-                return String(av).localeCompare(String(bv), 'es', { numeric: true })*dir
-              })
-              .map((client) => (
-              <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
-                  <div className="font-medium">{client.name}</div>
-                  <div className="text-gray-500">{client.cif}</div>
-                  <div className="text-sm text-gray-400 break-words">
-                    <div>{client.email}</div>
-                    <div>{client.phone}</div>
-                  </div>
-                  <div className="text-sm text-gray-400 sm:text-right">{client.created_at ? client.created_at.slice(0,10) : ''}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
+           {(() => {
+             // Ordenar: primero fijados (__pinned), luego por columna seleccionada
+             const sorted = clients
+               .slice()
+               .sort((a,b)=>{
+                 // Solo priorizar fijados si el usuario no ha ordenado manualmente
+                 if (!userSorted) {
+                   if (a.__pinned && !b.__pinned) return -1
+                   if (!a.__pinned && b.__pinned) return 1
+                 }
+                 const dir = sort.dir==='asc'?1:-1
+                 const av = a[sort.field] || ''
+                 const bv = b[sort.field] || ''
+                 if (sort.field==='created_at') return String(av||'').localeCompare(String(bv||'')) * dir
+                 return String(av).localeCompare(String(bv), 'es', { numeric: true }) * dir
+               })
+             const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+             const safePage = Math.min(currentPage, totalPages)
+             const start = (safePage - 1) * pageSize
+             const pageItems = sorted.slice(start, start + pageSize)
+             return (
+               <>
+                 <ul className="space-y-2">
+                   {pageItems.map((client) => (
+                     <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
+                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
+                         <div className="font-medium">{client.name}</div>
+                         <div className="text-gray-500">{client.cif}</div>
+                         <div className="text-sm text-gray-400 break-words">
+                           <div>{client.email}</div>
+                           <div>{client.phone}</div>
+                         </div>
+                         <div className="text-sm text-gray-400 sm:text-right">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
+                       </div>
+                     </li>
+                   ))}
+                 </ul>
+                 <div className="flex items-center justify-between gap-2 mt-3">
+                   {safePage > 1 ? (
+                     <button className="bg-secondary text-white px-3 py-1 rounded" onClick={()=>setCurrentPage(p=>Math.max(1,p-1))}>Anterior</button>
+                   ) : <span />}
+                   <div className="flex items-center gap-1">
+                     {Array.from({ length: totalPages }).map((_, i)=>{
+                       const page = i+1
+                       const isActive = page === safePage
+                       return (
+                         <button
+                           key={page}
+                           onClick={()=>setCurrentPage(page)}
+                           className={isActive ? 'bg-primary text-white px-3 py-1 rounded' : 'px-3 py-1 rounded border border-gray-700 text-gray-300 hover:text-brand'}
+                         >
+                           {page}
+                         </button>
+                       )
+                     })}
+                   </div>
+                   {safePage < totalPages ? (
+                     <button className="bg-primary text-white px-3 py-1 rounded" onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))}>Siguiente</button>
+                   ) : <span />}
+                 </div>
+               </>
+             )
+           })()}
           </>
         )}
       </section>

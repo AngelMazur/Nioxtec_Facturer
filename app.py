@@ -32,6 +32,9 @@ import os
 from flask import Flask, jsonify, request, render_template, send_file, abort, url_for, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_talisman import Talisman
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required, get_jwt_identity
 )
@@ -108,6 +111,10 @@ CORS(app, resources={r"/*": {"origins": [o.strip() for o in cors_origins.split('
 
 # JWT
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'change-this-secret')
+# Rechazar arranque en prod sin secreto adecuado
+if os.getenv('FLASK_DEBUG', 'true').lower() not in ('1','true','yes'):
+    if not os.getenv('JWT_SECRET_KEY') or app.config['JWT_SECRET_KEY'] == 'change-this-secret':
+        raise RuntimeError('JWT_SECRET_KEY debe definirse en producción')
 jwt = JWTManager(app)
 # Ampliar la vida del token para mantener sesión hasta cerrar (30 días)
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
@@ -119,6 +126,37 @@ database_url = os.getenv('DATABASE_URL') or f"sqlite:///{os.path.join(app.instan
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+# -----------------------------------------------------------------------------
+# Security hardening (Talisman + Rate Limiting)
+# -----------------------------------------------------------------------------
+
+enable_talisman = os.getenv('ENABLE_TALISMAN', 'true').lower() in ('1', 'true', 'yes')
+if enable_talisman:
+    # CSP mínimo: permite este origen, inline para plantillas simples y blobs para descargas
+    csp = {
+        'default-src': ["'self'"],
+        'script-src': ["'self'", "'unsafe-inline'"],
+        'style-src': ["'self'", "'unsafe-inline'"],
+        'img-src': ["'self'", 'data:', 'blob:'],
+        'connect-src': ["'self'"],
+        'frame-ancestors': ["'self'"],
+    }
+    Talisman(
+        app,
+        content_security_policy=csp,
+        force_https=bool(os.getenv('FORCE_HTTPS', 'true').lower() in ('1','true','yes')),
+        strict_transport_security=True,
+        strict_transport_security_max_age=31536000,
+    )
+
+# Rate limiting por IP (puede migrarse a Redis en prod con STORAGE_URI)
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri=os.getenv('LIMITER_STORAGE_URI', "memory://"),
+)
 
 # Directory where generated PDFs will be saved.  This makes it easy for the
 # React front‑end to offer downloadable links.  The folder is created on
@@ -768,6 +806,7 @@ def health():
 
 @app.post('/api/auth/register')
 @jwt_required(optional=True)
+@limiter.limit("5 per minute")
 def register():
     """Crea el primer usuario sin token; posteriores requieren token."""
     identity = get_jwt_identity()
@@ -788,6 +827,7 @@ def register():
 
 
 @app.post('/api/auth/login')
+@limiter.limit("10 per minute")
 def login():
     """
     Authenticate user and return JWT access token.

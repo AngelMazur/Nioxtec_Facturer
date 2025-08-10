@@ -17,6 +17,9 @@ export default function Facturas() {
   const { clients, invoices, setClients, setInvoices, token } = useStore();
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState({ field: 'date', dir: 'desc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [userSorted, setUserSorted] = useState(false);
   const [form, setForm] = useState({
     number: '',
     date: new Date().toISOString().slice(0, 10),
@@ -72,7 +75,9 @@ export default function Facturas() {
         client_id: '',
         items: [],
       });
-      setInvoices([...invoices, data]);
+      // Fijar al principio independientemente del orden
+      setInvoices([{ ...data, __pinned: true }, ...invoices]);
+      setCurrentPage(1);
     } catch {
       toast.error('Error al crear');
     }
@@ -277,30 +282,39 @@ export default function Facturas() {
             className="space-y-2"
           >
             <div className="hidden sm:grid grid-cols-6 gap-2 text-xs text-gray-400 px-2">
-              <button className="text-left hover:underline" onClick={()=>setSort(s=>({ field: 'number', dir: s.dir==='asc'?'desc':'asc' }))}>Número</button>
-              <button className="text-left hover:underline" onClick={()=>setSort(s=>({ field: 'client_id', dir: s.dir==='asc'?'desc':'asc' }))}>Cliente</button>
-              <button className="text-center hover:underline" onClick={()=>setSort(s=>({ field: 'date', dir: s.dir==='asc'?'desc':'asc' }))}>Fecha</button>
-              <button className="text-center hover:underline" onClick={()=>setSort(s=>({ field: 'type', dir: s.dir==='asc'?'desc':'asc' }))}>Tipo</button>
-              <button className="text-right hover:underline" onClick={()=>setSort(s=>({ field: 'total', dir: s.dir==='asc'?'desc':'asc' }))}>Total</button>
+              <button className="text-left hover:underline" onClick={()=>{ setSort(s=>({ field: 'number', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Número</button>
+              <button className="text-left hover:underline" onClick={()=>{ setSort(s=>({ field: 'client_id', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Cliente</button>
+              <button className="text-center hover:underline" onClick={()=>{ setSort(s=>({ field: 'date', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Fecha</button>
+              <button className="text-center hover:underline" onClick={()=>{ setSort(s=>({ field: 'type', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Tipo</button>
+              <button className="text-right hover:underline" onClick={()=>{ setSort(s=>({ field: 'total', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Total</button>
               <div className="text-right">Acciones</div>
             </div>
-            {invoices
-              .slice()
-              .sort((a,b)=>{
-                const dir = sort.dir==='asc'?1:-1
-                let av = a[sort.field];
-                let bv = b[sort.field];
-                if (sort.field==='date') {
-                  av = a.date || '';
-                  bv = b.date || '';
-                  return String(av).localeCompare(String(bv)) * dir;
-                }
-                if (sort.field==='total') {
-                  return ((av||0) - (bv||0)) * dir;
-                }
-                return String(av).localeCompare(String(bv), 'es', { numeric: true }) * dir;
-              })
-              .map((inv) => {
+            {(() => {
+              const sorted = invoices
+                .slice()
+                .sort((a,b)=>{
+                  if (!userSorted) {
+                    if (a.__pinned && !b.__pinned) return -1;
+                    if (!a.__pinned && b.__pinned) return 1;
+                  }
+                  const dir = sort.dir==='asc'?1:-1
+                  let av = a[sort.field];
+                  let bv = b[sort.field];
+                  if (sort.field==='date') {
+                    av = a.date || '';
+                    bv = b.date || '';
+                    return String(av).localeCompare(String(bv)) * dir;
+                  }
+                  if (sort.field==='total') {
+                    return ((av||0) - (bv||0)) * dir;
+                  }
+                  return String(av).localeCompare(String(bv), 'es', { numeric: true }) * dir;
+                });
+              const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+              const safePage = Math.min(currentPage, totalPages);
+              const start = (safePage - 1) * pageSize;
+              const pageItems = sorted.slice(start, start + pageSize);
+              const rendered = pageItems.map((inv) => {
               const clientName =
                 clients.find((c) => c.id === inv.client_id)?.name ?? '';
               return (
@@ -353,7 +367,9 @@ export default function Facturas() {
                   </div>
                 </button>
               );
-            })}
+              })
+              return rendered
+            })()}
           </motion.div>
         )}
       </section>
@@ -380,6 +396,35 @@ export default function Facturas() {
           </div>
         </div>
       )}
+      {(() => {
+        const totalPages = Math.max(1, Math.ceil(invoices.length / pageSize));
+        const safePage = Math.min(currentPage, totalPages);
+        return (
+          <div className="flex items-center justify-between gap-2 mt-3">
+            {safePage > 1 ? (
+              <button className="bg-secondary text-white px-3 py-1 rounded" onClick={()=>setCurrentPage(p=>Math.max(1,p-1))}>Anterior</button>
+            ) : <span />}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }).map((_, i)=>{
+                const page = i+1
+                const isActive = page === safePage
+                return (
+                  <button
+                    key={page}
+                    onClick={()=>setCurrentPage(page)}
+                    className={isActive ? 'bg-primary text-white px-3 py-1 rounded' : 'px-3 py-1 rounded border border-gray-700 text-gray-300 hover:text-brand'}
+                  >
+                    {page}
+                  </button>
+                )
+              })}
+            </div>
+            {safePage < totalPages ? (
+              <button className="bg-primary text-white px-3 py-1 rounded" onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))}>Siguiente</button>
+            ) : <span />}
+          </div>
+        );
+      })()}
     </main>
   );
 }
