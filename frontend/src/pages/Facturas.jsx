@@ -276,99 +276,93 @@ export default function Facturas() {
         {loading ? (
           <Skeleton count={5} height={30} className="mb-2" />
         ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-2"
-          >
-            <div className="hidden sm:grid grid-cols-6 gap-2 text-xs text-gray-400 px-2">
-              <button className="text-left hover:underline" onClick={()=>{ setSort(s=>({ field: 'number', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Número</button>
-              <button className="text-left hover:underline" onClick={()=>{ setSort(s=>({ field: 'client_id', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Cliente</button>
-              <button className="text-center hover:underline" onClick={()=>{ setSort(s=>({ field: 'date', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Fecha</button>
-              <button className="text-center hover:underline" onClick={()=>{ setSort(s=>({ field: 'type', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Tipo</button>
-              <button className="text-right hover:underline" onClick={()=>{ setSort(s=>({ field: 'total', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Total</button>
-              <div className="text-right">Acciones</div>
-            </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
             {(() => {
-              const sorted = invoices
-                .slice()
-                .sort((a,b)=>{
-                  if (!userSorted) {
-                    if (a.__pinned && !b.__pinned) return -1;
-                    if (!a.__pinned && b.__pinned) return 1;
-                  }
-                  const dir = sort.dir==='asc'?1:-1
-                  let av = a[sort.field];
-                  let bv = b[sort.field];
-                  if (sort.field==='date') {
-                    av = a.date || '';
-                    bv = b.date || '';
-                    return String(av).localeCompare(String(bv)) * dir;
-                  }
-                  if (sort.field==='total') {
-                    return ((av||0) - (bv||0)) * dir;
-                  }
-                  return String(av).localeCompare(String(bv), 'es', { numeric: true }) * dir;
-                });
+              const sorted = invoices.slice().sort((a,b)=>{
+                if (!userSorted) {
+                  if (a.__pinned && !b.__pinned) return -1;
+                  if (!a.__pinned && b.__pinned) return 1;
+                }
+                const dir = sort.dir==='asc'?1:-1
+                let av = a[sort.field];
+                let bv = b[sort.field];
+                if (sort.field==='date') { av = a.date||''; bv = b.date||''; return String(av).localeCompare(String(bv))*dir; }
+                if (sort.field==='total') { return ((av||0)-(bv||0))*dir; }
+                return String(av).localeCompare(String(bv),'es',{ numeric:true })*dir;
+              });
               const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
               const safePage = Math.min(currentPage, totalPages);
               const start = (safePage - 1) * pageSize;
               const pageItems = sorted.slice(start, start + pageSize);
-              const rendered = pageItems.map((inv) => {
-              const clientName =
-                clients.find((c) => c.id === inv.client_id)?.name ?? '';
+
               return (
-                <button
-                  key={inv.id}
-                  onClick={() => openPreview(inv.id)}
-                   className="w-full text-left"
-                >
-                  <div className="p-3 bg-gray-800 border border-gray-700 rounded">
-                    <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-center">
-                      <div className="font-medium">{inv.number}</div>
-                      <div className="text-gray-400">{clientName}</div>
-                      <div className="text-sm text-gray-400 sm:text-center">
-                        {inv.date?.slice(0, 10)}
-                      </div>
-                      <div className="text-xs uppercase sm:text-center">{inv.type}</div>
-                      <div className="font-semibold text-gray-100 sm:text-right">
-                        {(inv.total ?? 0).toFixed(2)} €
-                      </div>
-                      <div className="text-sm text-right flex sm:justify-end gap-3">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadInvoice(inv.id, inv.number);
-                          }}
-                          className="text-brand underline"
-                        >
-                          PDF
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            duplicateInvoice(inv);
-                          }}
-                          className="underline"
-                        >
-                          Duplicar
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteInvoice(inv);
-                          }}
-                          className="text-red-600 underline"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
+                <>
+                  {/* Desktop table */}
+                  <div className="hidden md:block">
+                    <table className="w-full table-fixed border-separate border-spacing-y-2">
+                      <thead>
+                        <tr className="text-xs text-gray-400">
+                          <th className="text-left px-2 w-[14%]"><button className="hover:underline" onClick={()=>{ setSort(s=>({ field: 'number', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Número</button></th>
+                          <th className="text-left px-2 w-[28%]"><button className="hover:underline" onClick={()=>{ setSort(s=>({ field: 'client_id', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Cliente</button></th>
+                          <th className="text-center px-2 w-[14%]"><button className="hover:underline" onClick={()=>{ setSort(s=>({ field: 'date', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Fecha</button></th>
+                          <th className="text-center px-2 w-[10%]"><button className="hover:underline" onClick={()=>{ setSort(s=>({ field: 'type', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Tipo</button></th>
+                          <th className="text-right px-2 w-[12%]"><button className="hover:underline" onClick={()=>{ setSort(s=>({ field: 'total', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Total</button></th>
+                          <th className="text-right px-2 w-[22%]">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pageItems.map(inv=>{
+                          const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
+                          return (
+                            <tr key={inv.id} onClick={()=>openPreview(inv.id)} className="cursor-pointer">
+                              <td className="px-2 py-2 bg-gray-800 rounded-l-lg whitespace-nowrap font-medium">{inv.number}</td>
+                              <td className="px-2 py-2 bg-gray-800 truncate">{clientName}</td>
+                              <td className="px-2 py-2 bg-gray-800 text-center text-sm text-gray-300">{inv.date?.slice(0,10)}</td>
+                              <td className="px-2 py-2 bg-gray-800 text-center text-xs uppercase">{inv.type}</td>
+                              <td className="px-2 py-2 bg-gray-800 text-right font-semibold tabular-nums whitespace-nowrap">{(inv.total ?? 0).toFixed(2)} €</td>
+                              <td className="px-2 py-2 bg-gray-800 rounded-r-lg">
+                                <div className="flex flex-col items-end gap-1">
+                                  <button onClick={(e)=>{e.stopPropagation(); downloadInvoice(inv.id, inv.number);}} className="text-brand underline">PDF</button>
+                                  <button onClick={(e)=>{e.stopPropagation(); duplicateInvoice(inv);}} className="underline">Duplicar</button>
+                                  <button onClick={(e)=>{e.stopPropagation(); deleteInvoice(inv);}} className="text-red-600 underline">Eliminar</button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                </button>
-              );
-              })
-              return rendered
+
+                  {/* Mobile cards */}
+                  <div className="md:hidden space-y-2">
+                    {pageItems.map(inv=>{
+                      const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
+                      return (
+                        <div key={inv.id} className="p-3 bg-gray-800 border border-gray-700 rounded" onClick={()=>openPreview(inv.id)}>
+                          <div className="space-y-1">
+                            <div className="text-xs text-gray-500">Número</div>
+                            <div className="font-medium">{inv.number}</div>
+                            <div className="text-xs text-gray-500 mt-2">Cliente</div>
+                            <div className="text-gray-300">{clientName}</div>
+                            <div className="text-xs text-gray-500 mt-2">Fecha</div>
+                            <div className="text-gray-300">{inv.date?.slice(0,10)}</div>
+                            <div className="text-xs text-gray-500 mt-2">Tipo</div>
+                            <div className="text-gray-300 uppercase text-xs">{inv.type}</div>
+                            <div className="text-xs text-gray-500 mt-2">Total</div>
+                            <div className="font-semibold text-gray-100">{(inv.total ?? 0).toFixed(2)} €</div>
+                          </div>
+                          <div className="mt-3 flex items-center gap-4" onClick={(e)=>e.stopPropagation()}>
+                            <button className="text-brand underline" onClick={()=>downloadInvoice(inv.id, inv.number)}>PDF</button>
+                            <button className="underline" onClick={()=>duplicateInvoice(inv)}>Duplicar</button>
+                            <button className="text-red-600 underline" onClick={()=>deleteInvoice(inv)}>Eliminar</button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )
             })()}
           </motion.div>
         )}
