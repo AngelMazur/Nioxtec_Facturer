@@ -43,6 +43,7 @@ from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from typing import Tuple
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Cargar variables de entorno desde .env si existe
 load_dotenv()
@@ -105,9 +106,44 @@ from pathlib import Path
 # When you grow beyond a single user you can switch SQLALCHEMY_DATABASE_URI
 # to a PostgreSQL connection string without changing your code.
 app = Flask(__name__, instance_relative_config=True)
+# Detrás de un proxy/túnel (Cloudflare/Nginx), respeta cabeceras X-Forwarded-*
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)  # type: ignore
 # CORS configurable (por defecto permite localhost dev y nginx)
-cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:8080,http://127.0.0.1:8080')
-CORS(app, resources={r"/*": {"origins": [o.strip() for o in cors_origins.split(',') if o.strip()]}})
+cors_origins_str = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:8080,http://127.0.0.1:8080')
+allowed_origins = [o.strip() for o in cors_origins_str.split(',') if o.strip()]
+# Permite inyectar orígenes extra por ENV para despliegues (ej.: https://app.nioxtec.es)
+extra_origins_str = os.getenv('EXTRA_ORIGINS') or os.getenv('APP_ORIGIN') or os.getenv('PUBLIC_APP_ORIGIN')
+if extra_origins_str:
+    for o in [x.strip() for x in extra_origins_str.split(',') if x.strip()]:
+        if o not in allowed_origins:
+            allowed_origins.append(o)
+# En APIs públicas detrás de dominio distinto, necesitamos reflejar el origen y
+# responder correctamente a preflights. También habilitamos Authorization.
+CORS(
+    app,
+    resources={r"/*": {"origins": allowed_origins}},
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization"],
+    expose_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    max_age=86400,
+)
+
+# Asegurar cabeceras CORS incluso si algún middleware/servidor intermedio
+# no propaga correctamente la respuesta de Flask-CORS
+@app.after_request
+def _add_cors_headers(response: Response) -> Response:
+    try:
+        origin = request.headers.get('Origin')
+        if origin and origin in allowed_origins:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Vary'] = 'Origin'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+    except Exception:
+        pass
+    return response
 
 # JWT
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'change-this-secret')
@@ -139,7 +175,8 @@ if enable_talisman:
         'script-src': ["'self'", "'unsafe-inline'"],
         'style-src': ["'self'", "'unsafe-inline'"],
         'img-src': ["'self'", 'data:', 'blob:'],
-        'connect-src': ["'self'"],
+        # Permitimos conexiones desde los orígenes del frontend además de self
+        'connect-src': ["'self'", *allowed_origins],
         'frame-ancestors': ["'self'"],
     }
     Talisman(
@@ -852,4 +889,6 @@ def login():
 
 if __name__ == '__main__':
     debug_env = os.getenv('FLASK_DEBUG', 'true').lower() in ('1', 'true', 'yes')
-    app.run(debug=debug_env)
+    # Escuchar en 0.0.0.0 para permitir acceso externo cuando se necesite.
+    # El puerto puede configurarse con la variable de entorno PORT (por defecto 5000).
+    app.run(debug=debug_env, host='0.0.0.0', port=int(os.getenv('PORT', '5000')))

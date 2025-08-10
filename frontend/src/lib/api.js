@@ -8,10 +8,11 @@
  * - JSON content-type headers
  */
 
-const defaultBase = typeof window !== 'undefined' && window.location.port === '8080'
-  ? 'http://127.0.0.1:5000'
+const defaultBase = typeof window !== 'undefined' && (window.location.port === '8080' || window.location.port === '5173')
+  ? `${window.location.protocol}//${window.location.hostname}:5000`
   : ''
-const API_BASE = import.meta.env.VITE_API_BASE || defaultBase // use proxy in dev or backend:5000 when served on 8080
+// Permite configurar una URL completa del backend por env (recomendado en acceso externo)
+const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '') || defaultBase
 
 /**
  * Build headers for API requests with optional JWT token.
