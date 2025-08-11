@@ -32,13 +32,13 @@ for ($i=1; $i -le $maxRetries; $i++) {
   try {
     $code = (Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 10).StatusCode
     if ($code -eq 200) {
-      Write-Host "Despliegue OK, status API: $code"
+      Write-Host ("Despliegue OK, status API: {0}" -f $code)
       exit 0
     } else {
-      Write-Host "Health intento $i: código $code, reintentando..."
+      Write-Host ("Health intento {0}: código {1}, reintentando..." -f $i, $code)
     }
   } catch {
-    Write-Host "Health intento $i: $($_.Exception.Message), reintentando..."
+    Write-Host ("Health intento {0}: {1}, reintentando..." -f $i, $_.Exception.Message)
   }
 }
 Write-Error "Health-check fallo tras $maxRetries intentos"
