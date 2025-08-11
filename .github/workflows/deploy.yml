@@ -41,9 +41,13 @@ jobs:
             $frontendStopped = $false
             # 1) Build primero; no paramos servicios aún para no cortar producción
             try {
-              Log 'git pull y dependencias backend'
+              Log 'Actualizando código backend (git fetch + reset con token)'
               Set-Location 'C:\Nioxtec\Nioxtec_Facturer'
-              git pull
+              git config --global --add safe.directory 'C:/Nioxtec/Nioxtec_Facturer'
+              $repoUrl = "https://x-access-token:$env:GITHUB_TOKEN@github.com/AngelMazur/Nioxtec_Facturer.git"
+              git remote set-url origin $repoUrl
+              git fetch origin main --prune
+              git reset --hard origin/main
               if (Test-Path .\.venv310\Scripts\pip.exe) { .\.venv310\Scripts\pip.exe install -r requirements.txt }
             } catch { Log "Backend update error: $($_.Exception.Message)" }
             try {
