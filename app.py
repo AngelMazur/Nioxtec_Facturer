@@ -607,6 +607,19 @@ def update_client(client_id):
     return jsonify({'status': 'ok'})
 
 
+@app.route('/api/clients/<int:client_id>', methods=['DELETE'])
+@jwt_required()
+def delete_client(client_id):
+    """Elimina un cliente si no tiene facturas asociadas."""
+    client = Client.query.get_or_404(client_id)
+    # Evitar borrar clientes con facturas relacionadas para no romper integridad
+    has_invoices = Invoice.query.filter_by(client_id=client.id).count() > 0
+    if has_invoices:
+        return jsonify({'error': 'No se puede eliminar: el cliente tiene facturas asociadas'}), 409
+    db.session.delete(client)
+    db.session.commit()
+    return jsonify({'status': 'deleted'})
+
 @app.route('/api/invoices/<int:invoice_id>', methods=['PUT'])
 @jwt_required()
 def update_invoice(invoice_id):

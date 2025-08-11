@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store/store'
-import { apiGet, apiPost } from '../lib/api'
+import { apiGet, apiPost, apiDelete } from '../lib/api'
 import toast from 'react-hot-toast'
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
@@ -39,6 +39,17 @@ export default function Clientes() {
       setCurrentPage(1)
     } catch {
       toast.error('Error al guardar')
+    }
+  }
+
+  const deleteClient = async (client) => {
+    if (!window.confirm('¿Eliminar este cliente?')) return
+    try {
+      await apiDelete(`/clients/${client.id}`, token)
+      setClients(clients.filter(c => c.id !== client.id))
+      toast.success('Eliminado')
+    } catch (e) {
+      toast.error(e?.message || 'No se pudo eliminar')
     }
   }
 
@@ -92,7 +103,7 @@ export default function Clientes() {
                <>
                  <ul className="space-y-2">
                    {pageItems.map((client) => (
-                     <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
+                      <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
                          <div className="font-medium">{client.name}</div>
                          <div className="text-gray-500">{client.cif}</div>
@@ -100,7 +111,10 @@ export default function Clientes() {
                            <div>{client.email}</div>
                            <div>{client.phone}</div>
                          </div>
-                         <div className="text-sm text-gray-400 sm:text-right">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
+                          <div className="text-sm text-gray-400 sm:text-right flex items-center justify-end gap-3">
+                            <span>{client.created_at ? String(client.created_at).slice(0,10) : ''}</span>
+                            <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button>
+                          </div>
                        </div>
                      </li>
                    ))}
