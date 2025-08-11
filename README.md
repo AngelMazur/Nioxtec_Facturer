@@ -5,12 +5,13 @@ Aplicación de facturación simple: Backend Flask + Frontend React (Vite) sin Do
 ## Entornos soportados
 
 - Producción (Windows Server):
-  - Backend Flask ejecutado como tarea programada (schtasks) con entorno virtual Windows `.venv310` y gunicorn o `python app.py` según configuración actual.
-  - Frontend React servido como estático tras `npm run build` (IIS/Nginx/serve) y levantado como tarea programada separada.
-  - Scripts PowerShell de operación: `DEVELOPER/scripts/start_all.ps1`, `stop_all.ps1`, `deploy_prod.ps1`, `register_deploy_task.ps1`.
+  - Backend Flask ejecutado como tarea programada (schtasks) con entorno virtual Windows `.venv310` (gunicorn o `python app.py`).
+  - Frontend React servido como estático tras `npm run build` (IIS/Nginx/serve) como tarea programada.
+  - Scripts PowerShell: `DEVELOPER/scripts/start_all.ps1`, `stop_all.ps1`, `deploy_prod.ps1`, `register_deploy_task.ps1`.
 - Desarrollo (macOS):
-  - Pruebas locales: Flask (debug) en 5000 y frontend estático en 8080 usando `start_app.command` / `stop_app.command`.
-  - Alternativa prod-like local: gunicorn en 5000 y `serve` en 8080.
+  - Backend Flask (debug) en 5000.
+  - Frontend con Vite dev server en 5173 (hot reload). `start_app.command` levanta este flujo y abre `http://localhost:5173`.
+  - Alternativa prod-like local: gunicorn en 5000 y `serve` en 8080 (opcional).
 
 ## Requisitos
 
@@ -50,14 +51,23 @@ FLASK_DEBUG=1 python app.py
 
 ## Frontend (React + Vite)
 
-   ```bash
-   cd frontend
-   npm install
-   npm run build
-   npx serve -s dist -l 8080
-   ```
+### Desarrollo (macOS)
+```bash
+cd frontend
+npm install
+npm run dev
+# Vite escuchará en http://localhost:5173
+```
 
-El frontend se conectará al backend en `http://127.0.0.1:5000` (configurado automáticamente por `frontend/src/lib/api.js`).
+### Producción (estático)
+```bash
+cd frontend
+npm install
+npm run build
+npx serve -s dist -l 8080
+```
+
+El frontend se conectará al backend en `http://127.0.0.1:5000` (auto-config en `frontend/src/lib/api.js`).
 
 ## Numeración automática
 
@@ -68,7 +78,7 @@ El frontend se conectará al backend en `http://127.0.0.1:5000` (configurado aut
 ## Scripts útiles
 
 - macOS
-  - `start_app.command`: levanta backend (Flask) y sirve frontend estático en 8080.
+  - `start_app.command`: levanta backend (Flask debug) y Vite en 5173.
   - `stop_app.command`: detiene servicios locales en 5000/8080.
   - Semilla local (opcional): `python DEVELOPER/scripts/dev_seed.py` (crea usuario `dev/devpass`, cliente demo y una factura de ejemplo).
 - Windows (producción)

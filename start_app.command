@@ -45,24 +45,21 @@ fi
 echo "Levantando backend (Flask) en background..."
 cd "$SCRIPT_DIR" && nohup python app.py >/tmp/nioxtec_backend.log 2>&1 &
 
-# 3) Frontend
+# 3) Frontend (Vite dev server)
 echo "Instalando dependencias frontend..."
 cd "$SCRIPT_DIR/frontend" && npm install --silent
 
-echo "Construyendo frontend..."
-npm run -s build
-
-# Si el puerto 8080 está ocupado, liberar
-if lsof -i tcp:8080 -sTCP:LISTEN >/dev/null 2>&1; then
-  echo "Liberando puerto 8080..."
-  lsof -ti tcp:8080 -sTCP:LISTEN | xargs kill -9 || true
+# Si el puerto 5173 está ocupado, liberar
+if lsof -i tcp:5173 -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "Liberando puerto 5173..."
+  lsof -ti tcp:5173 -sTCP:LISTEN | xargs kill -9 || true
 fi
 
-echo "Sirviendo frontend (http://localhost:8080)..."
-nohup npx -y serve -s dist -l 8080 >/tmp/nioxtec_frontend.log 2>&1 &
+echo "Arrancando Vite (http://localhost:5173)..."
+nohup npm run dev -- --port 5173 --strictPort >/tmp/nioxtec_frontend.log 2>&1 &
 
 sleep 2
-open "http://localhost:8080"
+open "http://localhost:5173"
 echo "Todo listo. Logs: /tmp/nioxtec_backend.log y /tmp/nioxtec_frontend.log"
 
 
