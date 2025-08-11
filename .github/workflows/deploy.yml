@@ -25,10 +25,14 @@ jobs:
         run: |
           Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
-      - name: Ejecutar script de despliegue en el servidor
+      - name: Despliegue vía tarea programada (fallback a script)
         shell: cmd
         run: |
-          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\deploy\deploy_prod.ps1"
+          schtasks /Query /TN "Nioxtec Deploy CI" >NUL 2>&1 && (
+            schtasks /Run /TN "Nioxtec Deploy CI"
+          ) || (
+            C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\deploy\deploy_prod.ps1"
+          )
 
       - name: Health‑check API
         shell: powershell
