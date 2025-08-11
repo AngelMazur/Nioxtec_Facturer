@@ -257,6 +257,7 @@ class Invoice(db.Model):
     type = db.Column(db.String(16), nullable=False)  # 'factura' or 'proforma'
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     notes = db.Column(db.Text)
+    payment_method = db.Column(db.String(32))  # bizum | efectivo | transferencia
     total = db.Column(db.Float, default=0.0)
     tax_total = db.Column(db.Float, default=0.0)
     client = db.relationship('Client', backref=db.backref('invoices', lazy=True))
@@ -486,6 +487,19 @@ with app.app_context():
         db.session.commit()
     except Exception:
         db.session.rollback()
+    # Migración rápida: añadir columna payment_method si no existe
+    try:
+        inspector = inspect(db.engine)
+        cols = [c['name'] for c in inspector.get_columns('invoice')]
+        if 'payment_method' not in cols:
+            if database_url.startswith('sqlite'):
+                db.session.execute(text("ALTER TABLE invoice ADD COLUMN payment_method VARCHAR(32)"))
+                db.session.commit()
+            else:
+                db.session.execute(text("ALTER TABLE invoice ADD COLUMN payment_method VARCHAR(32)"))
+                db.session.commit()
+    except Exception:
+        db.session.rollback()
     # Crear usuario admin inicial si hay variables de entorno definidas y no existe
     admin_user = os.getenv('ADMIN_USERNAME')
     admin_pass = os.getenv('ADMIN_PASSWORD')
@@ -559,6 +573,7 @@ def create_invoice():
     invoice_type = data.get('type', 'factura')
     client_id = data.get('client_id')
     notes = data.get('notes', '')
+    payment_method = data.get('payment_method')
     items_data = data.get('items', [])
     if not (date_str and client_id and items_data):
         return jsonify({'error': 'Missing required fields'}), 400
@@ -574,6 +589,7 @@ def create_invoice():
         type=invoice_type,
         client_id=client_id,
         notes=notes,
+        payment_method=payment_method,
         total=total,
         tax_total=tax_amount
     )
@@ -602,6 +618,7 @@ def create_invoice():
         'type': invoice.type,
         'client_id': invoice.client_id,
         'notes': invoice.notes,
+        'payment_method': invoice.payment_method,
         'total': invoice.total,
         'tax_total': invoice.tax_total,
         'items': [
@@ -647,6 +664,7 @@ def list_invoices():
             'date': inv.date.isoformat(),
             'client_id': inv.client_id,
             'type': inv.type,
+            'payment_method': inv.payment_method,
             'total': inv.total,
             'tax_total': inv.tax_total
         })
@@ -680,6 +698,7 @@ def get_invoice(invoice_id):
         'client_id': inv.client_id,
         'type': inv.type,
         'notes': inv.notes,
+        'payment_method': inv.payment_method,
         'total': inv.total,
         'tax_total': inv.tax_total,
         'items': [
@@ -745,6 +764,8 @@ def update_invoice(invoice_id):
         inv.type = data['type']
     if 'client_id' in data:
         inv.client_id = int(data['client_id'])
+    if 'payment_method' in data:
+        inv.payment_method = data['payment_method']
     inv.notes = data.get('notes', inv.notes)
     # Replace items if provided
     items_data = data.get('items')

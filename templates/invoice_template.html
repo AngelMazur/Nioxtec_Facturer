@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>Documento</title>
 <style>
         /* Tipografía y reset básico */
         body {
@@ -172,7 +173,6 @@
         </div>
     </div>
     <div class="info-separator"></div>
-    </div>
 
     <!-- Detalle de conceptos -->
     <table>
@@ -199,7 +199,7 @@
     </table>
 
     <!-- Totales -->
-    <div class="totals">
+    <div class="totals" style="display:grid; grid-template-columns: 1fr auto; align-items:start; gap: 20mm;">
         <table class="totals-table">
             <tr>
                 <td>IVA:</td>
@@ -210,6 +210,12 @@
                 <td style="text-align:right"><strong>{{ '%.2f' % invoice.total }} €</strong></td>
             </tr>
         </table>
+        <div>
+            {% if invoice.payment_method %}
+            <div style="font-weight:bold; letter-spacing:0.06em;">CONDICIONES DE PAGO:</div>
+            <div style="margin-top:2mm;">{{ invoice.payment_method|upper }}</div>
+            {% endif %}
+        </div>
     </div>
 
     {% if invoice.notes %}

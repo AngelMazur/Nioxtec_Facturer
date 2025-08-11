@@ -25,6 +25,7 @@ export default function Facturas() {
     date: new Date().toISOString().slice(0, 10),
     type: 'factura',
     client_id: '',
+    payment_method: 'efectivo',
     items: [],
   });
 
@@ -225,6 +226,19 @@ export default function Facturas() {
                   {c.name}
                 </option>
               ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-500">Condiciones de pago</span>
+            <select
+              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+              name="payment_method"
+              value={form.payment_method}
+              onChange={handleChange}
+            >
+              <option value="efectivo">Efectivo</option>
+              <option value="bizum">Bizum</option>
+              <option value="transferencia">Transferencia</option>
             </select>
           </label>
         </div>
