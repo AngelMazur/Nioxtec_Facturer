@@ -73,9 +73,9 @@ export default function Clientes() {
           <Skeleton count={5} height={30} className="mb-2" />
         ) : (
           <>
-          <div className="hidden sm:grid grid-cols-4 gap-2 text-xs text-gray-500 px-2">
+          <div className="hidden sm:grid grid-cols-[minmax(0,1.5fr)_auto_minmax(0,1fr)_auto] gap-3 text-xs text-gray-500 px-2">
             <button className="text-left hover:underline" onClick={()=>{ setSort(s=>({ field: 'name', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Nombre</button>
-            <button className="text-left hover:underline" onClick={()=>{ setSort(s=>({ field: 'cif', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>CIF/NIF</button>
+            <button className="text-right hover:underline" onClick={()=>{ setSort(s=>({ field: 'cif', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>CIF/NIF</button>
             <div>Contacto</div>
             <button className="text-right hover:underline" onClick={()=>{ setSort(s=>({ field: 'created_at', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Creado</button>
           </div>
@@ -106,9 +106,9 @@ export default function Clientes() {
                     <ul className="space-y-2">
                       {pageItems.map((client) => (
                         <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
-                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
-                            <div className="font-medium">{client.name}</div>
-                            <div className="text-gray-500">{client.cif}</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.5fr)_auto_minmax(0,1fr)_auto] gap-3 items-center">
+                            <div className="font-medium leading-snug break-words">{client.name}</div>
+                            <div className="text-gray-500 justify-self-end pl-4 text-right whitespace-nowrap">{client.cif}</div>
                             <div className="text-sm text-gray-400 break-words">
                               <div>{client.email}</div>
                               <div>{client.phone}</div>
