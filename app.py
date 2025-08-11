@@ -109,7 +109,7 @@ app = Flask(__name__, instance_relative_config=True)
 # Detrás de un proxy/túnel (Cloudflare/Nginx), respeta cabeceras X-Forwarded-*
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)  # type: ignore
 # CORS configurable (por defecto permite localhost dev y nginx)
-cors_origins_str = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:8080,http://127.0.0.1:8080')
+cors_origins_str = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080')
 allowed_origins = [o.strip() for o in cors_origins_str.split(',') if o.strip()]
 # Permite inyectar orígenes extra por ENV para despliegues (ej.: https://app.nioxtec.es)
 extra_origins_str = os.getenv('EXTRA_ORIGINS') or os.getenv('APP_ORIGIN') or os.getenv('PUBLIC_APP_ORIGIN')
