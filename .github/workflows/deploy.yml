@@ -26,13 +26,17 @@ jobs:
           Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
       - name: Despliegue vía tarea programada (fallback a script)
-        shell: cmd
+        shell: powershell
         run: |
-          schtasks /Query /TN "Nioxtec Deploy CI" >NUL 2>&1 && (
-            schtasks /Run /TN "Nioxtec Deploy CI"
-          ) || (
-            C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\deploy\deploy_prod.ps1"
-          )
+          # Intentar ejecutar tarea si existe; si falla por permisos o inexistente, ejecutar script directo
+          cmd.exe /c 'schtasks /Query /TN "Nioxtec Deploy CI" >NUL 2>&1'
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Tarea encontrada: ejecutando 'Nioxtec Deploy CI'"
+            cmd.exe /c 'schtasks /Run /TN "Nioxtec Deploy CI"'
+          } else {
+            Write-Host "Tarea no disponible o acceso denegado: ejecutando script directo"
+            & 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:\deploy\deploy_prod.ps1'
+          }
 
       - name: Health‑check API
         shell: powershell
