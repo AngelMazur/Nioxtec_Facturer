@@ -28,6 +28,17 @@ export default function Facturas() {
     items: [],
   });
 
+  const fetchNextNumber = async (docType, atDate) => {
+    try {
+      const qs = new URLSearchParams({ type: docType, ...(atDate ? { date: atDate } : {}) })
+      const res = await apiGet(`/invoices/next_number?${qs.toString()}`, token)
+      const nn = res?.next_number || ''
+      setForm(f=>({ ...f, number: nn }))
+    } catch {
+      // Silencioso; el backend asignará número al guardar
+    }
+  }
+
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -38,6 +49,8 @@ export default function Facturas() {
       setClients(clientsData.items || clientsData);
       setInvoices(invoicesData.items || invoicesData);
       setLoading(false);
+      // Pre-cargar número siguiente para tipo por defecto
+      fetchNextNumber('factura', new Date().toISOString().slice(0, 10))
     }
     if (token) load();
   }, [setClients, setInvoices, token]);
@@ -60,7 +73,17 @@ export default function Facturas() {
     setForm({ ...form, items });
   };
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target
+    setForm((prev) => {
+      const next = { ...prev, [name]: value }
+      return next
+    })
+    if (e.target.name === 'type') {
+      fetchNextNumber(value, form.date)
+    }
+    if (e.target.name === 'date') {
+      fetchNextNumber(form.type, value)
+    }
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -75,6 +98,8 @@ export default function Facturas() {
         client_id: '',
         items: [],
       });
+      // Cargar siguiente número tras crear
+      fetchNextNumber('factura', new Date().toISOString().slice(0, 10))
       // Fijar al principio independientemente del orden
       setInvoices([{ ...data, __pinned: true }, ...invoices]);
       setCurrentPage(1);
@@ -88,7 +113,7 @@ export default function Facturas() {
     try {
       const details = await apiGet(`/invoices/${inv.id}`, token);
       setForm({
-        number: `${details.number}-COPY`,
+        number: '',
         date: new Date().toISOString().slice(0, 10),
         type: details.type,
         client_id: String(details.client_id),
@@ -99,6 +124,8 @@ export default function Facturas() {
           tax_rate: it.tax_rate,
         })),
       });
+      // Cargar el próximo número según tipo del duplicado
+      fetchNextNumber(details.type)
       window.scrollTo({ top: 0, behavior: 'smooth' });
       toast.success('Factura cargada para duplicar');
     } catch {
@@ -156,7 +183,7 @@ export default function Facturas() {
               className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
               name="number"
               value={form.number}
-              onChange={handleChange}
+              readOnly
               required
             />
           </label>

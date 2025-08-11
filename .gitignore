@@ -1,3 +1,11 @@
+venv/
+*.pyc
+__pycache__/
+frontend/node_modules/
+downloads/
+instance/*.db
+*.log
+*.sqlite
 # Python
 venv/
 __pycache__/

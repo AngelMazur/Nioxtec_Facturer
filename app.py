@@ -109,7 +109,7 @@ app = Flask(__name__, instance_relative_config=True)
 # Detrás de un proxy/túnel (Cloudflare/Nginx), respeta cabeceras X-Forwarded-*
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)  # type: ignore
 # CORS configurable (por defecto permite localhost dev y nginx)
-cors_origins_str = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:8080,http://127.0.0.1:8080')
+cors_origins_str = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080')
 allowed_origins = [o.strip() for o in cors_origins_str.split(',') if o.strip()]
 # Permite inyectar orígenes extra por ENV para despliegues (ej.: https://app.nioxtec.es)
 extra_origins_str = os.getenv('EXTRA_ORIGINS') or os.getenv('APP_ORIGIN') or os.getenv('PUBLIC_APP_ORIGIN')
@@ -147,8 +147,10 @@ def _add_cors_headers(response: Response) -> Response:
 
 # JWT
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'change-this-secret')
+# Flag de debug (usado también para relajar X-Frame-Options solo en local)
+DEBUG_MODE = os.getenv('FLASK_DEBUG', 'true').lower() in ('1','true','yes')
 # Rechazar arranque en prod sin secreto adecuado
-if os.getenv('FLASK_DEBUG', 'true').lower() not in ('1','true','yes'):
+if not DEBUG_MODE:
     if not os.getenv('JWT_SECRET_KEY') or app.config['JWT_SECRET_KEY'] == 'change-this-secret':
         raise RuntimeError('JWT_SECRET_KEY debe definirse en producción')
 jwt = JWTManager(app)
@@ -175,17 +177,27 @@ if enable_talisman:
         'script-src': ["'self'", "'unsafe-inline'"],
         'style-src': ["'self'", "'unsafe-inline'"],
         'img-src': ["'self'", 'data:', 'blob:'],
+            # Permitir previsualización de PDFs en iframe como blob:
+            'frame-src': ["'self'", 'blob:'],
         # Permitimos conexiones desde los orígenes del frontend además de self
         'connect-src': ["'self'", *allowed_origins],
         'frame-ancestors': ["'self'"],
     }
-    Talisman(
+    talisman = Talisman(
         app,
         content_security_policy=csp,
         force_https=bool(os.getenv('FORCE_HTTPS', 'true').lower() in ('1','true','yes')),
         strict_transport_security=True,
         strict_transport_security_max_age=31536000,
     )
+    # Permitir iframes/preview en local: X-Frame-Options SAMEORIGIN ya es suficiente; no cambiar en prod
+    if DEBUG_MODE:
+        @app.after_request
+        def _relax_xfo(resp: Response) -> Response:
+            # Asegurar que blob: en iframe no se bloquee por header conflictivo
+            # No se envía en prod (controlado por DEBUG_MODE)
+            resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
+            return resp
 
 # Rate limiting por IP (puede migrarse a Redis en prod con STORAGE_URI)
 limiter = Limiter(
@@ -271,6 +283,15 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
+class DocumentSequence(db.Model):
+    """Stores the last issued number per document type and period (year, month)."""
+    id = db.Column(db.Integer, primary_key=True)
+    doc_type = db.Column(db.String(16), nullable=False, index=True)
+    year = db.Column(db.Integer, nullable=False, default=0, index=True)
+    month = db.Column(db.Integer, nullable=False, default=0, index=True)
+    last_number = db.Column(db.Integer, nullable=False, default=0)
+
+
 # -----------------------------------------------------------------------------
 # Helper functions
 
@@ -280,6 +301,37 @@ def calculate_totals(items):
     tax_sum = sum(item['units'] * item['unit_price'] * (item['tax_rate'] / 100) for item in items)
     total_sum = subtotal_sum + tax_sum
     return subtotal_sum, tax_sum, total_sum
+
+
+def _format_number_for_type(doc_type: str, sequence_number: int, year: int, month: int) -> str:
+    """Return formatted number FAAMM### or PAAMM### depending on type.
+
+    - Prefix: 'F' para factura, 'P' para proforma
+    - AAMM: año y mes en dos dígitos cada uno (YYMM)
+    - ###: contador con tres dígitos iniciado en 001 cada mes
+    """
+    prefix = 'F' if doc_type == 'factura' else 'P'
+    yy = year % 100
+    mm = month % 100
+    return f"{prefix}{yy:02d}{mm:02d}{sequence_number:03d}"
+
+
+def _next_sequence_atomic(doc_type: str, at_date: datetime | None = None) -> str:
+    """Atomically increment and return the next formatted number for a given type and current year/month."""
+    at = at_date or datetime.utcnow()
+    y, m = at.year, at.month
+    # Locking approach: in SQLite rely on transaction; in Postgres, FOR UPDATE ideal (SQLAlchemy hint used).
+    seq = (DocumentSequence.query
+           .filter_by(doc_type=doc_type, year=y, month=m)
+           .with_for_update(nowait=False)
+           .first())
+    if not seq:
+        seq = DocumentSequence(doc_type=doc_type, year=y, month=m, last_number=0)
+        db.session.add(seq)
+        db.session.flush()
+    seq.last_number += 1
+    db.session.flush()
+    return _format_number_for_type(doc_type, seq.last_number, y, m)
 
 
 def _generate_pdf_fallback(invoice: 'Invoice', client: 'Client', company: 'CompanyConfig', items) -> bytes:
@@ -394,6 +446,46 @@ with app.app_context():
                 db.session.commit()
     except Exception:
         pass
+    # Inicializar secuencias por tipo tomando el mayor existente si no hay fila
+    try:
+        # No pre-cargamos secuencias antiguas porque el nuevo formato reinicia por año/mes.
+        # Creamos filas on-demand cuando se emite el primer documento del mes.
+        inspector = inspect(db.engine)
+        # Migración rápida SQLite: adaptar document_sequence a nuevo esquema (year, month, unique compuesto)
+        if database_url.startswith('sqlite'):
+            try:
+                cols = [c['name'] for c in inspector.get_columns('document_sequence')]
+                needs_rebuild = False
+                if 'year' not in cols or 'month' not in cols:
+                    needs_rebuild = True
+                if needs_rebuild:
+                    db.session.execute(text(
+                        """
+                        CREATE TABLE IF NOT EXISTS document_sequence_new (
+                          id INTEGER PRIMARY KEY AUTOINCREMENT,
+                          doc_type VARCHAR(16) NOT NULL,
+                          year INTEGER NOT NULL DEFAULT 0,
+                          month INTEGER NOT NULL DEFAULT 0,
+                          last_number INTEGER NOT NULL DEFAULT 0,
+                          UNIQUE(doc_type, year, month)
+                        )
+                        """
+                    ))
+                    # Migrar datos existentes (si los hay) a fila year=0, month=0
+                    db.session.execute(text(
+                        """
+                        INSERT INTO document_sequence_new (doc_type, year, month, last_number)
+                        SELECT doc_type, 0 as year, 0 as month, last_number FROM document_sequence
+                        """
+                    ))
+                    db.session.execute(text("DROP TABLE document_sequence"))
+                    db.session.execute(text("ALTER TABLE document_sequence_new RENAME TO document_sequence"))
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
     # Crear usuario admin inicial si hay variables de entorno definidas y no existe
     admin_user = os.getenv('ADMIN_USERNAME')
     admin_pass = os.getenv('ADMIN_PASSWORD')
@@ -458,20 +550,24 @@ def list_clients():
 @app.route('/api/invoices', methods=['POST'])
 @jwt_required()
 def create_invoice():
-    """Create a new invoice or proforma and its items."""
+    """Create a new invoice or proforma and its items.
+
+    Número se asigna automáticamente según el tipo.
+    """
     data = request.get_json(force=True)
-    number = data.get('number')
     date_str = data.get('date')
     invoice_type = data.get('type', 'factura')
     client_id = data.get('client_id')
     notes = data.get('notes', '')
     items_data = data.get('items', [])
-    if not (number and date_str and client_id and items_data):
+    if not (date_str and client_id and items_data):
         return jsonify({'error': 'Missing required fields'}), 400
     # Convert date string to date object
     date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
     # Compute totals
     subtotal, tax_amount, total = calculate_totals(items_data)
+    # Asignar número automáticamente según fecha indicada (reinicia por año/mes)
+    number = _next_sequence_atomic(invoice_type, datetime.strptime(date_str, '%Y-%m-%d'))
     invoice = Invoice(
         number=number,
         date=date_obj,
@@ -557,6 +653,22 @@ def list_invoices():
     return jsonify({'items': items, 'total': total})
 
 
+@app.route('/api/invoices/next_number')
+@jwt_required()
+def get_next_number():
+    """Devuelve el siguiente número formateado para un tipo dado (factura|proforma)."""
+    doc_type = request.args.get('type', 'factura')
+    if doc_type not in ('factura', 'proforma'):
+        return jsonify({'error': 'type inválido'}), 400
+    # Permite opcionalmente fecha base para preview (YYYY-MM-DD); por defecto hoy
+    date_str = request.args.get('date')
+    base = datetime.strptime(date_str, '%Y-%m-%d') if date_str else datetime.utcnow()
+    seq = DocumentSequence.query.filter_by(doc_type=doc_type, year=base.year, month=base.month).first()
+    last = seq.last_number if seq else 0
+    next_formatted = _format_number_for_type(doc_type, last + 1, base.year, base.month)
+    return jsonify({'next_number': next_formatted})
+
+
 @app.route('/api/invoices/<int:invoice_id>', methods=['GET'])
 @jwt_required()
 def get_invoice(invoice_id):
@@ -626,8 +738,7 @@ def update_invoice(invoice_id):
     inv = Invoice.query.get_or_404(invoice_id)
     data = request.get_json(force=True)
     # Basic fields
-    if 'number' in data:
-        inv.number = data['number']
+    # Ya no permitimos cambiar el número arbitrariamente para mantener la secuencia
     if 'date' in data:
         inv.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
     if 'type' in data:
@@ -666,20 +777,20 @@ def update_invoice(invoice_id):
 @app.route('/api/invoices/<int:invoice_id>/convert', methods=['PATCH'])
 @jwt_required()
 def convert_proforma(invoice_id):
+    """Convierte una proforma en factura asignando número automáticamente."""
     inv = Invoice.query.get_or_404(invoice_id)
-    data = request.get_json(force=True)
-    new_number = data.get('number')
-    if not new_number:
-        return jsonify({'error': 'Debe proporcionar el nuevo número de factura'}), 400
+    if inv.type == 'factura':
+        return jsonify({'error': 'El documento ya es una factura'}), 400
+    # Asignar siguiente número de factura
     inv.type = 'factura'
-    inv.number = new_number
+    inv.number = _next_sequence_atomic('factura')
     inv.date = datetime.utcnow().date()
     try:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
         return jsonify({'error': 'El número de factura ya existe'}), 409
-    return jsonify({'status': 'ok'})
+    return jsonify({'status': 'ok', 'number': inv.number})
 
 
 @app.route('/api/reports/summary')
@@ -687,14 +798,27 @@ def convert_proforma(invoice_id):
 def reports_summary():
     year = request.args.get('year', type=int, default=datetime.utcnow().year)
     # Sum totals by month for invoices type 'factura'
-    rows = (
-        db.session.query(db.extract('month', Invoice.date).label('month'), db.func.sum(Invoice.total))
-        .filter(db.extract('year', Invoice.date) == year)
-        .filter(Invoice.type == 'factura')
-        .group_by('month')
-        .order_by('month')
-        .all()
-    )
+    rows = []
+    try:
+        rows = (
+            db.session.query(db.extract('month', Invoice.date).label('month'), db.func.sum(Invoice.total))
+            .filter(db.extract('year', Invoice.date) == year)
+            .filter(Invoice.type == 'factura')
+            .group_by('month')
+            .order_by('month')
+            .all()
+        )
+    except Exception:
+        # SQLite fallback using strftime
+        rows = db.session.execute(
+            text("""
+                SELECT CAST(STRFTIME('%m', date) AS INTEGER) AS month, SUM(total)
+                FROM invoice
+                WHERE type = 'factura' AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                GROUP BY month
+                ORDER BY month
+            """), { 'year': year }
+        ).fetchall()
     by_month = {int(m): float(t or 0) for m, t in rows}
     total_year = sum(by_month.values())
     return jsonify({'year': year, 'by_month': by_month, 'total_year': total_year})
@@ -707,14 +831,27 @@ def reports_heatmap():
     month = request.args.get('month', type=int)
     if not year or not month:
         return jsonify({'error': 'Parámetros year y month requeridos'}), 400
-    rows = (
-        db.session.query(Invoice.date, db.func.sum(Invoice.total))
-        .filter(db.extract('year', Invoice.date) == year)
-        .filter(db.extract('month', Invoice.date) == month)
-        .filter(Invoice.type == 'factura')
-        .group_by(Invoice.date)
-        .all()
-    )
+    try:
+        rows = (
+            db.session.query(Invoice.date, db.func.sum(Invoice.total))
+            .filter(db.extract('year', Invoice.date) == year)
+            .filter(db.extract('month', Invoice.date) == month)
+            .filter(Invoice.type == 'factura')
+            .group_by(Invoice.date)
+            .all()
+        )
+    except Exception:
+        rows = db.session.execute(
+            text("""
+                SELECT date as d, SUM(total) as t
+                FROM invoice
+                WHERE type = 'factura'
+                  AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                  AND CAST(STRFTIME('%m', date) AS INTEGER) = :month
+                GROUP BY d
+                ORDER BY d
+            """), { 'year': year, 'month': month }
+        ).fetchall()
     by_day = {d.strftime('%Y-%m-%d'): float(t or 0) for d, t in rows}
     return jsonify({'year': year, 'month': month, 'by_day': by_day})
 

@@ -1,285 +1,117 @@
 # NIOXTEC Facturer
 
-A modern invoice and client management system designed for small businesses and freelancers. Built with Flask (backend) and React (frontend), featuring JWT authentication, PDF generation, and comprehensive reporting.
+Aplicación de facturación simple: Backend Flask + Frontend React (Vite) sin Docker.
 
-## 🚀 Features
+## Entornos soportados
 
-- **Client Management**: Create, edit, and organize client information
-- **Invoice & Proforma Management**: Generate professional invoices and proformas with automatic calculations
-- **PDF Generation**: Export invoices as high-quality PDFs with custom branding
-- **Authentication**: Secure JWT-based authentication system
-- **Reporting**: Visual reports with monthly income charts and heatmaps
-- **Data Export**: Export client and invoice data to XLSX format
-- **Responsive Design**: Mobile-friendly interface with dropdown navigation
-- **Multi-platform Support**: Docker Compose for production, local development fallback
+- Producción (Windows Server):
+  - Backend Flask ejecutado como tarea programada (schtasks) con entorno virtual Windows `.venv310` (gunicorn o `python app.py`).
+  - Frontend React servido como estático tras `npm run build` (IIS/Nginx/serve) como tarea programada.
+  - Scripts PowerShell: `DEVELOPER/scripts/start_all.ps1`, `stop_all.ps1`, `deploy_prod.ps1`, `register_deploy_task.ps1`.
+- Desarrollo (macOS):
+  - Backend Flask (debug) en 5000.
+  - Frontend con Vite dev server en 5173 (hot reload). `start_app.command` levanta este flujo y abre `http://localhost:5173`.
+  - Alternativa prod-like local: gunicorn en 5000 y `serve` en 8080 (opcional).
 
-## 📋 Requirements
+## Requisitos
 
-### For Docker Compose (Recommended)
-- Docker
-- Docker Compose
+- macOS/Linux
+- Python 3.11+
+- Node.js 18+
 
-### For Local Development
-- Python 3.8+
-- Node.js 16+ (for frontend build)
-- wkhtmltopdf or WeasyPrint (for PDF generation)
+## Backend (Flask)
 
-## 🛠️ Installation & Setup
-
-### Option 1: Docker Compose (Production-Ready)
-
-1. **Clone the repository**
+1. Crear y activar venv
    ```bash
-   git clone <your-repo-url>
-   cd nioxtec_facturer_updated_project
-   ```
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
-2. **Start the application**
-   ```bash
-   # Using the provided script (macOS/Linux)
-   ./start_app.command
-   
-   # Or manually
-   docker-compose up -d
-   ```
-
-3. **Access the application**
-   - Frontend: http://localhost:8080
-   - Backend API: http://localhost:5000
-
-### Option 2: Local Development
-
-1. **Set up Python backend**
-   ```bash
-   # Create virtual environment
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   
-   # Install dependencies
-   pip install -r requirements.txt
-   
-   # Start Flask server
-   python app.py
-   ```
-
-2. **Set up React frontend**
-   ```bash
-   cd frontend
-   npm install
-   npm run build
-   npx serve -s dist -l 8080
-   ```
-
-3. **Access the application**
-   - Frontend: http://localhost:8080
-   - Backend API: http://localhost:5000
-
-## 🔧 Environment Configuration
-
-Create a `.env` file in the root directory:
-
+2. Variables de entorno (crear `.env` si lo deseas)
 ```env
-# Database Configuration
-DATABASE_URL=postgresql+psycopg2://niox:nioxpass@db:5432/nioxtec  # For Docker
-# DATABASE_URL=sqlite:///instance/app.db  # For local development
-
-# JWT Configuration
-JWT_SECRET_KEY=your-secret-key-here
-
-# CORS Configuration
-CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
-
-# PDF Engine (optional)
-USE_WEASYPRINT=false  # Set to true to use WeasyPrint instead of wkhtmltopdf
-
-# Debug Mode
-FLASK_DEBUG=true
+JWT_SECRET_KEY=pon-un-secreto
+CORS_ORIGINS=http://localhost:8080
+# Para producción local sin HTTPS forzado
+FORCE_HTTPS=false
+# Si usas Postgres
+# DATABASE_URL=postgresql+psycopg://usuario:pass@host:5432/basedatos
 ```
 
-## 📱 Mobile Access
-
-To access the application from your mobile device:
-
-### Docker Compose Setup
-1. Find your computer's IP address:
+3. Arranque en producción (local) con gunicorn (macOS)
    ```bash
-   # macOS/Linux
-   ifconfig | grep "inet " | grep -v 127.0.0.1
-   
-   # Windows
-   ipconfig
-   ```
-
-2. Access from mobile: `http://YOUR_IP:8080`
-
-### Local Development Setup
-1. Update CORS origins in `.env`:
-   ```env
-   CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,http://YOUR_IP:8080
-   ```
-
-2. Restart the backend and access from mobile: `http://YOUR_IP:8080`
-
-## 🎯 Usage
-
-### First Time Setup
-1. Open the application in your browser
-2. Create your first user account (no authentication required for the first user)
-3. Log in with your credentials
-
-### Managing Clients
-- Navigate to "Clientes" to add, edit, and view client information
-- Use the search and sort functionality to organize your client list
-- Export client data to XLSX format
-
-### Creating Invoices
-- Go to "Facturas" to create new invoices or proformas
-- Select a client, add line items with descriptions, quantities, and prices
-- View PDF previews and download invoices
-- Duplicate existing invoices for recurring billing
-- Convert proformas to invoices with current date
-
-### Reports & Analytics
-- Visit "Reportes" for business insights
-- View monthly income charts with interactive tooltips
-- Analyze daily/weekly income patterns with heatmaps
-- Export data for external analysis
-
-## 🏗️ Architecture
-
-### Backend (Flask)
-- **Framework**: Flask with SQLAlchemy ORM
-- **Database**: PostgreSQL (production) / SQLite (development)
-- **Authentication**: JWT tokens with 30-day expiry
-- **PDF Generation**: WeasyPrint or wkhtmltopdf
-- **API**: RESTful endpoints with CORS support
-
-### Frontend (React)
-- **Build Tool**: Vite for fast development and optimized builds
-- **Styling**: Tailwind CSS for responsive design
-- **State Management**: Zustand for global state
-- **Routing**: React Router for navigation
-- **Notifications**: React Hot Toast for user feedback
-
-### Key Components
-- `app.py`: Main Flask application with API endpoints
-- `frontend/src/pages/`: React page components (Login, Clientes, Facturas, Reportes)
-- `frontend/src/components/Header.jsx`: Navigation with mobile support
-- `frontend/src/lib/api.js`: Centralized API client with JWT handling
-- `templates/invoice_template.html`: PDF invoice template
-
-## 🚦 Scripts
-
-### Start Application
-```bash
-./start_app.command    # Automatic detection (Docker Compose or local)
+pip install gunicorn
+FORCE_HTTPS=false FLASK_DEBUG=0 gunicorn -w 2 -b 0.0.0.0:5000 app:app
 ```
 
-### Stop Application
-```bash
-./stop_app.command     # Stops all services
+4. Arranque en desarrollo
+   ```bash
+FLASK_DEBUG=1 python app.py
 ```
 
-### Manual Commands
-```bash
-# Docker Compose
-docker-compose up -d
-docker-compose down
+## Frontend (React + Vite)
 
-# Local Development
-python app.py &
-cd frontend && npm run build && npx serve -s dist -l 8080
+### Desarrollo (macOS)
+```bash
+cd frontend
+npm install
+npm run dev
+# Vite escuchará en http://localhost:5173
 ```
 
-## 🔒 Security Features
-
-- **Password Hashing**: Werkzeug security for password protection
-- **JWT Authentication**: Secure API access with token expiration
-- **CORS Protection**: Configurable origins for cross-origin requests
-- **Input Validation**: Server-side validation for all data inputs
-
-## 📊 API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-
-### Clients
-- `GET /api/clients` - List clients (paginated)
-- `POST /api/clients` - Create client
-- `PUT /api/clients/:id` - Update client
-- `GET /api/clients/export_xlsx` - Export clients to XLSX
-
-### Invoices
-- `GET /api/invoices` - List invoices (paginated)
-- `POST /api/invoices` - Create invoice
-- `GET /api/invoices/:id` - Get invoice details
-- `PUT /api/invoices/:id` - Update invoice
-- `DELETE /api/invoices/:id` - Delete invoice
-- `PATCH /api/invoices/:id/convert` - Convert proforma to invoice
-- `GET /api/invoices/:id/pdf` - Generate PDF
-- `GET /api/invoices/export_xlsx` - Export invoices to XLSX
-
-### Reports
-- `GET /api/reports/summary` - Monthly income summary
-- `GET /api/reports/heatmap` - Daily income heatmap
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **"Failed to fetch" errors**
-   - Check if backend is running on port 5000
-   - Verify CORS origins in `.env` file
-   - Ensure JWT token is valid
-
-2. **PDF generation fails**
-   - Install wkhtmltopdf: `brew install wkhtmltopdf` (macOS)
-   - Or try WeasyPrint: Set `USE_WEASYPRINT=true` in `.env`
-
-3. **Database connection issues**
-   - For Docker: Ensure PostgreSQL container is running
-   - For local: Check SQLite file permissions in `instance/` folder
-
-4. **Frontend build errors**
-   - Update Node.js to version 16 or higher
-   - Clear npm cache: `npm cache clean --force`
-   - Delete `node_modules` and run `npm install`
-
-### Logs and Debugging
-
+### Producción (estático)
 ```bash
-# Docker Compose logs
-docker-compose logs -f backend
-docker-compose logs -f frontend
-
-# Check running processes
-ps aux | grep python  # Backend
-ps aux | grep serve   # Frontend
+cd frontend
+npm install
+npm run build
+npx serve -s dist -l 8080
 ```
 
-## 🤝 Contributing
+El frontend se conectará al backend en `http://127.0.0.1:5000` (auto-config en `frontend/src/lib/api.js`).
 
-1. Fork the repository
-2. Create a feature branch
-3. Add proper docstrings and comments
-4. Test your changes
-5. Submit a pull request
+## Numeración automática
 
-## 📄 License
+- Facturas: `FAAMM###` (ej.: `F2508001`).
+- Proformas: `PAAMM###`.
+- El contador se reinicia por año/mes y se basa en la fecha del documento.
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## Scripts útiles
 
-## 🆘 Support
+- macOS
+  - `start_app.command`: levanta backend (Flask debug) y Vite en 5173.
+  - `stop_app.command`: detiene servicios locales en 5000/8080.
+  - Semilla local (opcional): `python DEVELOPER/scripts/dev_seed.py` (crea usuario `dev/devpass`, cliente demo y una factura de ejemplo).
+- Windows (producción)
+  - `DEVELOPER/scripts/register_deploy_task.ps1`: registra la tarea "Nioxtec Deploy".
+  - `DEVELOPER/scripts/deploy_prod.ps1`: para servicios, backup de `instance/app.db`, `git pull`, instala dependencias, build frontend y arranca tareas Backend/Frontend.
+  - `DEVELOPER/scripts/start_all.ps1` y `stop_all.ps1`: inician/detienen tareas programadas "Nioxtec Backend" y "Nioxtec Frontend".
 
-For support and questions:
-1. Check the troubleshooting section above
-2. Review the browser console for frontend errors
-3. Check backend logs for API issues
-4. Ensure all environment variables are correctly set
+## Checklist antes de subir a producción
 
----
+1. Tests manuales rápidos
+   - Login OK (`/api/auth/login`).
+   - Crear factura y proforma: número asignado automáticamente y formato correcto.
+   - Cambio de fecha en formulario: número se recalcula (`next_number`).
+   - Conversión proforma→factura: número de factura asignado.
+   - Reportes (`/api/reports/summary`, `/api/reports/heatmap`): datos correctos.
+   - PDF: generar y previsualizar.
+2. Seguridad
+   - `JWT_SECRET_KEY` definido en entorno de prod.
+   - `CORS_ORIGINS` con dominios correctos.
+   - `FORCE_HTTPS=true` detrás de proxy HTTPS.
+3. Base de datos
+   - Si usas SQLite, verifica permisos de `instance/app.db`.
+   - Si usas Postgres, revisa `DATABASE_URL`.
 
-**Built with ❤️ for small businesses and freelancers**
+## Despliegue (sin Docker)
 
-<!-- chore(ci): trigger GitHub Actions; nota dev: si el servidor Vite falla en macOS por "crypto.hash is not a function", puedes usar `npm run build && npx serve -s dist -l 8080` para servir el frontend en local. -->
+- macOS/staging local:
+  - Backend: `gunicorn -w 2 -b 0.0.0.0:5000 app:app` con variables de entorno adecuadas.
+  - Frontend: servir `frontend/dist/` con tu server (Nginx/Apache) o con `npx serve -s dist -l 8080`.
+- Windows producción:
+  - Ejecutar `DEVELOPER/scripts/deploy_prod.ps1` (parada, backup, pull, build, arranque, health-check).
+  - O bien usar la tarea registrada "Nioxtec Deploy" (`schtasks /Run /TN "Nioxtec Deploy"`).
+
+## Notas
+
+- Eliminado soporte Docker del README para evitar confusión. Los archivos de Docker pueden mantenerse fuera del flujo de despliegue si no se usan.
