@@ -99,27 +99,55 @@ export default function Clientes() {
              const safePage = Math.min(currentPage, totalPages)
              const start = (safePage - 1) * pageSize
              const pageItems = sorted.slice(start, start + pageSize)
-             return (
-               <>
-                 <ul className="space-y-2">
-                   {pageItems.map((client) => (
-                      <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
-                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
-                         <div className="font-medium">{client.name}</div>
-                         <div className="text-gray-500">{client.cif}</div>
-                         <div className="text-sm text-gray-400 break-words">
-                           <div>{client.email}</div>
-                           <div>{client.phone}</div>
-                         </div>
-                          <div className="text-sm text-gray-400 sm:text-right flex items-center justify-end gap-3">
-                            <span>{client.created_at ? String(client.created_at).slice(0,10) : ''}</span>
-                            <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button>
+              return (
+                <>
+                  {/* Desktop list */}
+                  <div className="hidden md:block">
+                    <ul className="space-y-2">
+                      {pageItems.map((client) => (
+                        <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
+                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
+                            <div className="font-medium">{client.name}</div>
+                            <div className="text-gray-500">{client.cif}</div>
+                            <div className="text-sm text-gray-400 break-words">
+                              <div>{client.email}</div>
+                              <div>{client.phone}</div>
+                            </div>
+                            <div className="text-sm text-gray-400 sm:text-right flex flex-col items-end gap-1">
+                              <span className="whitespace-nowrap">{client.created_at ? String(client.created_at).slice(0,10) : ''}</span>
+                              <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button>
+                            </div>
                           </div>
-                       </div>
-                     </li>
-                   ))}
-                 </ul>
-                 <div className="flex items-center justify-between gap-2 mt-3">
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Mobile cards */}
+                  <div className="md:hidden space-y-2">
+                    {pageItems.map((client) => (
+                      <div key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
+                        <div className="space-y-1">
+                          <div className="text-xs text-gray-500">Nombre</div>
+                          <div className="font-medium">{client.name}</div>
+                          <div className="text-xs text-gray-500 mt-2">CIF/NIF</div>
+                          <div className="text-gray-300">{client.cif}</div>
+                          <div className="text-xs text-gray-500 mt-2">Contacto</div>
+                          <div className="text-sm text-gray-400 break-words">
+                            <div>{client.email}</div>
+                            <div>{client.phone}</div>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-2">Creado</div>
+                          <div className="text-gray-300">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
+                        </div>
+                        <div className="mt-3 flex items-center gap-4">
+                          <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 mt-3">
                    {safePage > 1 ? (
                      <button className="bg-secondary text-white px-3 py-1 rounded" onClick={()=>setCurrentPage(p=>Math.max(1,p-1))}>Anterior</button>
                    ) : <span />}
