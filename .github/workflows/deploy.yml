@@ -28,7 +28,7 @@ jobs:
       - name: Ejecutar script de despliegue en el servidor
         shell: powershell
         run: |
-          C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\deploy_prod.ps1
+          powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\deploy_prod.ps1"
 
       - name: Health‑check API
         shell: powershell
