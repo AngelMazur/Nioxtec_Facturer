@@ -4,16 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# 1) Levantar Postgres + backend + frontend con Docker Compose si está disponible
-if command -v docker >/dev/null 2>&1 && command -v docker-compose >/dev/null 2>&1; then
-  echo "Iniciando con Docker Compose..."
-  docker-compose up -d
-  echo "Servicios levantados: http://localhost:8080 (frontend) y http://127.0.0.1:5000 (API)"
-  open "http://localhost:8080"
-  exit 0
-fi
-
-echo "Docker Compose no está disponible. Usando modo local (venv + servidor estático)."
+echo "Iniciando en modo local (venv + servidor estático)."
 
 # 2) Modo local: iniciar backend Flask y servir frontend build
 

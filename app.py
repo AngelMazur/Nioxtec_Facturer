@@ -450,6 +450,39 @@ with app.app_context():
     try:
         # No pre-cargamos secuencias antiguas porque el nuevo formato reinicia por año/mes.
         # Creamos filas on-demand cuando se emite el primer documento del mes.
+        inspector = inspect(db.engine)
+        # Migración rápida SQLite: adaptar document_sequence a nuevo esquema (year, month, unique compuesto)
+        if database_url.startswith('sqlite'):
+            try:
+                cols = [c['name'] for c in inspector.get_columns('document_sequence')]
+                needs_rebuild = False
+                if 'year' not in cols or 'month' not in cols:
+                    needs_rebuild = True
+                if needs_rebuild:
+                    db.session.execute(text(
+                        """
+                        CREATE TABLE IF NOT EXISTS document_sequence_new (
+                          id INTEGER PRIMARY KEY AUTOINCREMENT,
+                          doc_type VARCHAR(16) NOT NULL,
+                          year INTEGER NOT NULL DEFAULT 0,
+                          month INTEGER NOT NULL DEFAULT 0,
+                          last_number INTEGER NOT NULL DEFAULT 0,
+                          UNIQUE(doc_type, year, month)
+                        )
+                        """
+                    ))
+                    # Migrar datos existentes (si los hay) a fila year=0, month=0
+                    db.session.execute(text(
+                        """
+                        INSERT INTO document_sequence_new (doc_type, year, month, last_number)
+                        SELECT doc_type, 0 as year, 0 as month, last_number FROM document_sequence
+                        """
+                    ))
+                    db.session.execute(text("DROP TABLE document_sequence"))
+                    db.session.execute(text("ALTER TABLE document_sequence_new RENAME TO document_sequence"))
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
         db.session.commit()
     except Exception:
         db.session.rollback()
