@@ -26,9 +26,9 @@ jobs:
           Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
       - name: Ejecutar script de despliegue en el servidor
-        shell: powershell
+        shell: cmd
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\deploy_prod.ps1"
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\deploy_prod.ps1"
 
       - name: Health‑check API
         shell: powershell
