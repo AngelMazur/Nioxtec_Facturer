@@ -28,9 +28,10 @@ export default function Facturas() {
     items: [],
   });
 
-  const fetchNextNumber = async (docType) => {
+  const fetchNextNumber = async (docType, atDate) => {
     try {
-      const res = await apiGet(`/invoices/next_number?type=${encodeURIComponent(docType)}`, token)
+      const qs = new URLSearchParams({ type: docType, ...(atDate ? { date: atDate } : {}) })
+      const res = await apiGet(`/invoices/next_number?${qs.toString()}`, token)
       const nn = res?.next_number || ''
       setForm(f=>({ ...f, number: nn }))
     } catch {
@@ -49,7 +50,7 @@ export default function Facturas() {
       setInvoices(invoicesData.items || invoicesData);
       setLoading(false);
       // Pre-cargar número siguiente para tipo por defecto
-      fetchNextNumber('factura')
+      fetchNextNumber('factura', new Date().toISOString().slice(0, 10))
     }
     if (token) load();
   }, [setClients, setInvoices, token]);
@@ -78,7 +79,10 @@ export default function Facturas() {
       return next
     })
     if (e.target.name === 'type') {
-      fetchNextNumber(value)
+      fetchNextNumber(value, form.date)
+    }
+    if (e.target.name === 'date') {
+      fetchNextNumber(form.type, value)
     }
   };
   const handleSubmit = async (e) => {
@@ -95,7 +99,7 @@ export default function Facturas() {
         items: [],
       });
       // Cargar siguiente número tras crear
-      fetchNextNumber('factura')
+      fetchNextNumber('factura', new Date().toISOString().slice(0, 10))
       // Fijar al principio independientemente del orden
       setInvoices([{ ...data, __pinned: true }, ...invoices]);
       setCurrentPage(1);

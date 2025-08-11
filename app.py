@@ -284,9 +284,11 @@ class User(db.Model):
 
 
 class DocumentSequence(db.Model):
-    """Stores the last issued number per document type (e.g., factura, proforma)."""
+    """Stores the last issued number per document type and period (year, month)."""
     id = db.Column(db.Integer, primary_key=True)
-    doc_type = db.Column(db.String(16), unique=True, nullable=False)
+    doc_type = db.Column(db.String(16), nullable=False, index=True)
+    year = db.Column(db.Integer, nullable=False, default=0, index=True)
+    month = db.Column(db.Integer, nullable=False, default=0, index=True)
     last_number = db.Column(db.Integer, nullable=False, default=0)
 
 
@@ -301,26 +303,35 @@ def calculate_totals(items):
     return subtotal_sum, tax_sum, total_sum
 
 
-def _format_number_for_type(doc_type: str, sequence_number: int) -> str:
-    """Return formatted number like F00001 or P00001 depending on type.
+def _format_number_for_type(doc_type: str, sequence_number: int, year: int, month: int) -> str:
+    """Return formatted number FAAMM### or PAAMM### depending on type.
 
-    This is a temporary fixed format as requested; later we can make it configurable.
+    - Prefix: 'F' para factura, 'P' para proforma
+    - AAMM: año y mes en dos dígitos cada uno (YYMM)
+    - ###: contador con tres dígitos iniciado en 001 cada mes
     """
     prefix = 'F' if doc_type == 'factura' else 'P'
-    return f"{prefix}{sequence_number:05d}"
+    yy = year % 100
+    mm = month % 100
+    return f"{prefix}{yy:02d}{mm:02d}{sequence_number:03d}"
 
 
-def _next_sequence_atomic(doc_type: str) -> str:
-    """Atomically increment and return the next formatted number for a given type."""
-    # Locking approach: in SQLite we rely on transaction serialization; in Postgres, FOR UPDATE would be ideal.
-    seq = DocumentSequence.query.filter_by(doc_type=doc_type).with_for_update(nowait=False).first()
+def _next_sequence_atomic(doc_type: str, at_date: datetime | None = None) -> str:
+    """Atomically increment and return the next formatted number for a given type and current year/month."""
+    at = at_date or datetime.utcnow()
+    y, m = at.year, at.month
+    # Locking approach: in SQLite rely on transaction; in Postgres, FOR UPDATE ideal (SQLAlchemy hint used).
+    seq = (DocumentSequence.query
+           .filter_by(doc_type=doc_type, year=y, month=m)
+           .with_for_update(nowait=False)
+           .first())
     if not seq:
-        seq = DocumentSequence(doc_type=doc_type, last_number=0)
+        seq = DocumentSequence(doc_type=doc_type, year=y, month=m, last_number=0)
         db.session.add(seq)
         db.session.flush()
     seq.last_number += 1
     db.session.flush()
-    return _format_number_for_type(doc_type, seq.last_number)
+    return _format_number_for_type(doc_type, seq.last_number, y, m)
 
 
 def _generate_pdf_fallback(invoice: 'Invoice', client: 'Client', company: 'CompanyConfig', items) -> bytes:
@@ -437,27 +448,8 @@ with app.app_context():
         pass
     # Inicializar secuencias por tipo tomando el mayor existente si no hay fila
     try:
-        for t in ('factura', 'proforma'):
-            seq = DocumentSequence.query.filter_by(doc_type=t).first()
-            if not seq:
-                # Detectar máximo número existente por tipo a partir de Invoice.number
-                max_n = 0
-                for inv in Invoice.query.filter_by(type=t).all():
-                    # Extraer dígitos finales; si no hay, saltar
-                    num = str(inv.number or '')
-                    digits = ''
-                    for ch in reversed(num):
-                        if ch.isdigit():
-                            digits = ch + digits
-                        else:
-                            break
-                    try:
-                        if digits:
-                            max_n = max(max_n, int(digits))
-                    except Exception:
-                        pass
-                seq = DocumentSequence(doc_type=t, last_number=max_n)
-                db.session.add(seq)
+        # No pre-cargamos secuencias antiguas porque el nuevo formato reinicia por año/mes.
+        # Creamos filas on-demand cuando se emite el primer documento del mes.
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -541,8 +533,8 @@ def create_invoice():
     date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
     # Compute totals
     subtotal, tax_amount, total = calculate_totals(items_data)
-    # Asignar número automáticamente
-    number = _next_sequence_atomic(invoice_type)
+    # Asignar número automáticamente según fecha indicada (reinicia por año/mes)
+    number = _next_sequence_atomic(invoice_type, datetime.strptime(date_str, '%Y-%m-%d'))
     invoice = Invoice(
         number=number,
         date=date_obj,
@@ -635,10 +627,12 @@ def get_next_number():
     doc_type = request.args.get('type', 'factura')
     if doc_type not in ('factura', 'proforma'):
         return jsonify({'error': 'type inválido'}), 400
-    # Calcular siguiente sin incrementar estado: mostraría el siguiente teórico
-    seq = DocumentSequence.query.filter_by(doc_type=doc_type).first()
+    # Permite opcionalmente fecha base para preview (YYYY-MM-DD); por defecto hoy
+    date_str = request.args.get('date')
+    base = datetime.strptime(date_str, '%Y-%m-%d') if date_str else datetime.utcnow()
+    seq = DocumentSequence.query.filter_by(doc_type=doc_type, year=base.year, month=base.month).first()
     last = seq.last_number if seq else 0
-    next_formatted = _format_number_for_type(doc_type, last + 1)
+    next_formatted = _format_number_for_type(doc_type, last + 1, base.year, base.month)
     return jsonify({'next_number': next_formatted})
 
 
