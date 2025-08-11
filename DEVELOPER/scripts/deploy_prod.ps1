@@ -24,11 +24,23 @@ npm run build
 schtasks /Run /TN "Nioxtec Backend"  | Out-Null
 schtasks /Run /TN "Nioxtec Frontend" | Out-Null
 
-Start-Sleep -Seconds 3
-try {
-  $code = (Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 10).StatusCode
-  Write-Host "Despliegue OK, status API:" $code
-} catch {
-  Write-Host "Verifica túnel/servicios: health-check falló." $_.Exception.Message
+# Espera y reintentos del health-check
+$maxRetries = 3
+$delaySec   = 10
+for ($i=1; $i -le $maxRetries; $i++) {
+  Start-Sleep -Seconds $delaySec
+  try {
+    $code = (Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 10).StatusCode
+    if ($code -eq 200) {
+      Write-Host "Despliegue OK, status API: $code"
+      exit 0
+    } else {
+      Write-Host "Health intento $i: código $code, reintentando..."
+    }
+  } catch {
+    Write-Host "Health intento $i: $($_.Exception.Message), reintentando..."
+  }
 }
+Write-Error "Health-check fallo tras $maxRetries intentos"
+exit 1
 
