@@ -73,7 +73,7 @@ export default function Clientes() {
           <Skeleton count={5} height={30} className="mb-2" />
         ) : (
           <>
-          <div className="hidden sm:grid grid-cols-[minmax(0,1.8fr)_12rem_minmax(0,1.2fr)_auto] gap-6 text-xs text-gray-500 px-2">
+          <div className="hidden sm:grid grid-cols-[minmax(0,2fr)_12rem_minmax(0,1.6fr)_12rem] gap-6 text-xs text-gray-500 px-2 items-center">
             <button className="text-left hover:underline whitespace-nowrap" onClick={()=>{ setSort(s=>({ field: 'name', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Nombre</button>
             <button className="text-center hover:underline whitespace-nowrap" onClick={()=>{ setSort(s=>({ field: 'cif', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>CIF/NIF</button>
             <div className="text-center whitespace-nowrap">Contacto</div>
@@ -106,14 +106,14 @@ export default function Clientes() {
                     <ul className="space-y-2">
                       {pageItems.map((client) => (
                         <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
-                          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.8fr)_12rem_minmax(0,1.2fr)_auto] gap-6 items-start">
+                          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_12rem_minmax(0,1.6fr)_12rem] gap-6 items-start">
                             <div className="font-medium leading-snug break-words">{client.name}</div>
                             <div className="text-gray-500 justify-self-center text-center whitespace-nowrap">{client.cif}</div>
                             <div className="text-sm text-gray-400 break-words">
                               <div>{client.email}</div>
                               <div>{client.phone}</div>
                             </div>
-                            <div className="text-sm text-gray-400 sm:text-center flex flex-col items-end sm:items-center gap-1">
+                            <div className="text-sm text-gray-400 sm:text-center flex flex-col items-end sm:items-center gap-1 justify-center">
                               <span className="whitespace-nowrap">{client.created_at ? String(client.created_at).slice(0,10) : ''}</span>
                               <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button>
                             </div>
