@@ -129,6 +129,15 @@
             font-size: 10px;
             color: #555;
         }
+        .payment-method {
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            background-color: transparent !important;
+            -webkit-box-shadow: none !important;
+            -moz-box-shadow: none !important;
+        }
     </style>
 </head>
 <body>
@@ -198,9 +207,15 @@
         </tbody>
     </table>
 
-    <!-- Totales -->
-    <div class="totals" style="display:grid; grid-template-columns: 1fr auto; align-items:start; gap: 20mm;">
-        <table class="totals-table">
+    <!-- Totales y condiciones de pago -->
+    <div class="totals" style="display:grid; grid-template-columns: 1fr auto; align-items:start; gap: 10mm;">
+        <div></div>
+        <div>
+            {% if invoice.payment_method and invoice.type == 'factura' %}
+            <p style="font-weight:bold; letter-spacing:0.06em; margin: 0 0 3mm 0;">CONDICIONES DE PAGO:</p>
+            <p style="margin: 0 0 8mm 0; text-transform: uppercase; font-size: 14px; border: none; background: none;">{{ invoice.payment_method }}</p>
+            {% endif %}
+            <table class="totals-table">
             <tr>
                 <td>IVA:</td>
                 <td style="text-align:right">{{ '%.2f' % invoice.tax_total }} €</td>
@@ -209,12 +224,7 @@
                 <td><strong>TOTAL:</strong></td>
                 <td style="text-align:right"><strong>{{ '%.2f' % invoice.total }} €</strong></td>
             </tr>
-        </table>
-        <div>
-            {% if invoice.payment_method %}
-            <div style="font-weight:bold; letter-spacing:0.06em;">CONDICIONES DE PAGO:</div>
-            <div style="margin-top:2mm;">{{ invoice.payment_method|upper }}</div>
-            {% endif %}
+            </table>
         </div>
     </div>
 

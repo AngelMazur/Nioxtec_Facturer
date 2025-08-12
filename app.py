@@ -579,6 +579,13 @@ def create_invoice():
         return jsonify({'error': 'Missing required fields'}), 400
     # Convert date string to date object
     date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+    # Normalize payment method
+    allowed_pm = {'efectivo','bizum','transferencia'}
+    if invoice_type != 'factura':
+        payment_method = None
+    else:
+        pm = (payment_method or '').strip().lower()
+        payment_method = pm if pm in allowed_pm else 'efectivo'
     # Compute totals
     subtotal, tax_amount, total = calculate_totals(items_data)
     # Asignar número automáticamente según fecha indicada (reinicia por año/mes)
@@ -765,7 +772,8 @@ def update_invoice(invoice_id):
     if 'client_id' in data:
         inv.client_id = int(data['client_id'])
     if 'payment_method' in data:
-        inv.payment_method = data['payment_method']
+        pm = (data.get('payment_method') or '').strip().lower()
+        inv.payment_method = pm if inv.type == 'factura' and pm in {'efectivo','bizum','transferencia'} else (None if inv.type!='factura' else 'efectivo')
     inv.notes = data.get('notes', inv.notes)
     # Replace items if provided
     items_data = data.get('items')

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useStore } from '../store/store';
 import {
   apiGet,
@@ -14,12 +14,21 @@ import { motion } from 'framer-motion';
 import 'react-loading-skeleton/dist/skeleton.css';
 
 export default function Facturas() {
-  const { clients, invoices, setClients, setInvoices, token } = useStore();
+  const { 
+    clients, 
+    invoices, 
+    setClients, 
+    setInvoices, 
+    token, 
+    addInvoiceToTop, 
+    setUserSorted, 
+    getOrderedInvoices,
+    userHasSorted
+  } = useStore();
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState({ field: 'date', dir: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const [userSorted, setUserSorted] = useState(false);
   const [form, setForm] = useState({
     number: '',
     date: new Date().toISOString().slice(0, 10),
@@ -29,7 +38,7 @@ export default function Facturas() {
     items: [],
   });
 
-  const fetchNextNumber = async (docType, atDate) => {
+  const fetchNextNumber = useCallback(async (docType, atDate) => {
     try {
       const qs = new URLSearchParams({ type: docType, ...(atDate ? { date: atDate } : {}) })
       const res = await apiGet(`/invoices/next_number?${qs.toString()}`, token)
@@ -38,7 +47,7 @@ export default function Facturas() {
     } catch {
       // Silencioso; el backend asignará número al guardar
     }
-  }
+  }, [token])
 
   useEffect(() => {
     async function load() {
@@ -54,14 +63,14 @@ export default function Facturas() {
       fetchNextNumber('factura', new Date().toISOString().slice(0, 10))
     }
     if (token) load();
-  }, [setClients, setInvoices, token]);
+  }, [setClients, setInvoices, token, fetchNextNumber]);
 
   const addItem = () => {
     setForm({
       ...form,
       items: [
         ...form.items,
-        { description: '', units: 1, unit_price: 0, tax_rate: 21 },
+        { description: '', units: 1, unit_price: '', tax_rate: 21 },
       ],
     });
   };
@@ -89,6 +98,11 @@ export default function Facturas() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = { ...form, client_id: Number(form.client_id) };
+    if (payload.type !== 'factura') {
+      delete payload.payment_method;
+    } else if (!payload.payment_method) {
+      payload.payment_method = 'efectivo';
+    }
     try {
       const data = await apiPost('/invoices', payload, token);
       toast.success('Documento creado');
@@ -101,8 +115,8 @@ export default function Facturas() {
       });
       // Cargar siguiente número tras crear
       fetchNextNumber('factura', new Date().toISOString().slice(0, 10))
-      // Fijar al principio independientemente del orden
-      setInvoices([{ ...data, __pinned: true }, ...invoices]);
+      // Usar el nuevo método del store para añadir al principio manteniendo orden personalizado
+      addInvoiceToTop(data);
       setCurrentPage(1);
     } catch {
       toast.error('Error al crear');
@@ -118,6 +132,7 @@ export default function Facturas() {
         date: new Date().toISOString().slice(0, 10),
         type: details.type,
         client_id: String(details.client_id),
+        payment_method: details.payment_method || 'efectivo',
         items: (details.items || []).map((it) => ({
           description: it.description,
           units: it.units,
@@ -177,7 +192,7 @@ export default function Facturas() {
         onSubmit={handleSubmit}
         className="space-y-4 bg-gray-800 p-4 rounded-lg border border-gray-700"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
           <label className="flex flex-col gap-1">
             <span className="text-sm text-gray-500">Número</span>
             <input
@@ -228,19 +243,21 @@ export default function Facturas() {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-500">Condiciones de pago</span>
-            <select
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-              name="payment_method"
-              value={form.payment_method}
-              onChange={handleChange}
-            >
-              <option value="efectivo">Efectivo</option>
-              <option value="bizum">Bizum</option>
-              <option value="transferencia">Transferencia</option>
-            </select>
-          </label>
+          {form.type === 'factura' && (
+            <label className="flex flex-col gap-1 sm:col-start-1">
+              <span className="text-sm text-gray-500">Condiciones de pago</span>
+              <select
+                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                name="payment_method"
+                value={form.payment_method}
+                onChange={handleChange}
+              >
+                <option value="efectivo">Efectivo</option>
+                <option value="bizum">Bizum</option>
+                <option value="transferencia">Transferencia</option>
+              </select>
+            </label>
+          )}
         </div>
         <h3 className="font-semibold">Líneas</h3>
         {form.items.map((item, idx) => (
@@ -319,18 +336,23 @@ export default function Facturas() {
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
             {(() => {
-              const sorted = invoices.slice().sort((a,b)=>{
-                if (!userSorted) {
-                  if (a.__pinned && !b.__pinned) return -1;
-                  if (!a.__pinned && b.__pinned) return 1;
-                }
-                const dir = sort.dir==='asc'?1:-1
-                let av = a[sort.field];
-                let bv = b[sort.field];
-                if (sort.field==='date') { av = a.date||''; bv = b.date||''; return String(av).localeCompare(String(bv))*dir; }
-                if (sort.field==='total') { return ((av||0)-(bv||0))*dir; }
-                return String(av).localeCompare(String(bv),'es',{ numeric:true })*dir;
-              });
+              // Obtener facturas en orden personalizado o aplicar ordenamiento manual
+              let sorted;
+              if (userHasSorted) {
+                // Si el usuario ha ordenado manualmente, aplicar ese ordenamiento
+                sorted = invoices.slice().sort((a,b)=>{
+                  const dir = sort.dir==='asc'?1:-1
+                  let av = a[sort.field];
+                  let bv = b[sort.field];
+                  if (sort.field==='date') { av = a.date||''; bv = b.date||''; return String(av).localeCompare(String(bv))*dir; }
+                  if (sort.field==='total') { return ((av||0)-(bv||0))*dir; }
+                  return String(av).localeCompare(String(bv),'es',{ numeric:true })*dir;
+                });
+              } else {
+                // Usar orden personalizado del store (nuevas facturas al principio)
+                sorted = getOrderedInvoices();
+              }
+              
               const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
               const safePage = Math.min(currentPage, totalPages);
               const start = (safePage - 1) * pageSize;
