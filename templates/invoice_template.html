@@ -107,8 +107,8 @@
         /* Totales */
         .totals {
             margin-top: 1cm;
-            display: flex;
-            justify-content: flex-end;
+            width: 100%;
+            overflow: hidden; /* Para el clearfix */
         }
         .totals-table {
             width: 40%;
@@ -137,6 +137,16 @@
             background-color: transparent !important;
             -webkit-box-shadow: none !important;
             -moz-box-shadow: none !important;
+        }
+        /* Estilos específicos para wkhtmltopdf */
+        @media print {
+            .payment-method,
+            div[style*="border: none"] {
+                border: 0 !important;
+                outline: 0 !important;
+                box-shadow: none !important;
+                background: transparent !important;
+            }
         }
     </style>
 </head>
@@ -208,12 +218,13 @@
     </table>
 
     <!-- Totales y condiciones de pago -->
-    <div class="totals" style="display:grid; grid-template-columns: 1fr auto; align-items:start; gap: 10mm;">
-        <div></div>
-        <div>
+    <div class="totals">
+        <div style="width: 40%; float: right;">
             {% if invoice.payment_method and invoice.type == 'factura' %}
-            <p style="font-weight:bold; letter-spacing:0.06em; margin: 0 0 3mm 0;">CONDICIONES DE PAGO:</p>
-            <p style="margin: 0 0 8mm 0; text-transform: uppercase; font-size: 14px; border: none; background: none;">{{ invoice.payment_method }}</p>
+            <div style="font-weight:bold; letter-spacing:0.06em; margin-bottom: 3mm;">CONDICIONES DE PAGO:</div>
+            <div style="margin-bottom: 8mm;">
+                <span style="text-transform: uppercase; font-size: 14px;">{{ invoice.payment_method }}</span>
+            </div>
             {% endif %}
             <table class="totals-table">
             <tr>
@@ -226,6 +237,7 @@
             </tr>
             </table>
         </div>
+        <div style="clear: both;"></div>
     </div>
 
     {% if invoice.notes %}
