@@ -48,18 +48,9 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 # Cargar variables de entorno desde .env si existe
 load_dotenv()
 
-# Control de motor PDF mediante variable de entorno
-# USE_WEASYPRINT=true intentará usar WeasyPrint; de lo contrario se usa pdfkit/wkhtmltopdf
-USE_WEASYPRINT_ENV = os.getenv('USE_WEASYPRINT', 'false').lower() in ('1', 'true', 'yes')
+# Motor PDF unificado: solo wkhtmltopdf para consistencia dev/prod
+# Eliminamos WeasyPrint para evitar incompatibilidades entre entornos
 use_weasyprint = False
-if USE_WEASYPRINT_ENV:
-    try:
-        # WeasyPrint es preferido por su soporte de CSS moderno
-        from weasyprint import HTML  # type: ignore
-        use_weasyprint = True
-    except Exception:
-        # Si WeasyPrint falla al importar, continuamos con pdfkit
-        use_weasyprint = False
 
 try:
     import pdfkit  # type: ignore
@@ -980,23 +971,18 @@ def invoice_pdf(invoice_id):
                                company=company, items=items, logo_uri=logo_uri)
     filename = f"{invoice.type}_{invoice.number}.pdf"
     file_path = os.path.join(DOWNLOAD_FOLDER, filename)
+    # Usar solo wkhtmltopdf para consistencia dev/prod
     pdf_bytes = None
-    if use_weasyprint:
-        try:
-            pdf_io = io.BytesIO()
-            HTML(string=rendered).write_pdf(target=pdf_io)
-            pdf_bytes = pdf_io.getvalue()
-        except Exception:
-            pdf_bytes = None
-    if pdf_bytes is None and pdfkit is not None:
+    if pdfkit is not None:
         try:
             options = { 'enable-local-file-access': None }
             cfg = _resolve_pdfkit_configuration()
             pdf_bytes = pdfkit.from_string(rendered, False, options=options, configuration=cfg)
         except Exception:
             pdf_bytes = None
+    
+    # Fallback solo si wkhtmltopdf falla
     if pdf_bytes is None:
-        # Last‑resort fallback
         pdf_bytes = _generate_pdf_fallback(invoice, client, company, items)
     # Save the PDF to the downloads folder
     with open(file_path, 'wb') as f:
@@ -1011,7 +997,7 @@ def health():
     """Sonda de salud simple para monitoreo/compose."""
     return jsonify({
         'status': 'ok',
-        'use_weasyprint': use_weasyprint,
+        'pdf_engine': 'wkhtmltopdf' if pdfkit else 'reportlab_fallback',
         'database': app.config.get('SQLALCHEMY_DATABASE_URI', '')
     })
 

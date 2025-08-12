@@ -129,24 +129,12 @@
             font-size: 10px;
             color: #555;
         }
-        .payment-method {
-            border: none !important;
-            outline: none !important;
-            box-shadow: none !important;
-            background: transparent !important;
-            background-color: transparent !important;
-            -webkit-box-shadow: none !important;
-            -moz-box-shadow: none !important;
-        }
-        /* Estilos específicos para wkhtmltopdf */
-        @media print {
-            .payment-method,
-            div[style*="border: none"] {
-                border: 0 !important;
-                outline: 0 !important;
-                box-shadow: none !important;
-                background: transparent !important;
-            }
+        /* Estilos optimizados para wkhtmltopdf */
+        .payment-text {
+            border: none;
+            outline: none;
+            box-shadow: none;
+            background: transparent;
         }
     </style>
 </head>
