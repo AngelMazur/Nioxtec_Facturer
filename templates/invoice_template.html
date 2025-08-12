@@ -101,6 +101,11 @@
             border-bottom: 1px solid #ddd;
             padding: 6px;
         }
+        .description-cell {
+            word-wrap: break-word;
+            max-width: 0;
+            vertical-align: top;
+        }
         td:last-child, th:last-child {
             text-align: right;
         }
@@ -195,7 +200,7 @@
         <tbody>
         {% for item in items %}
             <tr>
-                <td>{{ item.description }}</td>
+                <td class="description-cell">{{ item.description|replace('\n', '<br>')|safe }}</td>
                 <td style="text-align:center">{{ item.units }}</td>
                 <td style="text-align:right">{{ '%.2f' % (item.units * item.unit_price) }} €</td>
                 <td style="text-align:center">{{ '%.0f' % item.tax_rate }}%</td>
@@ -207,10 +212,10 @@
 
     <!-- Totales y condiciones de pago -->
     <div class="totals">
-        <div style="width: 50%; float: right;">
+        <div style="width: 50%; margin-left: 50%; text-align: left;">
             {% if invoice.type == 'factura' %}
-            <div style="font-weight:bold; letter-spacing:0.06em; margin-bottom: 4mm;">CONDICIONES DE PAGO:</div>
-            <div style="margin-bottom: 6mm; text-transform: uppercase; font-size: 14px;">{{ invoice.payment_method or 'EFECTIVO' }}</div>
+            <div style="font-weight:bold; letter-spacing:0.06em; margin-bottom: 4mm; text-align: left;">CONDICIONES DE PAGO:</div>
+            <div style="margin-bottom: 6mm; text-transform: uppercase; font-size: 14px; text-align: left;">{{ invoice.payment_method or 'EFECTIVO' }}</div>
             {% endif %}
             <table class="totals-table">
             <tr>
@@ -223,7 +228,6 @@
             </tr>
             </table>
         </div>
-        <div style="clear: both;"></div>
     </div>
 
     {% if invoice.notes %}
