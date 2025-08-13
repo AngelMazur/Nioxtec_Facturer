@@ -736,6 +736,8 @@ def list_invoices():
             query = query.filter(db.extract('year', Invoice.date) == year)
         except ValueError:
             return jsonify({'error': 'Month and year must be integers'}), 400
+    # Orden estable por defecto: id descendente (más recientes primero)
+    query = query.order_by(Invoice.id.desc())
     total = query.count()
     if limit:
         query = query.offset(offset or 0).limit(limit)

@@ -29,6 +29,57 @@ export default function Facturas() {
   const [sort, setSort] = useState({ field: 'date', dir: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  // Cargar sort persistido al montar
+  useEffect(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('invoiceSort') : null
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed && parsed.field && parsed.dir) {
+          setSort({ field: parsed.field, dir: parsed.dir })
+        }
+      }
+    } catch (e) { void e }
+  }, [])
+  // Persistir sort cuando cambie
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('invoiceSort', JSON.stringify(sort))
+      }
+    } catch (e) { void e }
+  }, [sort])
+  // Persistir página seleccionada entre secciones
+  useEffect(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('invoicePage') : null
+      if (saved) {
+        const p = parseInt(saved, 10)
+        if (!Number.isNaN(p) && p > 0) setCurrentPage(p)
+      }
+    } catch (e) { void e }
+  }, [])
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('invoicePage', String(currentPage))
+      }
+    } catch (e) { void e }
+  }, [currentPage])
+  // Helpers de redondeo/conversión (2 decimales máximo)
+  const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+  const round4 = (n) => Math.round((Number(n) + Number.EPSILON) * 10000) / 10000;
+  // Nota: para evitar perder 0,01 al recomponer el IVA en backend, enviamos neto con 4 decimales
+  const grossToNet = (gross, rate) => {
+    const r = Number(rate) || 0;
+    const g = Number(gross) || 0;
+    return r ? round4(g / (1 + r / 100)) : round4(g);
+  };
+  const netToGross = (net, rate) => {
+    const r = Number(rate) || 0;
+    const n = Number(net) || 0;
+    return r ? round2(n * (1 + r / 100)) : round2(n);
+  };
   const [form, setForm] = useState({
     number: '',
     date: new Date().toISOString().slice(0, 10),
@@ -37,6 +88,27 @@ export default function Facturas() {
     payment_method: 'efectivo',
     items: [],
   });
+  const [deleteMode, setDeleteMode] = useState(false);
+
+  // Auto-resize textareas when form items change (ej: al duplicar factura)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const textareas = document.querySelectorAll('textarea[data-description-field="true"]');
+      textareas.forEach(textarea => {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.max(40, textarea.scrollHeight) + 'px';
+      });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [form.items]);
+
+  // Salir de modo eliminar con ESC
+  useEffect(() => {
+    if (!deleteMode) return;
+    const onKey = (e) => { if (e.key === 'Escape') setDeleteMode(false) };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [deleteMode]);
 
   // Auto-resize textareas when form items change (ej: al duplicar factura)
   useEffect(() => {
@@ -86,6 +158,24 @@ export default function Facturas() {
       ],
     });
   };
+  const removeItem = (idx) => {
+    setForm((prev) => {
+      const current = prev.items || [];
+      if (current.length <= 1) {
+        toast.error('Debe existir al menos una línea');
+        return prev;
+      }
+      const nextItems = current.filter((_, i) => i !== idx);
+      return { ...prev, items: nextItems };
+    });
+  };
+  const toggleDeleteMode = () => {
+    if ((form.items?.length || 0) <= 1) {
+      toast('No puedes eliminar la última línea', { icon: '⚠️' });
+      return;
+    }
+    setDeleteMode((d) => !d);
+  };
   const handleItemChange = (idx, field, value) => {
     const items = form.items.map((it, i) =>
       i === idx
@@ -110,6 +200,13 @@ export default function Facturas() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = { ...form, client_id: Number(form.client_id) };
+    // Convertir precios del formulario (brutos con IVA) a netos antes de enviar
+    payload.items = (payload.items || []).map((it) => ({
+      description: it.description,
+      units: Number(it.units),
+      unit_price: grossToNet(it.unit_price, it.tax_rate),
+      tax_rate: Number(it.tax_rate),
+    }));
     if (payload.type !== 'factura') {
       delete payload.payment_method;
     } else if (!payload.payment_method) {
@@ -148,7 +245,8 @@ export default function Facturas() {
         items: (details.items || []).map((it) => ({
           description: it.description,
           units: it.units,
-          unit_price: it.unit_price,
+           // Convertir neto del backend a bruto para el formulario (mostrar IVA incl.)
+           unit_price: netToGross(it.unit_price, it.tax_rate),
           tax_rate: it.tax_rate,
         })),
       });
@@ -275,8 +373,18 @@ export default function Facturas() {
         {form.items.map((item, idx) => (
           <div
             key={idx}
-            className="grid grid-cols-1 sm:grid-cols-4 gap-2 border border-gray-700 p-2 rounded"
+            className={
+              "grid grid-cols-1 sm:grid-cols-4 gap-2 border p-2 rounded " +
+              (deleteMode
+                ? "relative border-red-500 ring-1 ring-red-500 cursor-pointer hover:bg-red-500/10"
+                : "border-gray-700")
+            }
+            onClick={deleteMode ? () => removeItem(idx) : undefined}
+            title={deleteMode ? 'Haz clic para eliminar esta línea' : undefined}
           >
+            {deleteMode && (
+              <span className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded">Eliminar</span>
+            )}
             <label className="flex flex-col gap-1">
               <span className="text-sm text-gray-500">Descripción</span>
               <textarea
@@ -330,11 +438,11 @@ export default function Facturas() {
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-sm text-gray-500">Precio unitario</span>
+              <span className="text-sm text-gray-500">Precio unitario (IVA incl.)</span>
               <input
                 className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 type="number"
-                //step="0.01"
+                step="0.01"
                 value={item.unit_price}
                 onChange={(e) =>
                   handleItemChange(idx, 'unit_price', e.target.value)
@@ -357,19 +465,41 @@ export default function Facturas() {
             </label>
           </div>
         ))}
-        <button
-          type="button"
-          onClick={addItem}
-          className="bg-secondary hover:opacity-90 transition px-3 py-1 rounded text-white"
-        >
-          Añadir línea
-        </button>
-        <button
-          type="submit"
-          className="bg-primary hover:opacity-90 transition text-white px-4 py-2 rounded"
-        >
-          Guardar
-        </button>
+        <div className="flex items-center gap-3 flex-wrap mt-2">
+          <button
+            type="button"
+            onClick={addItem}
+            className="bg-secondary hover:opacity-90 transition px-2 py-1.5 rounded text-white min-w-[8rem] text-center"
+          >
+            Añadir línea
+          </button>
+          <button
+            type="button"
+            onClick={toggleDeleteMode}
+            disabled={(form.items?.length || 0) <= 1}
+            className={
+              (deleteMode
+                ? "bg-red-700"
+                : "bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed") +
+              " hover:opacity-90 transition px-2 py-1.5 rounded text-white min-w-[8rem] text-center"
+            }
+            title={deleteMode ? 'Cancelar modo eliminar (ESC para salir)' : 'Entrar en modo eliminar'}
+          >
+            {deleteMode ? 'Cancelar eliminar' : 'Eliminar línea'}
+          </button>
+          <button
+            type="submit"
+            disabled={(form.items?.length || 0) === 0}
+            className={
+              ((form.items?.length || 0) === 0
+                ? "opacity-50 cursor-not-allowed "
+                : "hover:opacity-90 ") +
+              "bg-primary transition text-white px-3 py-1.5 rounded min-w-[8rem] text-center"
+            }
+          >
+            Guardar
+          </button>
+        </div>
       </form>
       <section>
         <h3 className="text-xl font-semibold mb-2">Listado</h3>
@@ -381,15 +511,25 @@ export default function Facturas() {
               // Obtener facturas en orden personalizado o aplicar ordenamiento manual
               let sorted;
               if (userHasSorted) {
-                // Si el usuario ha ordenado manualmente, aplicar ese ordenamiento
-                sorted = invoices.slice().sort((a,b)=>{
-                  const dir = sort.dir==='asc'?1:-1
-                  let av = a[sort.field];
-                  let bv = b[sort.field];
-                  if (sort.field==='date') { av = a.date||''; bv = b.date||''; return String(av).localeCompare(String(bv))*dir; }
-                  if (sort.field==='total') { return ((av||0)-(bv||0))*dir; }
-                  return String(av).localeCompare(String(bv),'es',{ numeric:true })*dir;
-                });
+                // Si el usuario ha ordenado manualmente, aplicar ese ordenamiento con desempate estable por ID
+                sorted = invoices.slice().sort((a, b) => {
+                  const dir = sort.dir === 'asc' ? 1 : -1
+                  const aId = a?.id || 0
+                  const bId = b?.id || 0
+                  const fallback = (aId - bId) * dir
+                  if (sort.field === 'date') {
+                    const cmp = String(a.date || '').localeCompare(String(b.date || ''))
+                    return cmp !== 0 ? cmp * dir : fallback
+                  }
+                  if (sort.field === 'total') {
+                    const diff = ((a.total ?? 0) - (b.total ?? 0))
+                    return diff !== 0 ? diff * dir : fallback
+                  }
+                  const av = a[sort.field]
+                  const bv = b[sort.field]
+                  const cmp = String(av ?? '').localeCompare(String(bv ?? ''), 'es', { numeric: true })
+                  return cmp !== 0 ? cmp * dir : fallback
+                })
               } else {
                 // Usar orden personalizado del store (nuevas facturas al principio)
                 sorted = getOrderedInvoices();
