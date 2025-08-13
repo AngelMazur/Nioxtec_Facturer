@@ -35,20 +35,22 @@ export const useStore = create((set, get) => ({
   
   // Método para añadir nueva factura al principio del orden personalizado
   addInvoiceToTop: (invoice) => {
-    const { invoices, customInvoiceOrder } = get()
+    const { invoices, customInvoiceOrder, userHasSorted } = get()
     const newInvoices = [invoice, ...invoices]
     const newOrder = [invoice.id, ...customInvoiceOrder.filter(id => id !== invoice.id)]
     
     // Persistir en localStorage
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('customInvoiceOrder', JSON.stringify(newOrder))
-      window.localStorage.setItem('userHasSorted', 'false')
+      // Preservar la preferencia del usuario; no resetear sorting manual
+      window.localStorage.setItem('userHasSorted', userHasSorted ? 'true' : 'false')
     }
     
     set({ 
       invoices: newInvoices, 
       customInvoiceOrder: newOrder,
-      userHasSorted: false // Reset flag when adding new invoice
+      // Mantener el estado actual de userHasSorted para no perder selección al navegar
+      userHasSorted
     })
   },
   
