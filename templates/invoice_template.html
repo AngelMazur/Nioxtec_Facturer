@@ -2,6 +2,16 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="pdfkit-page-size" content="A4">
+    <meta name="pdfkit-margin-top" content="0.75in">
+    <meta name="pdfkit-margin-bottom" content="0.75in">
+    <meta name="pdfkit-margin-left" content="0.75in">
+    <meta name="pdfkit-margin-right" content="0.75in">
+    <meta name="pdfkit-encoding" content="UTF-8">
+    <meta name="pdfkit-print-media-type" content="">
+    <meta name="pdfkit-disable-smart-shrinking" content="">
     <title>Documento</title>
 <style>
         /* Tipografía y reset básico */
@@ -100,11 +110,12 @@
         td {
             border-bottom: 1px solid #ddd;
             padding: 6px;
+            vertical-align: top;
         }
         .description-cell {
             word-wrap: break-word;
-            max-width: 0;
             vertical-align: top;
+            line-height: 1.2;
         }
         td:last-child, th:last-child {
             text-align: right;
@@ -188,6 +199,14 @@
 
     <!-- Detalle de conceptos -->
     <table>
+        <!-- Solución #2: Anchos fijos con colgroup para estabilizar wkhtmltopdf -->
+        <colgroup>
+            <col style="width: 50%">
+            <col style="width: 10%">
+            <col style="width: 15%">
+            <col style="width: 10%">
+            <col style="width: 15%">
+        </colgroup>
         <thead>
             <tr>
                 <th style="width:50%">Detalle</th>
@@ -200,7 +219,7 @@
         <tbody>
         {% for item in items %}
             <tr>
-                <td class="description-cell">{{ item.description|replace('\n', '<br>')|safe }}</td>
+                <td class="description-cell">{{ item.description|nl2blocks }}</td>
                 <td style="text-align:center">{{ item.units }}</td>
                 <td style="text-align:right">{{ '%.2f' % (item.units * item.unit_price) }} €</td>
                 <td style="text-align:center">{{ '%.0f' % item.tax_rate }}%</td>
@@ -232,7 +251,7 @@
 
     {% if invoice.notes %}
     <div style="margin-top:0.5cm">
-        <strong>Observaciones:</strong> {{ invoice.notes }}
+        <strong>Observaciones:</strong> {{ invoice.notes|nl2br }}
     </div>
     {% endif %}
 

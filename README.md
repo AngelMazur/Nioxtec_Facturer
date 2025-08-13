@@ -48,6 +48,12 @@ FORCE_HTTPS=false FLASK_DEBUG=0 gunicorn -w 2 -b 0.0.0.0:5000 app:app
    ```bash
 FLASK_DEBUG=1 python app.py
 ```
+   
+   **Nota macOS:** Si el puerto 5000 está ocupado por AirPlay, usar puerto alternativo:
+   ```bash
+PORT=5001 python app.py
+```
+   En ese caso, también modificar `frontend/src/lib/api.js` línea 12: cambiar `:5000` por `:5001`
 
 ## Frontend (React + Vite)
 

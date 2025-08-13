@@ -99,6 +99,74 @@ from pathlib import Path
 app = Flask(__name__, instance_relative_config=True)
 # Detrás de un proxy/túnel (Cloudflare/Nginx), respeta cabeceras X-Forwarded-*
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)  # type: ignore
+
+# Filtro personalizado para saltos de línea en PDFs
+@app.template_filter('nl2br')
+def nl2br_filter(text):
+    """Convierte saltos de línea (\n) a <br> tags más compatibles con wkhtmltopdf."""
+    if not text:
+        return ''
+    from markupsafe import Markup
+    # Usar <br /> con espacio antes para mejor compatibilidad con wkhtmltopdf
+    return Markup(text.replace('\n', '<br />\n'))
+
+@app.template_filter('nl2div')
+def nl2div_filter(text):
+    """Convierte saltos de línea (\n) a divs separados - más compatible con wkhtmltopdf."""
+    if not text:
+        return ''
+    from markupsafe import Markup
+    lines = text.split('\n')
+    if len(lines) <= 1:
+        return Markup(text)
+    
+    html_lines = []
+    for i, line in enumerate(lines):
+        if i == 0:
+            html_lines.append(line.strip())
+        else:
+            html_lines.append(f'<div style="margin:0; padding:0; line-height:1.2;">{line.strip()}</div>')
+    
+    return Markup(''.join(html_lines))
+
+@app.template_filter('nl2p')
+def nl2p_filter(text):
+    """Convierte saltos de línea (\n) a párrafos <p> - MÁS ROBUSTO con wkhtmltopdf."""
+    if not text:
+        return ''
+    from markupsafe import Markup
+    lines = [line.strip() for line in text.split('\n') if line.strip()]
+    if len(lines) <= 1:
+        return Markup(f'<p style="margin:2px 0; padding:0; line-height:1.3;">{text.strip()}</p>')
+    
+    html_lines = []
+    for line in lines:
+        if line:  # Solo líneas no vacías
+            html_lines.append(f'<p style="margin:2px 0; padding:0; line-height:1.3;">{line}</p>')
+    
+    return Markup(''.join(html_lines))
+
+@app.template_filter('nl2blocks')
+def nl2blocks_filter(text):
+    """Solución #1 para wkhtmltopdf 0.12.6: TODAS las líneas en bloques uniformes.
+    Evita mezclar texto 'suelto' con bloques - genera bloques homogéneos.
+    """
+    if not text:
+        return ''
+    from markupsafe import Markup
+    lines = text.split('\n')
+    
+    # TODAS las líneas van en bloques uniformes (incluida la primera)
+    html_lines = []
+    for line in lines:
+        # Mantener líneas vacías como espacios para preservar el formato
+        if line.strip() == '':
+            html_lines.append('<span style="display:block; height:1.2em;">&nbsp;</span>')
+        else:
+            html_lines.append(f'<span style="display:block; margin:0; padding:0; line-height:1.2;">{line.strip()}</span>')
+    
+    return Markup(''.join(html_lines))
+
 # CORS configurable (por defecto permite localhost dev y nginx)
 cors_origins_str = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080')
 allowed_origins = [o.strip() for o in cors_origins_str.split(',') if o.strip()]
@@ -384,11 +452,29 @@ def _generate_pdf_fallback(invoice: 'Invoice', client: 'Client', company: 'Compa
             c.showPage()
             y = height - 20 * mm
             c.setFont("Helvetica", 10)
-        c.drawString(20 * mm, y, (it.description or '')[:80])
-        c.drawRightString(135 * mm, y, f"{it.units}")
-        c.drawRightString(165 * mm, y, f"{it.unit_price:.2f} €")
-        c.drawRightString(190 * mm, y, f"{it.tax_rate:.2f}")
-        y -= 6 * mm
+        
+        # Manejar saltos de línea en la descripción
+        description_lines = (it.description or '').split('\n')
+        first_line = True
+        
+        for line in description_lines:
+            if y < 30 * mm:
+                c.showPage()
+                y = height - 20 * mm
+                c.setFont("Helvetica", 10)
+            
+            # Solo mostrar datos numéricos en la primera línea
+            if first_line:
+                c.drawString(20 * mm, y, line[:80])
+                c.drawRightString(135 * mm, y, f"{it.units}")
+                c.drawRightString(165 * mm, y, f"{it.unit_price:.2f} €")
+                c.drawRightString(190 * mm, y, f"{it.tax_rate:.2f}")
+                first_line = False
+            else:
+                # Líneas adicionales solo con texto de descripción
+                c.drawString(20 * mm, y, line[:80])
+            
+            y -= 6 * mm
 
     y -= 6 * mm
     c.line(120 * mm, y, 190 * mm, y)
@@ -975,7 +1061,25 @@ def invoice_pdf(invoice_id):
     pdf_bytes = None
     if pdfkit is not None:
         try:
-            options = { 'enable-local-file-access': None }
+            options = {
+                'enable-local-file-access': None,
+                'page-size': 'A4',
+                'margin-top': '0.75in',
+                'margin-right': '0.75in',
+                'margin-bottom': '0.75in',
+                'margin-left': '0.75in',
+                'encoding': 'UTF-8',
+                'no-outline': None,
+                'print-media-type': None,
+                'disable-smart-shrinking': None,
+                'zoom': 1.0,
+                'dpi': 96,
+                'image-quality': 94,
+                'minimum-font-size': 12,
+                'enable-plugins': None,
+                'load-error-handling': 'ignore',
+                'load-media-error-handling': 'ignore'
+            }
             cfg = _resolve_pdfkit_configuration()
             pdf_bytes = pdfkit.from_string(rendered, False, options=options, configuration=cfg)
         except Exception:

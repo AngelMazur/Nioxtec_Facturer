@@ -38,6 +38,18 @@ export default function Facturas() {
     items: [],
   });
 
+  // Auto-resize textareas when form items change (ej: al duplicar factura)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const textareas = document.querySelectorAll('textarea[data-description-field="true"]');
+      textareas.forEach(textarea => {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.max(40, textarea.scrollHeight) + 'px';
+      });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [form.items]);
+
   const fetchNextNumber = useCallback(async (docType, atDate) => {
     try {
       const qs = new URLSearchParams({ type: docType, ...(atDate ? { date: atDate } : {}) })
@@ -267,13 +279,43 @@ export default function Facturas() {
           >
             <label className="flex flex-col gap-1">
               <span className="text-sm text-gray-500">Descripción</span>
-              <input
-                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+              <textarea
+                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand resize-none overflow-hidden min-h-[40px] transition-all duration-200"
                 value={item.description}
-                onChange={(e) =>
-                  handleItemChange(idx, 'description', e.target.value)
-                }
+                data-description-field="true"
+                onChange={(e) => {
+                  handleItemChange(idx, 'description', e.target.value);
+                  // Auto-resize textarea
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.max(40, e.target.scrollHeight) + 'px';
+                }}
+                onKeyDown={(e) => {
+                  // Permitir Enter para saltos de línea
+                  if (e.key === 'Enter') {
+                    e.stopPropagation();
+                  }
+                  // Permitir explícitamente Ctrl+V/Cmd+V, Ctrl+C/Cmd+C, Ctrl+X/Cmd+X para copy/paste
+                  if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'c' || e.key === 'x')) {
+                    // No interferir con las acciones de clipboard
+                    return;
+                  }
+                }}
+                onInput={(e) => {
+                  // Auto-resize en tiempo real
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.max(40, e.target.scrollHeight) + 'px';
+                }}
+                onPaste={(e) => {
+                  // Permitir pegar y auto-resize después
+                  setTimeout(() => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.max(40, e.target.scrollHeight) + 'px';
+                  }, 0);
+                }}
+                placeholder="Describe el producto o servicio&#10;Puedes usar Enter para saltos de línea"
                 required
+                rows="1"
+                style={{ wordBreak: 'break-word' }}
               />
             </label>
             <label className="flex flex-col gap-1">
