@@ -9,7 +9,7 @@
  */
 
 const defaultBase = typeof window !== 'undefined' && (window.location.port === '8080' || window.location.port === '5173')
-  ? `${window.location.protocol}//${window.location.hostname}:5000`
+  ? `${window.location.protocol}//${window.location.hostname}:5001`
   : ''
 // Permite configurar una URL completa del backend por env (recomendado en acceso externo)
 const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '') || defaultBase
