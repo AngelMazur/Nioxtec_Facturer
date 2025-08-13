@@ -118,6 +118,152 @@ El frontend se conectará al backend en `http://127.0.0.1:5000` (auto-config en 
   - Ejecutar `DEVELOPER/scripts/deploy_prod.ps1` (parada, backup, pull, build, arranque, health-check).
   - O bien usar la tarea registrada "Nioxtec Deploy" (`schtasks /Run /TN "Nioxtec Deploy"`).
 
+## Procedimiento de Troubleshooting y Reinicio de Producción
+
+### 🔧 Diagnóstico Completo del Sistema
+
+Cuando los servicios de producción no respondan, seguir este proceso paso a paso:
+
+#### 1. **Análisis de la Arquitectura**
+```powershell
+# Verificar configuración SSH para Git
+git remote -v
+# Asegurar que usa SSH: git@github.com:AngelMazur/Nioxtec_Facturer.git
+
+# Verificar estado del repositorio
+git status
+git fetch origin -v
+```
+
+#### 2. **Diagnóstico de Servicios Locales**
+```powershell
+# Verificar puertos ocupados
+netstat -ano | findstr ":5000\|:8080"
+
+# Verificar procesos activos
+Get-Process | Where-Object {$_.ProcessName -eq 'python' -or $_.ProcessName -eq 'node'}
+
+# Probar endpoints locales
+Invoke-WebRequest -Uri "http://localhost:5000/health" -UseBasicParsing
+Invoke-WebRequest -Uri "http://localhost:8080" -UseBasicParsing
+```
+
+#### 3. **Verificación de Scripts de Inicio**
+```powershell
+# Verificar que el entorno virtual existe
+Test-Path "C:\Nioxtec\Nioxtec_Facturer\.venv310\Scripts\python.exe"
+
+# Verificar que el build del frontend existe  
+Test-Path "C:\Nioxtec\Nioxtec_Facturer\frontend\dist"
+
+# Probar scripts manualmente
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\start_backend.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\start_frontend.ps1"
+```
+
+#### 4. **Corrección de Scripts si es Necesario**
+
+**Script Backend (`scripts/start_backend.ps1`):**
+```powershell
+# Script para iniciar backend Flask en producción
+Set-Location "C:\Nioxtec\Nioxtec_Facturer"
+
+# Configuración de producción
+$env:FLASK_DEBUG = "false"
+$env:ENABLE_TALISMAN = "true"
+$env:FORCE_HTTPS = "true"
+$env:JWT_SECRET_KEY = "Rbd4?P5Axi@aS0bhNwN07sptS4&S?R"
+$env:CORS_ORIGINS = "https://app.nioxtec.es,http://localhost:5173,http://localhost:8080,http://127.0.0.1:8080"
+$env:APP_ORIGIN = "https://app.nioxtec.es"
+
+# Ejecutar Flask
+try {
+    & "C:\Nioxtec\Nioxtec_Facturer\.venv310\Scripts\python.exe" "C:\Nioxtec\Nioxtec_Facturer\app.py"
+} catch {
+    Write-Host "Error iniciando backend: $($_.Exception.Message)"
+    exit 1
+}
+```
+
+**Script Frontend (`scripts/start_frontend.ps1`):**
+```powershell
+Set-Location "C:\Nioxtec\Nioxtec_Facturer\frontend"
+
+# Asegura que Node.js y npm están en PATH
+$env:PATH = "C:\Program Files\nodejs\;C:\Users\angel\AppData\Roaming\npm;$env:PATH"
+
+# Servir archivos estáticos del build en puerto 8080
+& "C:\Users\angel\AppData\Roaming\npm\npx.cmd" --yes serve -s dist -l 8080
+```
+
+#### 5. **Proceso de Reinicio Completo**
+
+**Paso 1: Detener servicios existentes**
+```powershell
+taskkill /F /IM python.exe
+taskkill /F /IM node.exe
+```
+
+**Paso 2: Sincronizar Git**
+```powershell
+# Fetch y pull de cambios remotos
+git fetch origin -v
+git status
+
+# Si hay cambios locales, commitear primero
+git add -A
+git commit -m "fix: correcciones de producción"
+git pull origin main
+git push origin main
+```
+
+**Paso 3: Ejecutar despliegue automatizado**
+```powershell
+& ".\DEVELOPER\scripts\deploy_prod.ps1"
+```
+
+#### 6. **Inicio Manual de Servicios (si deploy_prod.ps1 falla)**
+```powershell
+# Iniciar servicios usando Start-Process
+Start-Process powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'scripts\start_backend.ps1' -WindowStyle Hidden
+Start-Sleep -Seconds 3
+Start-Process powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'scripts\start_frontend.ps1' -WindowStyle Hidden
+```
+
+#### 7. **Verificación Final**
+```powershell
+# Esperar que los servicios se inicien
+Start-Sleep -Seconds 15
+
+# Verificar puertos locales
+netstat -ano | findstr ":5000\|:8080"
+
+# Verificar servicios de producción
+Invoke-WebRequest -Uri "https://api.nioxtec.es/health" -UseBasicParsing -TimeoutSec 30
+Invoke-WebRequest -Uri "https://app.nioxtec.es" -UseBasicParsing -TimeoutSec 30
+```
+
+### 🎯 **Arquitectura de Producción**
+
+- **Backend Local**: Puerto 5000 ← **Túnel Cloudflare** ← `https://api.nioxtec.es`  
+- **Frontend Local**: Puerto 8080 ← **Túnel Cloudflare** ← `https://app.nioxtec.es`
+- **Git**: SSH `git@github.com:AngelMazur/Nioxtec_Facturer.git`
+- **Scripts**: PowerShell optimizados para tareas programadas
+
+### ⚠️ **Puntos Críticos**
+
+1. **Scripts deben funcionar en tareas programadas** (sin dependencias de PATH del usuario)
+2. **Túneles Cloudflare necesitan tiempo** para reconectar (~30 segundos)
+3. **Variables de entorno** deben configurarse en cada script
+4. **Git debe usar SSH** para evitar problemas de autenticación
+5. **Frontend requiere build actualizado** antes del despliegue
+
+### 🔄 **Comando de Emergencia**
+```powershell
+# Reinicio rápido completo
+taskkill /F /IM python.exe; taskkill /F /IM node.exe; & ".\DEVELOPER\scripts\deploy_prod.ps1"
+```
+
 ## Notas
 
 - Eliminado soporte Docker del README para evitar confusión. Los archivos de Docker pueden mantenerse fuera del flujo de despliegue si no se usan.
