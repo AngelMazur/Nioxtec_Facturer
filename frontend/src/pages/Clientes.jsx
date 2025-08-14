@@ -269,14 +269,14 @@ export default function Clientes() {
                   clientInvoices.items.length ? (
                     <ul className="divide-y divide-gray-800">
                       {clientInvoices.items.map(inv => (
-                        <li key={inv.id} className="py-2 flex items-center justify-between">
+                        <li key={inv.id} className="py-2 flex items-center justify-between rounded px-2 hover:bg-gray-800/80">
                           <div className="space-x-3">
                             <span className="font-medium">{inv.number}</span>
                             <span className="text-gray-400">{inv.date}</span>
                             <span className="text-gray-400">{inv.type}</span>
+                            <span className="text-gray-400 tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
                           </div>
                           <div className="flex items-center gap-4">
-                            <span className="text-sm font-semibold tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
                             <a className="text-brand underline" href={`${apiBase}/api/invoices/${inv.id}/pdf?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer">PDF</a>
                           </div>
                         </li>
@@ -289,7 +289,7 @@ export default function Clientes() {
             {tab==='documentos' && (
               <div className="mt-4 space-y-6">
                 <div>
-                  <h5 className="font-semibold mb-2">Documentos</h5>
+                  <h5 className="font-semibold mb-2">Documentos <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='document').length}</span></h5>
                   {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
                     <div className="space-y-2">
                       {clientDocs.items.filter(d=>d.category==='document').map(d => (
@@ -309,7 +309,7 @@ export default function Clientes() {
                   )}
                 </div>
                 <div>
-                  <h5 className="font-semibold mb-2">Imagenes</h5>
+                  <h5 className="font-semibold mb-2">Imagenes <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='image').length}</span></h5>
                   {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
                     <>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

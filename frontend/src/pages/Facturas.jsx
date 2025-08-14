@@ -559,12 +559,15 @@ export default function Facturas() {
                         {pageItems.map(inv=>{
                           const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
                           return (
-                            <tr key={inv.id} onClick={()=>openPreview(inv.id)} className="cursor-pointer">
+                            <tr key={inv.id} onClick={()=>openPreview(inv.id)} className="cursor-pointer hover:bg-gray-800/80">
                               <td className="px-2 py-2 bg-gray-800 rounded-l-lg whitespace-nowrap font-medium">{inv.number}</td>
                               <td className="px-2 py-2 bg-gray-800 truncate">{clientName}</td>
                               <td className="px-2 py-2 bg-gray-800 text-center text-sm text-gray-300">{inv.date?.slice(0,10)}</td>
-                              <td className="px-2 py-2 bg-gray-800 text-center text-xs uppercase">{inv.type}</td>
-                              <td className="px-2 py-2 bg-gray-800 text-right font-semibold tabular-nums whitespace-nowrap">{(inv.total ?? 0).toFixed(2)} €</td>
+                              <td className="px-2 py-2 bg-gray-800 text-center text-xs uppercase">
+                                {inv.type}
+                                <span className="ml-2 text-gray-400 font-semibold tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
+                              </td>
+                              <td className="px-2 py-2 bg-gray-800 text-right whitespace-nowrap">&nbsp;</td>
                               <td className="px-2 py-2 bg-gray-800 rounded-r-lg">
                                 <div className="flex flex-col items-end gap-1">
                                   <button onClick={(e)=>{e.stopPropagation(); downloadInvoice(inv.id, inv.number);}} className="text-brand underline">PDF</button>
