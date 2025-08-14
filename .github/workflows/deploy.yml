@@ -85,8 +85,15 @@ jobs:
             Start-Sleep -Seconds 3
             try { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null; Log 'Backend asegurado' } catch {}
             try { schtasks /Run /TN "Nioxtec Frontend" 2>$null | Out-Null; Log 'Frontend asegurado' } catch {}
-            # Forzar código de salida 0 para que el paso no falle por comandos previos no críticos
-            $global:LASTEXITCODE = 0
+            # 4) Verificar rutas nuevas (si fallan, abortar)
+            try {
+              $h = @{ Origin='https://app.nioxtec.es'; 'Access-Control-Request-Method'='GET'; 'Access-Control-Request-Headers'='authorization,content-type' }
+              $opt1 = Invoke-WebRequest https://api.nioxtec.es/api/clients/1/invoices -Method OPTIONS -UseBasicParsing -Headers $h -TimeoutSec 15
+              $opt2 = Invoke-WebRequest https://api.nioxtec.es/api/clients/1/documents -Method OPTIONS -UseBasicParsing -Headers $h -TimeoutSec 15
+              if ($opt1.StatusCode -eq 404) { throw 'Ruta /api/clients/:id/invoices no disponible tras deploy' }
+              if ($opt2.StatusCode -eq 404) { throw 'Ruta /api/clients/:id/documents no disponible tras deploy' }
+              Log 'Rutas nuevas verificadas'
+            } catch { Write-Error $_.Exception.Message; exit 1 }
 
           }
 
