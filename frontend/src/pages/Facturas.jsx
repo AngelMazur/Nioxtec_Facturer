@@ -469,7 +469,7 @@ export default function Facturas() {
           <button
             type="button"
             onClick={addItem}
-            className="bg-secondary hover:opacity-90 transition px-2 py-1.5 rounded text-white min-w-[8rem] text-center"
+            className="bg-secondary hover:opacity-90 transition px-2 py-1.5 rounded text-white min-w-[8rem] text-center hover-scale-button"
           >
             Añadir línea
           </button>
@@ -493,7 +493,7 @@ export default function Facturas() {
             className={
               ((form.items?.length || 0) === 0
                 ? "opacity-50 cursor-not-allowed "
-                : "hover:opacity-90 ") +
+                : "hover:opacity-90 hover-scale-button ") +
               "bg-primary transition text-white px-3 py-1.5 rounded min-w-[8rem] text-center"
             }
           >
@@ -559,7 +559,7 @@ export default function Facturas() {
                         {pageItems.map(inv=>{
                           const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
                           return (
-                            <tr key={inv.id} onClick={()=>openPreview(inv.id)} className="cursor-pointer group">
+                            <tr key={inv.id} onClick={()=>openPreview(inv.id)} className="cursor-pointer group hover-scale-card">
                               <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors rounded-l-lg whitespace-nowrap font-medium">{inv.number}</td>
                               <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors truncate">{clientName}</td>
                               <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-center text-sm text-gray-300">{inv.date?.slice(0,10)}</td>
@@ -584,7 +584,7 @@ export default function Facturas() {
                     {pageItems.map(inv=>{
                       const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
                       return (
-                        <div key={inv.id} className="p-3 bg-gray-800 border border-gray-700 rounded" onClick={()=>openPreview(inv.id)}>
+                        <div key={inv.id} className="p-3 bg-gray-800 border border-gray-700 rounded hover-scale-card" onClick={()=>openPreview(inv.id)}>
                           <div className="space-y-1">
                             <div className="text-xs text-gray-500">Número</div>
                             <div className="font-medium">{inv.number}</div>

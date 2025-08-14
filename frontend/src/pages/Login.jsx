@@ -41,7 +41,7 @@ export default function Login() {
         {error && <div className="text-red-600 text-sm">{error}</div>}
         <input className="border border-gray-300 dark:border-gray-700 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Usuario" value={username} onChange={(e)=>setUsername(e.target.value)} required />
         <input className="border border-gray-300 dark:border-gray-700 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-brand" type="password" placeholder="Contraseña" value={password} onChange={(e)=>setPassword(e.target.value)} required />
-        <button className="bg-primary hover:opacity-90 transition text-white px-4 py-2 rounded w-full" type="submit">Entrar</button>
+        <button className="bg-primary hover:opacity-90 transition text-white px-4 py-2 rounded w-full hover-scale-button" type="submit">Entrar</button>
       </form>
     </main>
   )

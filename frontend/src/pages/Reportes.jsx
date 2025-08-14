@@ -68,8 +68,8 @@ export default function Reportes() {
           <div className="text-2xl font-semibold">{summary.total_year.toFixed(2)} €</div>
         </div>
         <div className="rounded-lg border border-gray-700 p-4 flex items-end gap-2 bg-gray-800">
-          <button onClick={downloadClients} className="bg-primary text-white px-3 py-2 rounded">Exportar clientes XLSX</button>
-          <button onClick={downloadInvoices} className="bg-secondary text-white px-3 py-2 rounded">Exportar facturas XLSX</button>
+          <button onClick={downloadClients} className="bg-primary text-white px-3 py-2 rounded hover-scale-button">Exportar clientes XLSX</button>
+          <button onClick={downloadInvoices} className="bg-secondary text-white px-3 py-2 rounded hover-scale-button">Exportar facturas XLSX</button>
         </div>
       </section>
 
@@ -83,7 +83,7 @@ export default function Reportes() {
             return (
               <div key={m} className="flex flex-col items-center justify-end gap-1">
                 <div
-                  className="w-full h-48 relative"
+                  className="w-full h-48 relative hover-glow-scale"
                   onMouseEnter={(e)=>{
                     const rect = e.currentTarget.getBoundingClientRect()
                     setTip({
@@ -132,7 +132,11 @@ export default function Reportes() {
             const intensity = Math.min(1, value / maxDay)
             return (
               <div key={i} className="flex flex-col items-center gap-1">
-                <div className="w-full h-10 rounded" style={{ backgroundColor: `rgba(8,180,216,${intensity || 0.12})` }} />
+                <div 
+                  className="w-full h-10 rounded hover-glow-scale" 
+                  style={{ backgroundColor: `rgba(8,180,216,${intensity || 0.12})` }}
+                  title={`${day} de ${months[month-1]}: ${value.toFixed(2)} €`}
+                />
                 <div className="text-[10px] text-gray-500">{day}</div>
               </div>
             )
