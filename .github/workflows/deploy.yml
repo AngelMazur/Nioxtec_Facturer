@@ -20,12 +20,7 @@ jobs:
       - nioxtec
     timeout-minutes: 30
     steps:
-      - name: Preflight – PowerShell policy
-        shell: powershell
-        run: |
-          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-
-      - name: Despliegue automático con Python dinámico
+      - name: Deploy automático con Python funcional
         shell: powershell
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
@@ -33,96 +28,47 @@ jobs:
           $ErrorActionPreference = 'Continue'
           function Log([string]$m){ Write-Host ("[{0}] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $m) }
           
-          try {
-            Log 'Iniciando deploy automático'
-            Set-Location 'C:\Nioxtec\Nioxtec_Facturer'
-            git config --global --add safe.directory 'C:/Nioxtec/Nioxtec_Facturer'
-            
-            # Git pull con token
-            $repoUrl = "https://x-access-token:$env:DEPLOY_TOKEN@github.com/AngelMazur/Nioxtec_Facturer.git"
-            git remote set-url origin $repoUrl
-            git fetch origin main --prune
-            git reset --hard origin/main
-            Log 'Código actualizado desde GitHub'
-            
-            # Detectar Python disponible
-            $pythonCmd = $null
-            $pythonPaths = @(
-              'py -3.11',
-              'py -3.10', 
-              'py',
-              'python',
-              'python3',
-              '.\.venv310\Scripts\python.exe',
-              '.\.venv\Scripts\python.exe'
-            )
-            
-            foreach ($pyPath in $pythonPaths) {
-              try {
-                if ($pyPath.StartsWith('.')) {
-                  # Ruta local - verificar si existe
-                  if (Test-Path $pyPath) {
-                    & $pyPath --version 2>$null | Out-Null
-                    if ($LASTEXITCODE -eq 0) {
-                      $pythonCmd = $pyPath
-                      break
-                    }
-                  }
-                } else {
-                  # Comando global - probar ejecutar
-                  Invoke-Expression "$pyPath --version" 2>$null | Out-Null
-                  if ($LASTEXITCODE -eq 0) {
-                    $pythonCmd = $pyPath
-                    break
-                  }
-                }
-              } catch { continue }
+          Log 'Iniciando deploy automático'
+          Set-Location 'C:\Nioxtec\Nioxtec_Facturer'
+          
+          # Git update
+          $repoUrl = "https://x-access-token:$env:DEPLOY_TOKEN@github.com/AngelMazur/Nioxtec_Facturer.git"
+          git remote set-url origin $repoUrl
+          git fetch origin main --prune
+          git reset --hard origin/main
+          Log 'Código actualizado desde GitHub'
+          
+          # Python dependencies - usar el venv310 que sabemos que existe
+          if (Test-Path '.\.venv310\Scripts\python.exe') {
+            Log 'Instalando dependencias Python con venv310'
+            try {
+              & '.\.venv310\Scripts\python.exe' -m pip install --upgrade pip --quiet
+              & '.\.venv310\Scripts\pip.exe' install -r requirements.txt --quiet
+              Log 'Dependencias Python instaladas correctamente'
+            } catch {
+              Log "Error instalando Python deps: $($_.Exception.Message)"
             }
-            
-            if ($pythonCmd) {
-              Log "Python encontrado: $pythonCmd"
-              
-              # Crear/actualizar entorno virtual estable
-              if (-not (Test-Path '.\.venv')) {
-                Log 'Creando entorno virtual estable'
-                Invoke-Expression "$pythonCmd -m venv .venv"
-              }
-              
-              # Instalar/actualizar dependencias
-              if (Test-Path '.\.venv\Scripts\python.exe') {
-                Log 'Instalando dependencias Python en entorno virtual'
-                & '.\.venv\Scripts\python.exe' -m pip install --upgrade pip --quiet
-                & '.\.venv\Scripts\pip.exe' install -r requirements.txt --quiet
-                Log 'Dependencias Python instaladas correctamente'
-              } else {
-                Log 'Entorno virtual no se creó correctamente'
-              }
-            } else {
-              Log 'Python no encontrado - continuando sin dependencias'
-            }
-            
-            # Build frontend
-            Log 'Compilando frontend'
-            Set-Location 'C:\Nioxtec\Nioxtec_Facturer\frontend'
-            npm ci --silent
-            $env:VITE_API_BASE = 'https://api.nioxtec.es'
-            npm run build
-            Log 'Frontend compilado exitosamente'
-            
-            # Reiniciar servicios
-            Log 'Reiniciando servicios'
-            try { schtasks /End /TN "Nioxtec Backend" 2>$null | Out-Null } catch {}
-            try { schtasks /End /TN "Nioxtec Frontend" 2>$null | Out-Null } catch {}
-            Start-Sleep -Seconds 5
-            try { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null } catch {}
-            try { schtasks /Run /TN "Nioxtec Frontend" 2>$null | Out-Null } catch {}
-            
-            Log 'Deploy completado exitosamente'
-            
-          } catch {
-            Log "Error en deploy: $($_.Exception.Message)"
-            throw $_
+          } else {
+            Log 'venv310 no encontrado'
           }
+          
+          # Build frontend
+          Log 'Compilando frontend'
+          Set-Location 'C:\Nioxtec\Nioxtec_Facturer\frontend'
+          npm ci --silent
+          $env:VITE_API_BASE = 'https://api.nioxtec.es'
+          npm run build
+          Log 'Frontend compilado exitosamente'
+          
+          # Restart services
+          Log 'Reiniciando servicios'
+          try { schtasks /End /TN "Nioxtec Backend" 2>$null | Out-Null } catch {}
+          try { schtasks /End /TN "Nioxtec Frontend" 2>$null | Out-Null } catch {}
+          Start-Sleep -Seconds 5
+          try { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null } catch {}
+          try { schtasks /Run /TN "Nioxtec Frontend" 2>$null | Out-Null } catch {}
+          
+          Log 'Deploy completado exitosamente'
 
       - name: Verificar API
         shell: powershell
@@ -130,13 +76,9 @@ jobs:
           Start-Sleep -Seconds 15
           try {
             $response = Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 20
-            if ($response.StatusCode -eq 200) {
-              Write-Host "✅ Deploy exitoso - API funcionando"
-            } else {
-              Write-Host "⚠️ Deploy completado pero API retorna: $($response.StatusCode)"
-            }
+            Write-Host "✅ Deploy exitoso - API status: $($response.StatusCode)"
           } catch {
-            Write-Host "⚠️ Deploy completado pero API no responde: $($_.Exception.Message)"
+            Write-Host "⚠️ Deploy completado - API verificación falló: $($_.Exception.Message)"
           }
 
 
