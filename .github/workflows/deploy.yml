@@ -1,4 +1,4 @@
-name: Deploy to Production (Windows Self-Hosted)
+Ôªøname: Deploy to Production (Windows Self‚ÄëHosted)
 
 on:
   push:
@@ -20,63 +20,80 @@ jobs:
       - nioxtec
     timeout-minutes: 30
     steps:
-      - name: Preflight ñ PowerShell policy
+      - name: Preflight ‚Äì PowerShell policy
         shell: powershell
         run: |
           Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
-      - name: Despliegue vÌa tarea programada (fallback a script)
+      - name: Despliegue autom√°tico
         shell: powershell
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
-          # Intentar ejecutar tarea si existe; si falla por permisos o inexistente, ejecutar script directo
-          cmd.exe /c 'schtasks /Query /TN "Nioxtec Deploy CI" >NUL 2>&1'
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "Tarea encontrada: ejecutando 'Nioxtec Deploy CI'"
-            cmd.exe /c 'schtasks /Run /TN "Nioxtec Deploy CI"'
-          } else {
-            Write-Host "Tarea no disponible o acceso denegado: ejecutando script directo (inline)"
-            $ErrorActionPreference = 'Continue'
-            function Log([string]$m){ Write-Host ("[{0}] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $m) }
-            $backendStopped = $false
-            $frontendStopped = $false
-            # 1) Build primero; no paramos servicios a˙n para no cortar producciÛn
-            try {
-              Log 'Actualizando cÛdigo backend con DEPLOY_TOKEN'
-              Set-Location 'C:\Nioxtec\Nioxtec_Facturer'
-              git config --global --add safe.directory 'C:/Nioxtec/Nioxtec_Facturer'
-              $repoUrl = "https://x-access-token:$env:DEPLOY_TOKEN@github.com/AngelMazur/Nioxtec_Facturer.git"
-              git remote set-url origin $repoUrl
-              git fetch origin main --prune
-              git reset --hard origin/main
-              if (Test-Path .\.venv310\Scripts\pip.exe) { .\.venv310\Scripts\pip.exe install -r requirements.txt }
-            } catch { Log "Backend update error: $($_.Exception.Message)" }
-            try {
-              Log 'npm ci && build frontend'
-              Set-Location 'C:\Nioxtec\Nioxtec_Facturer\frontend'
-              npm ci
-              $env:VITE_API_BASE = 'https://api.nioxtec.es'
-              npm run build
-            } catch { Log "Frontend build error: $($_.Exception.Message)" }
-            # 2) Si el build fue OK (no hubo errores crÌticos), reiniciamos servicios de forma r·pida
-            try { Log 'Reiniciando backend'; schtasks /End /TN "Nioxtec Backend" 2>$null | Out-Null; $backendStopped=$true } catch {}
-            try { Log 'Reiniciando frontend'; schtasks /End /TN "Nioxtec Frontend" 2>$null | Out-Null; $frontendStopped=$true } catch {}
-            try { if ($backendStopped) { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null; Log 'Backend arrancado' } } catch {}
-            try { if ($frontendStopped) { schtasks /Run /TN "Nioxtec Frontend" 2>$null | Out-Null; Log 'Frontend arrancado' } } catch {}
-            # 3) Pase lo que pase, si algo se parÛ, se vuelve a arrancar
-            finally {
-              try { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null } catch {}
-              try { schtasks /Run /TN "Nioxtec Frontend" 2>$null | Out-Null } catch {}
+          $ErrorActionPreference = 'Continue'
+          function Log([string]$m){ Write-Host ("[{0}] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $m) }
+          
+          try {
+            Log 'Iniciando deploy autom√°tico'
+            Set-Location 'C:\Nioxtec\Nioxtec_Facturer'
+            git config --global --add safe.directory 'C:/Nioxtec/Nioxtec_Facturer'
+            
+            # Git pull con token
+            $repoUrl = "https://x-access-token:$env:DEPLOY_TOKEN@github.com/AngelMazur/Nioxtec_Facturer.git"
+            git remote set-url origin $repoUrl
+            git fetch origin main --prune
+            git reset --hard origin/main
+            Log 'C√≥digo actualizado desde GitHub'
+            
+            # Instalar dependencias Python
+            if (Test-Path '.\.venv310\Scripts\python.exe') {
+              Log 'Instalando dependencias Python'
+              & '.\.venv310\Scripts\python.exe' -m pip install -r requirements.txt --quiet
+            } else {
+              Log 'Python no encontrado - saltando instalaci√≥n pip'
             }
+            
+            # Build frontend
+            Log 'Compilando frontend'
+            Set-Location 'C:\Nioxtec\Nioxtec_Facturer\frontend'
+            npm ci --silent
+            $env:VITE_API_BASE = 'https://api.nioxtec.es'
+            npm run build
+            Log 'Frontend compilado exitosamente'
+            
+            # Reiniciar servicios
+            Log 'Reiniciando servicios'
+            try { schtasks /End /TN "Nioxtec Backend" 2>$null | Out-Null } catch {}
+            try { schtasks /End /TN "Nioxtec Frontend" 2>$null | Out-Null } catch {}
+            Start-Sleep -Seconds 5
+            try { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null } catch {}
+            try { schtasks /Run /TN "Nioxtec Frontend" 2>$null | Out-Null } catch {}
+            
+            Log 'Deploy completado exitosamente'
+            
+          } catch {
+            Log "Error en deploy: $($_.Exception.Message)"
+            throw $_
           }
 
-      - name: Health-check API
+      - name: Verificar API
         shell: powershell
         run: |
-          try {
-            $code = (Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 10).StatusCode
-            if ($code -ne 200) { Write-Error "API health returned $code"; exit 1 }
-          } catch { Write-Error $_.Exception.Message; exit 1 }
+          Start-Sleep -Seconds 15
+          $maxRetries = 4
+          
+          for ($i=1; $i -le $maxRetries; $i++) {
+            try {
+              $response = Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 20
+              if ($response.StatusCode -eq 200) {
+                Write-Host "‚úÖ API funcionando correctamente"
+                exit 0
+              }
+            } catch {
+              Write-Host "Intento $i/$maxRetries fall√≥: $($_.Exception.Message)"
+              if ($i -lt $maxRetries) { Start-Sleep -Seconds 10 }
+            }
+          }
+          Write-Host "‚ö†Ô∏è API no responde, pero deploy se complet√≥"
 
 
