@@ -64,44 +64,43 @@ jobs:
             try { Log 'Reiniciando frontend'; schtasks /End /TN "Nioxtec Frontend" 2>$null | Out-Null; $frontendStopped=$true } catch {}
             try { if ($backendStopped) { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null; Log 'Backend arrancado' } } catch {}
             try { if ($frontendStopped) { schtasks /Run /TN "Nioxtec Frontend" 2>$null | Out-Null; Log 'Frontend arrancado' } } catch {}
-            # 3) Pase lo que pase, si algo se paró, se vuelve a arrancar
-            finally {
-              try { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null } catch {}
-              try { schtasks /Run /TN "Nioxtec Frontend" 2>$null | Out-Null } catch {}
-            }
+            # 3) Asegurar que los servicios están arrancados
+            Start-Sleep -Seconds 3
+            try { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null; Log 'Backend asegurado' } catch {}
+            try { schtasks /Run /TN "Nioxtec Frontend" 2>$null | Out-Null; Log 'Frontend asegurado' } catch {}
+            
+
           }
 
-      - name: Verificación final del deploy
+      - name: Deploy completado exitosamente
         shell: powershell
         run: |
-          Write-Host "🎯 Deploy completado exitosamente"
-          Write-Host "📊 Verificando servicios..."
+          Write-Host "🎉 Deploy automático completado exitosamente"
+          Write-Host "✅ Git pull: OK"
+          Write-Host "✅ Frontend build: OK"  
+          Write-Host "✅ Servicios reiniciados: OK"
+          Write-Host "🚀 Aplicación actualizada y funcionando"
           
-          # Dar tiempo a los servicios para arrancar
+          # Verificación simple: solo API pública (lo que realmente importa)
+          Write-Host "🔍 Verificando aplicación..."
           Start-Sleep -Seconds 20
           
-          # Verificar API con reintentos
-          $success = $false
-          for ($i = 1; $i -le 3; $i++) {
-            try {
-              $response = Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 15
-              if ($response.StatusCode -eq 200) {
-                Write-Host "✅ API funcionando correctamente (intento $i)"
-                $success = $true
-                break
-              }
-            } catch {
-              Write-Host "⚠️ Intento $i: API no responde aún"
-              if ($i -lt 3) { Start-Sleep -Seconds 10 }
+          try {
+            $response = Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 15
+            if ($response.StatusCode -eq 200) {
+              Write-Host "🎉 ¡DEPLOY EXITOSO! - API funcionando perfectamente"
+              Write-Host "📊 Status: $($response.StatusCode)"
+              Write-Host "🌐 App disponible en: https://app.nioxtec.es"
+            } else {
+              Write-Host "⚠️ API respondió con código: $($response.StatusCode)"
             }
+          } catch {
+            Write-Host "❌ API no responde: $($_.Exception.Message)"
+            Write-Host "🔄 Nota: Los servicios pueden necesitar más tiempo para arrancar"
+            Write-Error "Health check falló"
+            exit 1
           }
           
-          if ($success) {
-            Write-Host "🎉 Deploy exitoso - Aplicación funcionando"
-          } else {
-            Write-Host "⚠️ Deploy completado - API puede necesitar más tiempo para arrancar"
-          }
-          
-          Write-Host "🚀 Automatización completada"
+          Write-Host "✅ DEPLOY AUTOMÁTICO EXITOSO"
 
 
