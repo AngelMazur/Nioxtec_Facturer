@@ -18,6 +18,7 @@ export default function Clientes() {
   const [clientInvoices, setClientInvoices] = useState({ loading: false, items: [], total: 0 })
   const [clientDocs, setClientDocs] = useState({ loading: false, items: [] })
   const [uploading, setUploading] = useState(false)
+  const apiBase = (import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')
 
   useEffect(() => {
     async function load() {
@@ -80,8 +81,7 @@ export default function Clientes() {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      const base = (import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')
-      const res = await fetch(`${base}/api/clients/${selectedClient.id}/documents`, {
+      const res = await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents`, {
         method: 'POST',
         headers: { Authorization: token ? `Bearer ${token}` : '' },
         body: formData,
@@ -275,7 +275,7 @@ export default function Clientes() {
                             <span className="text-gray-400">{inv.date}</span>
                             <span className="text-gray-400">{inv.type}</span>
                           </div>
-                          <a className="text-brand underline" href={`${(import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')}/api/invoices/${inv.id}/pdf`} target="_blank" rel="noreferrer">PDF</a>
+                          <a className="text-brand underline" href={`${apiBase}/api/invoices/${inv.id}/pdf?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer">PDF</a>
                         </li>
                       ))}
                     </ul>
@@ -290,7 +290,7 @@ export default function Clientes() {
                   {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
                     <div className="space-y-2">
                       {clientDocs.items.filter(d=>d.category==='document').map(d => (
-                        <a key={d.id} className="block underline text-brand" href={`${(import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer">{d.filename}</a>
+                        <a key={d.id} className="block underline text-brand" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer">{d.filename}</a>
                       ))}
                       <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer">
                         <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
@@ -304,7 +304,7 @@ export default function Clientes() {
                   {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {clientDocs.items.filter(d=>d.category==='image').map(d => (
-                        <a key={d.id} href={`${(import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="block">
+                        <a key={d.id} href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer" className="block">
                           <div className="aspect-video bg-gray-800 border border-gray-700 rounded flex items-center justify-center text-xs text-gray-400">{d.filename}</div>
                         </a>
                       ))}

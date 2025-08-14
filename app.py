@@ -210,6 +210,9 @@ def _add_cors_headers(response: Response) -> Response:
 
 # JWT
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'change-this-secret')
+# Aceptar token JWT tanto por cabecera Authorization como por query string (?token=...)
+app.config['JWT_TOKEN_LOCATION'] = ['headers', 'query_string']
+app.config['JWT_QUERY_STRING_NAME'] = 'token'
 # Flag de debug (usado también para relajar X-Frame-Options solo en local)
 DEBUG_MODE = os.getenv('FLASK_DEBUG', 'true').lower() in ('1','true','yes')
 # Rechazar arranque en prod sin secreto adecuado
