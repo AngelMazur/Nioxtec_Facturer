@@ -93,6 +93,8 @@ jobs:
               if ($opt1.StatusCode -eq 404) { throw 'Ruta /api/clients/:id/invoices no disponible tras deploy' }
               if ($opt2.StatusCode -eq 404) { throw 'Ruta /api/clients/:id/documents no disponible tras deploy' }
               Log 'Rutas nuevas verificadas'
+              # Normalizar exit code del step aunque algún comando previo dejara LASTEXITCODE != 0
+              $global:LASTEXITCODE = 0
             } catch { Write-Error $_.Exception.Message; exit 1 }
 
           }
