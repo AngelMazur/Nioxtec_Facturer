@@ -559,13 +559,13 @@ export default function Facturas() {
                         {pageItems.map(inv=>{
                           const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
                           return (
-                            <tr key={inv.id} onClick={()=>openPreview(inv.id)} className="cursor-pointer">
-                              <td className="px-2 py-2 bg-gray-800 rounded-l-lg whitespace-nowrap font-medium">{inv.number}</td>
-                              <td className="px-2 py-2 bg-gray-800 truncate">{clientName}</td>
-                              <td className="px-2 py-2 bg-gray-800 text-center text-sm text-gray-300">{inv.date?.slice(0,10)}</td>
-                              <td className="px-2 py-2 bg-gray-800 text-center text-xs uppercase">{inv.type}</td>
-                              <td className="px-2 py-2 bg-gray-800 text-right font-semibold tabular-nums whitespace-nowrap">{(inv.total ?? 0).toFixed(2)} €</td>
-                              <td className="px-2 py-2 bg-gray-800 rounded-r-lg">
+                            <tr key={inv.id} onClick={()=>openPreview(inv.id)} className="cursor-pointer group">
+                              <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors rounded-l-lg whitespace-nowrap font-medium">{inv.number}</td>
+                              <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors truncate">{clientName}</td>
+                              <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-center text-sm text-gray-300">{inv.date?.slice(0,10)}</td>
+                              <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-center text-xs uppercase">{inv.type}</td>
+                              <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-right font-semibold tabular-nums whitespace-nowrap">{(inv.total ?? 0).toFixed(2)} €</td>
+                              <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors rounded-r-lg">
                                 <div className="flex flex-col items-end gap-1">
                                   <button onClick={(e)=>{e.stopPropagation(); downloadInvoice(inv.id, inv.number);}} className="text-brand underline">PDF</button>
                                   <button onClick={(e)=>{e.stopPropagation(); duplicateInvoice(inv);}} className="underline">Duplicar</button>

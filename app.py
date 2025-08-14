@@ -42,6 +42,7 @@ from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from typing import Tuple
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -88,6 +89,7 @@ except Exception:
     reportlab_available = False
 import io
 from pathlib import Path
+from uuid import uuid4
 
 # -----------------------------------------------------------------------------
 # Flask configuration
@@ -97,6 +99,8 @@ from pathlib import Path
 # When you grow beyond a single user you can switch SQLALCHEMY_DATABASE_URI
 # to a PostgreSQL connection string without changing your code.
 app = Flask(__name__, instance_relative_config=True)
+# Limitar tamaño de subida global (20 MB)
+app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH_MB', '20')) * 1024 * 1024
 # Detrás de un proxy/túnel (Cloudflare/Nginx), respeta cabeceras X-Forwarded-*
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)  # type: ignore
 
@@ -206,6 +210,9 @@ def _add_cors_headers(response: Response) -> Response:
 
 # JWT
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'change-this-secret')
+# Aceptar token JWT tanto por cabecera Authorization como por query string (?token=...)
+app.config['JWT_TOKEN_LOCATION'] = ['headers', 'query_string']
+app.config['JWT_QUERY_STRING_NAME'] = 'token'
 # Flag de debug (usado también para relajar X-Frame-Options solo en local)
 DEBUG_MODE = os.getenv('FLASK_DEBUG', 'true').lower() in ('1','true','yes')
 # Rechazar arranque en prod sin secreto adecuado
@@ -276,6 +283,10 @@ os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 STATIC_FOLDER = os.path.join(app.root_path, 'static')
 os.makedirs(STATIC_FOLDER, exist_ok=True)
 
+# Carpeta base para subidas (documentos/imágenes de clientes)
+UPLOADS_ROOT = os.path.join(app.instance_path, 'uploads')
+os.makedirs(UPLOADS_ROOT, exist_ok=True)
+
 
 # -----------------------------------------------------------------------------
 # Database models
@@ -320,6 +331,20 @@ class Invoice(db.Model):
     total = db.Column(db.Float, default=0.0)
     tax_total = db.Column(db.Float, default=0.0)
     client = db.relationship('Client', backref=db.backref('invoices', lazy=True))
+
+
+class ClientDocument(db.Model):
+    """Archivos asociados a un cliente (PDFs e Imágenes)."""
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False, index=True)
+    # 'document' (PDF) | 'image' (jpg/png/webp)
+    category = db.Column(db.String(16), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)  # nombre original
+    stored_path = db.Column(db.String(512), nullable=False)  # ruta relativa bajo UPLOADS_ROOT
+    content_type = db.Column(db.String(128), nullable=False)
+    size_bytes = db.Column(db.Integer, default=0)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    client = db.relationship('Client', backref=db.backref('documents', lazy=True))
 
 
 class InvoiceItem(db.Model):
@@ -836,6 +861,128 @@ def delete_client(client_id):
     db.session.delete(client)
     db.session.commit()
     return jsonify({'status': 'deleted'})
+
+
+def _client_upload_dir(client_id: int) -> str:
+    base = os.path.join(UPLOADS_ROOT, str(client_id))
+    os.makedirs(os.path.join(base, 'documents'), exist_ok=True)
+    os.makedirs(os.path.join(base, 'images'), exist_ok=True)
+    return base
+
+
+def _allowed_category_and_mime(filename: str, content_type: str) -> tuple[str, bool]:
+    name = filename.lower()
+    if name.endswith('.pdf') and content_type in ('application/pdf', 'application/octet-stream'):
+        return 'document', True
+    if any(name.endswith(ext) for ext in ('.jpg', '.jpeg', '.png', '.webp')) and content_type.startswith('image/'):
+        return 'image', True
+    return 'other', False
+
+
+@app.route('/api/clients/<int:client_id>/documents', methods=['GET'])
+@jwt_required()
+def list_client_documents(client_id):
+    Client.query.get_or_404(client_id)
+    docs = (ClientDocument.query
+            .filter_by(client_id=client_id)
+            .order_by(ClientDocument.uploaded_at.desc())
+            .all())
+    return jsonify([
+        {
+            'id': d.id,
+            'category': d.category,
+            'filename': d.filename,
+            'content_type': d.content_type,
+            'size_bytes': d.size_bytes,
+            'uploaded_at': d.uploaded_at.isoformat(),
+        } for d in docs
+    ])
+
+
+@app.route('/api/clients/<int:client_id>/documents', methods=['POST'])
+@jwt_required()
+def upload_client_document(client_id):
+    Client.query.get_or_404(client_id)
+    if 'file' not in request.files:
+        return jsonify({'error': 'Fichero requerido (campo file)'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'Nombre de fichero vacío'}), 400
+    safe_name = secure_filename(file.filename)
+    category, ok = _allowed_category_and_mime(safe_name, file.mimetype or '')
+    if not ok:
+        return jsonify({'error': 'Tipo de archivo no permitido (PDF o imagen)'}), 400
+    # Guardar con nombre único para evitar colisiones
+    base_dir = _client_upload_dir(client_id)
+    subdir = 'documents' if category == 'document' else 'images'
+    unique_name = f"{uuid4().hex}_{safe_name}"
+    stored_rel = os.path.join(str(client_id), subdir, unique_name)
+    stored_abs = os.path.join(UPLOADS_ROOT, stored_rel)
+    file.save(stored_abs)
+    size_bytes = os.path.getsize(stored_abs)
+    doc = ClientDocument(
+        client_id=client_id,
+        category=category,
+        filename=safe_name,
+        stored_path=stored_rel,
+        content_type=file.mimetype or 'application/octet-stream',
+        size_bytes=size_bytes,
+    )
+    db.session.add(doc)
+    db.session.commit()
+    return jsonify({'id': doc.id}), 201
+
+
+@app.route('/api/clients/<int:client_id>/documents/<int:doc_id>', methods=['GET'])
+@jwt_required()
+def get_client_document(client_id, doc_id):
+    doc = ClientDocument.query.filter_by(id=doc_id, client_id=client_id).first_or_404()
+    abs_path = os.path.join(UPLOADS_ROOT, doc.stored_path)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_file(abs_path, mimetype=doc.content_type, as_attachment=False, download_name=doc.filename)
+
+
+@app.route('/api/clients/<int:client_id>/documents/<int:doc_id>', methods=['DELETE'])
+@jwt_required()
+def delete_client_document(client_id, doc_id):
+    doc = ClientDocument.query.filter_by(id=doc_id, client_id=client_id).first_or_404()
+    abs_path = os.path.join(UPLOADS_ROOT, doc.stored_path)
+    try:
+        if os.path.isfile(abs_path):
+            os.remove(abs_path)
+    except Exception:
+        pass
+    db.session.delete(doc)
+    db.session.commit()
+    return jsonify({'status': 'deleted'})
+
+
+@app.route('/api/clients/<int:client_id>/invoices', methods=['GET'])
+@jwt_required()
+def list_invoices_by_client(client_id):
+    Client.query.get_or_404(client_id)
+    # Paginación opcional
+    limit = request.args.get('limit', type=int)
+    offset = request.args.get('offset', type=int, default=0)
+    q = Invoice.query.filter_by(client_id=client_id).order_by(Invoice.id.desc())
+    total = q.count()
+    if limit:
+        q = q.offset(offset or 0).limit(limit)
+    invs = q.all()
+    return jsonify({
+        'items': [
+            {
+                'id': inv.id,
+                'number': inv.number,
+                'date': inv.date.isoformat(),
+                'type': inv.type,
+                'total': inv.total,
+                'tax_total': inv.tax_total,
+            } for inv in invs
+        ],
+        'total': total,
+    })
 
 @app.route('/api/invoices/<int:invoice_id>', methods=['PUT'])
 @jwt_required()
