@@ -178,17 +178,17 @@ export default function Clientes() {
                   <div className="hidden md:block">
                     <ul className="space-y-2">
                        {pageItems.map((client) => (
-                        <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
+                         <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer hover:bg-gray-800/80" onClick={()=>openClientModal(client)}>
                           <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_12rem_minmax(0,1.6fr)_12rem] gap-6 items-start">
-                            <button onClick={()=>openClientModal(client)} className="font-medium leading-snug break-words text-left hover:underline">{client.name}</button>
+                            <div className="font-medium leading-snug break-words">{client.name}</div>
                             <div className="text-gray-500 justify-self-center text-center whitespace-nowrap">{client.cif}</div>
                             <div className="text-sm text-gray-400 break-words">
                               <div>{client.email}</div>
                               <div>{client.phone}</div>
                             </div>
                             <div className="text-sm text-gray-400 sm:text-center flex flex-col items-end sm:items-center gap-1 justify-center">
-                              <span className="whitespace-nowrap">{client.created_at ? String(client.created_at).slice(0,10) : ''}</span>
-                              <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button>
+                               <span className="whitespace-nowrap">{client.created_at ? String(client.created_at).slice(0,10) : ''}</span>
+                               <button className="text-red-600 underline" onClick={(e)=>{ e.stopPropagation(); deleteClient(client) }}>Eliminar</button>
                             </div>
                           </div>
                         </li>
@@ -199,10 +199,10 @@ export default function Clientes() {
                   {/* Mobile cards */}
                   <div className="md:hidden space-y-2">
                      {pageItems.map((client) => (
-                      <div key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
+                       <div key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer" onClick={()=>openClientModal(client)}>
                         <div className="space-y-1">
                           <div className="text-xs text-gray-500">Nombre</div>
-                            <button onClick={()=>openClientModal(client)} className="font-medium text-left hover:underline">{client.name}</button>
+                            <div className="font-medium text-left">{client.name}</div>
                           <div className="text-xs text-gray-500 mt-2">CIF/NIF</div>
                           <div className="text-gray-300">{client.cif}</div>
                           <div className="text-xs text-gray-500 mt-2">Contacto</div>
@@ -213,8 +213,8 @@ export default function Clientes() {
                           <div className="text-xs text-gray-500 mt-2">Creado</div>
                           <div className="text-gray-300">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
                         </div>
-                        <div className="mt-3 flex items-center gap-4">
-                          <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button>
+                         <div className="mt-3 flex items-center gap-4" onClick={(e)=>e.stopPropagation()}>
+                           <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button>
                         </div>
                       </div>
                     ))}
@@ -275,7 +275,10 @@ export default function Clientes() {
                             <span className="text-gray-400">{inv.date}</span>
                             <span className="text-gray-400">{inv.type}</span>
                           </div>
-                          <a className="text-brand underline" href={`${apiBase}/api/invoices/${inv.id}/pdf?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer">PDF</a>
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm font-semibold tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
+                            <a className="text-brand underline" href={`${apiBase}/api/invoices/${inv.id}/pdf?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer">PDF</a>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -290,9 +293,15 @@ export default function Clientes() {
                   {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
                     <div className="space-y-2">
                       {clientDocs.items.filter(d=>d.category==='document').map(d => (
-                        <a key={d.id} className="block underline text-brand" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer">{d.filename}</a>
+                        <div key={d.id} className="flex items-center justify-between">
+                          <a className="underline text-brand" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer">{d.filename}</a>
+                          <button className="text-red-500 underline" onClick={async()=>{
+                            if(!window.confirm('¿Eliminar documento?')) return;
+                            try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' } }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                          }}>Eliminar</button>
+                        </div>
                       ))}
-                      <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer">
+                      <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-2">
                         <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
                         Subir PDF
                       </label>
@@ -302,17 +311,25 @@ export default function Clientes() {
                 <div>
                   <h5 className="font-semibold mb-2">Imagenes</h5>
                   {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {clientDocs.items.filter(d=>d.category==='image').map(d => (
-                        <a key={d.id} href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer" className="block">
-                          <div className="aspect-video bg-gray-800 border border-gray-700 rounded flex items-center justify-center text-xs text-gray-400">{d.filename}</div>
-                        </a>
-                      ))}
-                      <label className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer h-10">
+                    <>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {clientDocs.items.filter(d=>d.category==='image').map(d => (
+                          <div key={d.id} className="group relative">
+                            <a href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer" className="block">
+                              <img src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} alt={d.filename} className="w-full h-32 object-cover rounded border border-gray-700" />
+                            </a>
+                            <button className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100" onClick={async()=>{
+                              if(!window.confirm('¿Eliminar imagen?')) return;
+                              try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' } }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                            }}>Eliminar</button>
+                          </div>
+                        ))}
+                      </div>
+                      <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-2">
                         <input type="file" accept="image/*" className="hidden" onChange={(e)=>handleUpload(e,'image')} disabled={uploading} />
                         Subir imagen
                       </label>
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
