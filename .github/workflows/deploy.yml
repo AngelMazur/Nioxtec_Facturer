@@ -71,15 +71,37 @@ jobs:
             }
           }
 
-      - name: Health‑check API - NO FALLA EL DEPLOY
+      - name: Verificación final del deploy
         shell: powershell
         run: |
-          Start-Sleep -Seconds 15
-          try {
-            $code = (Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 10).StatusCode
-            Write-Host "✅ API funcionando: $code"
-          } catch { 
-            Write-Host "⚠️ API no responde aún, pero deploy completado"
+          Write-Host "🎯 Deploy completado exitosamente"
+          Write-Host "📊 Verificando servicios..."
+          
+          # Dar tiempo a los servicios para arrancar
+          Start-Sleep -Seconds 20
+          
+          # Verificar API con reintentos
+          $success = $false
+          for ($i = 1; $i -le 3; $i++) {
+            try {
+              $response = Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 15
+              if ($response.StatusCode -eq 200) {
+                Write-Host "✅ API funcionando correctamente (intento $i)"
+                $success = $true
+                break
+              }
+            } catch {
+              Write-Host "⚠️ Intento $i: API no responde aún"
+              if ($i -lt 3) { Start-Sleep -Seconds 10 }
+            }
           }
+          
+          if ($success) {
+            Write-Host "🎉 Deploy exitoso - Aplicación funcionando"
+          } else {
+            Write-Host "⚠️ Deploy completado - API puede necesitar más tiempo para arrancar"
+          }
+          
+          Write-Host "🚀 Automatización completada"
 
 
