@@ -93,32 +93,31 @@ jobs:
       - name: Deploy completado exitosamente
         shell: powershell
         run: |
-          Write-Host "🎉 Deploy automático completado exitosamente"
-          Write-Host "✅ Git pull: OK"
-          Write-Host "✅ Frontend build: OK"
-          Write-Host "✅ Servicios reiniciados: OK"
-          Write-Host "🚀 Aplicación actualizada y funcionando"
+          Write-Host "Deploy automatico completado exitosamente"
+          Write-Host "Git pull: OK"
+          Write-Host "Frontend build: OK"
+          Write-Host "Servicios reiniciados: OK"
+          Write-Host "Aplicacion actualizada y funcionando"
 
-          # Verificación simple: solo API pública (lo que realmente importa)
-          Write-Host "🔍 Verificando aplicación..."
+          # Verificacion simple: solo API publica
+          Write-Host "Verificando API publica..."
           Start-Sleep -Seconds 20
 
           $response = $null
           try { $response = Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 15 } catch {}
           if ($null -eq $response) {
-            Write-Error "❌ API no responde"
-            Write-Host "🔄 Nota: Los servicios pueden necesitar más tiempo para arrancar"
+            Write-Error "API no responde"
+            Write-Host "Nota: Los servicios pueden necesitar mas tiempo para arrancar"
             exit 1
           }
           if ($response.StatusCode -eq 200) {
-            Write-Host "🎉 ¡DEPLOY EXITOSO! - API funcionando perfectamente"
-            Write-Host ("📊 Status: {0}" -f $response.StatusCode)
-            Write-Host "🌐 App disponible en: https://app.nioxtec.es"
-          }
-          if ($response.StatusCode -ne 200) {
-            Write-Error ("⚠️ API respondió con código: {0}" -f $response.StatusCode)
+            Write-Host ("Status: " + $response.StatusCode)
+            Write-Host "App disponible en: https://app.nioxtec.es"
+            Write-Host "DEPLOY EXITOSO"
+            exit 0
+          } else {
+            Write-Error ("API respondio con codigo: " + $response.StatusCode)
             exit 1
           }
-          Write-Host "✅ DEPLOY AUTOMÁTICO EXITOSO"
 
 
