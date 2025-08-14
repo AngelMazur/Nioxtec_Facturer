@@ -1,4 +1,4 @@
-name: Deploy to Production (Windows Self‑Hosted)
+﻿name: Deploy to Production (Windows Self‑Hosted)
 
 on:
   push:
@@ -27,6 +27,8 @@ jobs:
 
       - name: Despliegue vía tarea programada (fallback a script)
         shell: powershell
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           # Intentar ejecutar tarea si existe; si falla por permisos o inexistente, ejecutar script directo
           cmd.exe /c 'schtasks /Query /TN "Nioxtec Deploy CI" >NUL 2>&1'
@@ -41,10 +43,10 @@ jobs:
             $frontendStopped = $false
             # 1) Build primero; no paramos servicios aún para no cortar producción
             try {
-              Log 'Actualizando código backend (git fetch + reset con token)'
+              Log 'Actualizando código backend con DEPLOY_TOKEN'
               Set-Location 'C:\Nioxtec\Nioxtec_Facturer'
               git config --global --add safe.directory 'C:/Nioxtec/Nioxtec_Facturer'
-              $repoUrl = "https://x-access-token:$env:GITHUB_TOKEN@github.com/AngelMazur/Nioxtec_Facturer.git"
+              $repoUrl = "https://x-access-token:$env:DEPLOY_TOKEN@github.com/AngelMazur/Nioxtec_Facturer.git"
               git remote set-url origin $repoUrl
               git fetch origin main --prune
               git reset --hard origin/main
