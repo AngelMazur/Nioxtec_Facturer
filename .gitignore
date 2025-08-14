@@ -19,7 +19,8 @@ dist/
 # Application data
 downloads/
 downloads/*.pdf
-instance/*.db
+instance/**
+!instance/.gitkeep
 *.log
 *.sqlite
 logs/
