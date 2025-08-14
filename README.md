@@ -268,3 +268,4 @@ taskkill /F /IM python.exe; taskkill /F /IM node.exe; & ".\DEVELOPER\scripts\dep
 
 - Eliminado soporte Docker del README para evitar confusión. Los archivos de Docker pueden mantenerse fuera del flujo de despliegue si no se usan.
 # Deploy automático test
+# ✅ Deploy automático FUNCIONANDO - Thu Aug 14 18:14:07 CEST 2025
