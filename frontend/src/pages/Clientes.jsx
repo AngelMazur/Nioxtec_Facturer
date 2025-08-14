@@ -13,6 +13,11 @@ export default function Clientes() {
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
   const [userSorted, setUserSorted] = useState(false)
+  const [selectedClient, setSelectedClient] = useState(null)
+  const [tab, setTab] = useState('facturas') // 'facturas' | 'documentos'
+  const [clientInvoices, setClientInvoices] = useState({ loading: false, items: [], total: 0 })
+  const [clientDocs, setClientDocs] = useState({ loading: false, items: [] })
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -23,6 +28,74 @@ export default function Clientes() {
     }
     if (token) load()
   }, [setClients, token])
+
+  async function openClientModal(client) {
+    setSelectedClient(client)
+    setTab('facturas')
+    await loadClientInvoices(client.id)
+  }
+
+  async function loadClientInvoices(clientId) {
+    setClientInvoices(s => ({ ...s, loading: true }))
+    try {
+      const data = await apiGet(`/clients/${clientId}/invoices?limit=50&offset=0`, token)
+      setClientInvoices({ loading: false, items: data.items || [], total: data.total || 0 })
+    } catch (e) {
+      setClientInvoices({ loading: false, items: [], total: 0 })
+      toast.error(e?.message || 'No se pudieron cargar las facturas')
+    }
+  }
+
+  async function loadClientDocs(clientId) {
+    setClientDocs(s => ({ ...s, loading: true }))
+    try {
+      const data = await apiGet(`/clients/${clientId}/documents`, token)
+      setClientDocs({ loading: false, items: data })
+    } catch (e) {
+      setClientDocs({ loading: false, items: [] })
+      toast.error(e?.message || 'No se pudieron cargar los documentos')
+    }
+  }
+
+  async function onTabChange(newTab) {
+    if (!selectedClient) return
+    setTab(newTab)
+    if (newTab === 'facturas') await loadClientInvoices(selectedClient.id)
+    if (newTab === 'documentos') await loadClientDocs(selectedClient.id)
+  }
+
+  async function handleUpload(e, kind) { // kind: 'document'|'image'
+    if (!selectedClient) return
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (kind === 'document' && file.type !== 'application/pdf') {
+      toast.error('Sube un PDF')
+      return
+    }
+    if (kind === 'image' && !file.type.startsWith('image/')) {
+      toast.error('Sube una imagen')
+      return
+    }
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const base = (import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')
+      const res = await fetch(`${base}/api/clients/${selectedClient.id}/documents`, {
+        method: 'POST',
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+        body: formData,
+      })
+      if (!res.ok) throw new Error((await res.json()).error || res.statusText)
+      toast.success('Archivo subido')
+      await loadClientDocs(selectedClient.id)
+    } catch (err) {
+      toast.error(err?.message || 'Error subiendo archivo')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -104,10 +177,10 @@ export default function Clientes() {
                   {/* Desktop list */}
                   <div className="hidden md:block">
                     <ul className="space-y-2">
-                      {pageItems.map((client) => (
+                       {pageItems.map((client) => (
                         <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
                           <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_12rem_minmax(0,1.6fr)_12rem] gap-6 items-start">
-                            <div className="font-medium leading-snug break-words">{client.name}</div>
+                            <button onClick={()=>openClientModal(client)} className="font-medium leading-snug break-words text-left hover:underline">{client.name}</button>
                             <div className="text-gray-500 justify-self-center text-center whitespace-nowrap">{client.cif}</div>
                             <div className="text-sm text-gray-400 break-words">
                               <div>{client.email}</div>
@@ -125,11 +198,11 @@ export default function Clientes() {
 
                   {/* Mobile cards */}
                   <div className="md:hidden space-y-2">
-                    {pageItems.map((client) => (
+                     {pageItems.map((client) => (
                       <div key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded">
                         <div className="space-y-1">
                           <div className="text-xs text-gray-500">Nombre</div>
-                          <div className="font-medium">{client.name}</div>
+                            <button onClick={()=>openClientModal(client)} className="font-medium text-left hover:underline">{client.name}</button>
                           <div className="text-xs text-gray-500 mt-2">CIF/NIF</div>
                           <div className="text-gray-300">{client.cif}</div>
                           <div className="text-xs text-gray-500 mt-2">Contacto</div>
@@ -176,6 +249,77 @@ export default function Clientes() {
           </>
         )}
       </section>
+      {selectedClient && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={()=>setSelectedClient(null)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 w-full max-w-3xl" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h4 className="text-xl font-semibold">{selectedClient.name}</h4>
+                <div className="text-gray-400 text-sm">{selectedClient.cif}</div>
+              </div>
+              <button className="text-gray-400 hover:text-white" onClick={()=>setSelectedClient(null)}>Cerrar</button>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button onClick={()=>onTabChange('facturas')} className={tab==='facturas' ? 'bg-primary text-white px-4 py-2 rounded' : 'px-4 py-2 rounded border border-gray-700'}>Facturas</button>
+              <button onClick={()=>onTabChange('documentos')} className={tab==='documentos' ? 'bg-primary text-white px-4 py-2 rounded' : 'px-4 py-2 rounded border border-gray-700'}>Documentacion</button>
+            </div>
+            {tab==='facturas' && (
+              <div className="mt-4">
+                {clientInvoices.loading ? <Skeleton count={3} height={24} /> : (
+                  clientInvoices.items.length ? (
+                    <ul className="divide-y divide-gray-800">
+                      {clientInvoices.items.map(inv => (
+                        <li key={inv.id} className="py-2 flex items-center justify-between">
+                          <div className="space-x-3">
+                            <span className="font-medium">{inv.number}</span>
+                            <span className="text-gray-400">{inv.date}</span>
+                            <span className="text-gray-400">{inv.type}</span>
+                          </div>
+                          <a className="text-brand underline" href={`${(import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')}/api/invoices/${inv.id}/pdf`} target="_blank" rel="noreferrer">PDF</a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <div className="text-gray-400">Sin facturas</div>
+                )}
+              </div>
+            )}
+            {tab==='documentos' && (
+              <div className="mt-4 space-y-6">
+                <div>
+                  <h5 className="font-semibold mb-2">Documentos</h5>
+                  {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
+                    <div className="space-y-2">
+                      {clientDocs.items.filter(d=>d.category==='document').map(d => (
+                        <a key={d.id} className="block underline text-brand" href={`${(import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer">{d.filename}</a>
+                      ))}
+                      <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer">
+                        <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
+                        Subir PDF
+                      </label>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h5 className="font-semibold mb-2">Imagenes</h5>
+                  {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {clientDocs.items.filter(d=>d.category==='image').map(d => (
+                        <a key={d.id} href={`${(import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="block">
+                          <div className="aspect-video bg-gray-800 border border-gray-700 rounded flex items-center justify-center text-xs text-gray-400">{d.filename}</div>
+                        </a>
+                      ))}
+                      <label className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer h-10">
+                        <input type="file" accept="image/*" className="hidden" onChange={(e)=>handleUpload(e,'image')} disabled={uploading} />
+                        Subir imagen
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   )
 }
