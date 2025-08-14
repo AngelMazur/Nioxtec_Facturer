@@ -273,3 +273,4 @@ taskkill /F /IM python.exe; taskkill /F /IM node.exe; & ".\DEVELOPER\scripts\dep
 # 🔧 Workflow corregido - Thu Aug 14 18:22:21 CEST 2025
 # 🐍 Python automático - Thu Aug 14 18:25:46 CEST 2025
 # 🎯 Python definitivo - Thu Aug 14 18:30:31 CEST 2025
+# 🛡️ Workflow bulletproof - Thu Aug 14 18:32:54 CEST 2025
