@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store/store'
-import { apiGet, apiPost, apiDelete } from '../lib/api'
+import { apiGet, apiPost, apiDelete, apiGetBlob } from '../lib/api'
 import toast from 'react-hot-toast'
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
@@ -63,6 +63,21 @@ export default function Clientes() {
     setTab(newTab)
     if (newTab === 'facturas') await loadClientInvoices(selectedClient.id)
     if (newTab === 'documentos') await loadClientDocs(selectedClient.id)
+  }
+
+  async function downloadClientInvoice(inv) {
+    try {
+      const blob = await apiGetBlob(`/invoices/${inv.id}/pdf`, token)
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${inv.number}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch {
+      toast.error('Error al descargar PDF')
+    }
   }
 
   async function handleUpload(e, kind) { // kind: 'document'|'image'
@@ -269,16 +284,14 @@ export default function Clientes() {
                   clientInvoices.items.length ? (
                     <ul className="divide-y divide-gray-800">
                       {clientInvoices.items.map(inv => (
-                        <li key={inv.id} className="py-2 flex items-center justify-between rounded px-2 hover:bg-gray-800/80">
+                        <li key={inv.id} onClick={()=>downloadClientInvoice(inv)} className="py-2 flex items-center justify-between rounded px-2 hover:bg-gray-800/80 cursor-pointer">
                           <div className="space-x-3">
                             <span className="font-medium">{inv.number}</span>
                             <span className="text-gray-400">{inv.date}</span>
                             <span className="text-gray-400">{inv.type}</span>
                             <span className="text-gray-400 tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <a className="text-brand underline" href={`${apiBase}/api/invoices/${inv.id}/pdf?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer">PDF</a>
-                          </div>
+                          <div className="text-brand text-sm">Descargar</div>
                         </li>
                       ))}
                     </ul>
