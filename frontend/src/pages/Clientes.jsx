@@ -42,6 +42,7 @@ export default function Clientes() {
     }
   }
 
+  // eslint-disable-next-line no-unused-vars
   const deleteClient = async (client) => {
     if (!window.confirm('¿Eliminar este cliente?')) return
     try {
@@ -115,7 +116,7 @@ export default function Clientes() {
                             </div>
                             <div className="text-sm text-gray-400 sm:text-center flex flex-col items-end sm:items-center gap-1 justify-center">
                               <span className="whitespace-nowrap">{client.created_at ? String(client.created_at).slice(0,10) : ''}</span>
-                              <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button>
+                              {/* <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button> */}
                             </div>
                           </div>
                         </li>
@@ -141,7 +142,7 @@ export default function Clientes() {
                           <div className="text-gray-300">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
                         </div>
                         <div className="mt-3 flex items-center gap-4">
-                          <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button>
+                          {/* <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button> */}
                         </div>
                       </div>
                     ))}
