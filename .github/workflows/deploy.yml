@@ -50,7 +50,16 @@ jobs:
               git remote set-url origin $repoUrl
               git fetch origin main --prune
               git reset --hard origin/main
-              if (Test-Path .\.venv310\Scripts\pip.exe) { .\.venv310\Scripts\pip.exe install -r requirements.txt }
+              # Validar/recrear venv y usar python -m pip (evita shims pip.exe dependientes del usuario)
+              $venvPy = '.\.venv310\Scripts\python.exe'
+              if (Test-Path $venvPy) {
+                try { & $venvPy -c "import sys; print(sys.version)" | Out-Null } catch { Remove-Item -Recurse -Force .\.venv310 }
+              }
+              if (-not (Test-Path $venvPy)) {
+                try { py -3.10 -m venv .venv310 } catch { py -3 -m venv .venv310 }
+              }
+              & $venvPy -m pip install --upgrade pip
+              & $venvPy -m pip install -r requirements.txt
             } catch { Log "Backend update error: $($_.Exception.Message)" }
             try {
               Log 'npm ci && build frontend'
