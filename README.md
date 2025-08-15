@@ -9,15 +9,31 @@ Aplicación de facturación simple: Backend Flask + Frontend React (Vite) sin Do
   - Frontend React servido como estático tras `npm run build` (IIS/Nginx/serve) como tarea programada.
   - Scripts PowerShell: `DEVELOPER/scripts/start_all.ps1`, `stop_all.ps1`, `deploy_prod.ps1`, `register_deploy_task.ps1`.
 - Desarrollo (macOS):
-  - Backend Flask (debug) en 5000.
-  - Frontend con Vite dev server en 5173 (hot reload). `start_app.command` levanta este flujo y abre `http://localhost:5173`.
+  - Backend Flask (debug) en 5001 (puerto 5001 para evitar conflicto con AirPlay en macOS).
+  - Frontend con Vite dev server en 5173 (hot reload). Los scripts automáticos levantan este flujo y abren `http://localhost:5173`.
   - Alternativa prod-like local: gunicorn en 5000 y `serve` en 8080 (opcional).
 
 ## Requisitos
 
 - macOS/Linux
 - Python 3.11+
-- Node.js 18+
+- Node.js 20+ (recomendado: usar nvm para gestionar versiones)
+
+### Configuración de Node.js
+
+El proyecto requiere Node.js 20+ para funcionar correctamente. Si tienes múltiples versiones de Node.js:
+
+```bash
+# Instalar nvm (si no lo tienes)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+
+# Instalar y usar Node.js 20
+nvm install 20
+nvm use 20
+
+# Verificar versión
+node --version  # Debe mostrar v20.x.x
+```
 
 ## Backend (Flask)
 
@@ -49,17 +65,27 @@ FORCE_HTTPS=false FLASK_DEBUG=0 gunicorn -w 2 -b 0.0.0.0:5000 app:app
 FLASK_DEBUG=1 python app.py
 ```
    
-   **Nota macOS:** Si el puerto 5000 está ocupado por AirPlay, usar puerto alternativo:
+      **Nota macOS:** El puerto 5000 está ocupado por AirPlay en macOS, por lo que usamos el puerto 5001:
    ```bash
-PORT=5001 python app.py
-```
-   En ese caso, también modificar `frontend/src/lib/api.js` línea 12: cambiar `:5000` por `:5001`
+   PORT=5001 python app.py
+   ```
 
 ## Frontend (React + Vite)
 
 ### Desarrollo (macOS)
+
+#### Opción 1: Script automático (recomendado)
+```bash
+# Inicia automáticamente con la versión correcta de Node.js
+./start_frontend.sh
+```
+
+#### Opción 2: Manual
 ```bash
 cd frontend
+# Configurar Node.js 20+ (si usas nvm)
+nvm use
+
 npm install
 npm run dev
 # Vite escuchará en http://localhost:5173
@@ -83,9 +109,10 @@ El frontend se conectará al backend en `http://127.0.0.1:5000` (auto-config en 
 
 ## Scripts útiles
 
-- macOS
-  - `start_app.command`: levanta backend (Flask debug) y Vite en 5173.
-  - `stop_app.command`: detiene servicios locales en 5000/8080.
+- macOS/Linux
+  - `./start_all.sh`: inicia automáticamente backend y frontend con la configuración correcta
+  - `./start_backend.sh`: inicia solo el backend Flask
+  - `./start_frontend.sh`: inicia solo el frontend React con Node.js 20+
   - Semilla local (opcional): `python DEVELOPER/scripts/dev_seed.py` (crea usuario `dev/devpass`, cliente demo y una factura de ejemplo).
 - Windows (producción)
   - `DEVELOPER/scripts/register_deploy_task.ps1`: registra la tarea "Nioxtec Deploy".

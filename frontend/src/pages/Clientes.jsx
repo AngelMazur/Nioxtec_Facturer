@@ -284,8 +284,26 @@ export default function Clientes() {
               <button className="text-gray-400 hover:text-white" onClick={()=>setSelectedClient(null)}>Cerrar</button>
             </div>
             <div className="mt-4 flex gap-2">
-              <button onClick={()=>onTabChange('facturas')} className={tab==='facturas' ? 'bg-primary text-white px-4 py-2 rounded active:scale-95 transition-transform duration-200 focus:ring-2 focus:ring-brand focus:ring-opacity-50' : 'px-4 py-2 rounded border border-gray-700 active:scale-95 active:bg-gray-700 transition-transform duration-200 focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50'}>Facturas</button>
-              <button onClick={()=>onTabChange('documentos')} className={tab==='documentos' ? 'bg-primary text-white px-4 py-2 rounded active:scale-95 transition-transform duration-200 focus:ring-2 focus:ring-brand focus:ring-opacity-50' : 'px-4 py-2 rounded border border-gray-700 active:scale-95 active:bg-gray-700 transition-transform duration-200 focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50'}>Documentacion</button>
+              <button 
+                onClick={()=>onTabChange('facturas')} 
+                className={`px-4 py-2 rounded transition-all duration-200 focus:ring-2 focus:ring-opacity-50 ${
+                  tab==='facturas' 
+                    ? 'bg-primary text-white focus:ring-brand hover:opacity-90 active:scale-95' 
+                    : 'border border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white active:scale-95 focus:ring-gray-500'
+                }`}
+              >
+                Facturas
+              </button>
+              <button 
+                onClick={()=>onTabChange('documentos')} 
+                className={`px-4 py-2 rounded transition-all duration-200 focus:ring-2 focus:ring-opacity-50 ${
+                  tab==='documentos' 
+                    ? 'bg-primary text-white focus:ring-brand hover:opacity-90 active:scale-95' 
+                    : 'border border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white active:scale-95 focus:ring-gray-500'
+                }`}
+              >
+                Documentacion
+              </button>
             </div>
             {tab==='facturas' && (
               <div className="mt-4">

@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+// eslint-disable-next-line no-undef
 module.exports = {
   darkMode: 'class',
   content: [
@@ -33,16 +34,27 @@ module.exports = {
     'hover:shadow-md',
     'hover:shadow-cyan-500/20',
     'hover:shadow-cyan-500/30',
+    'hover:bg-gray-700',
+    'hover:bg-gray-800/80',
+    'hover:text-white',
+    'hover:text-brand',
+    'hover:underline',
+    'hover:opacity-90',
+    'hover:brightness-110',
     'active:scale-95',
     'active:bg-gray-700',
     'focus:scale-105',
     'focus:ring-2',
     'focus:ring-brand',
+    'focus:ring-primary',
+    'focus:ring-secondary',
     'focus:ring-gray-500',
     'focus:ring-red-500',
     'focus:ring-opacity-50',
     'transition-all',
     'transition-transform',
+    'transition-colors',
+    'transform',
     'duration-200',
     'duration-300'
   ],
