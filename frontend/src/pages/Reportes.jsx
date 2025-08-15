@@ -78,9 +78,9 @@ export default function Reportes() {
         </div>
 
         {/* Facturación anual */}
-        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center h-full">
-          <div className="text-sm text-gray-500 mb-2">Facturación anual</div>
-          <div className="text-2xl font-semibold text-white">{summary.total_year.toFixed(2)} €</div>
+        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full">
+          <div className="text-sm text-gray-500 mb-2 text-center">Facturación anual</div>
+          <div className="text-2xl font-semibold text-white text-center">{summary.total_year.toFixed(2)} €</div>
         </div>
 
         {/* Exportar datos */}
