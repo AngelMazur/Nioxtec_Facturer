@@ -52,7 +52,7 @@ export default function Reportes() {
     <main className="mx-auto max-w-6xl p-4 space-y-6">
       <h2 className="text-2xl font-bold">Reportes</h2>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <div className="rounded-lg border border-gray-700 p-4 bg-gray-800">
           <div className="text-sm text-gray-500">Año</div>
           <input className="mt-1 border border-gray-300 dark:border-gray-700 p-2 rounded w-full" type="number" value={year} onChange={(e)=>setYear(Number(e.target.value))} />
@@ -67,9 +67,9 @@ export default function Reportes() {
           <div className="text-sm text-gray-500">Facturación anual</div>
           <div className="text-2xl font-semibold">{summary.total_year.toFixed(2)} €</div>
         </div>
-        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800 sm:col-span-2 lg:col-span-1">
+        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800 sm:col-span-2 lg:col-span-3 xl:col-span-1">
           <div className="text-sm text-gray-500 mb-2">Exportar datos</div>
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col lg:flex-row gap-2">
             <button onClick={downloadClients} className="bg-primary text-white px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap">Exportar clientes XLSX</button>
             <button onClick={downloadInvoices} className="bg-secondary text-white px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap">Exportar facturas XLSX</button>
           </div>
