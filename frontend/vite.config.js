@@ -12,6 +12,12 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:5000',
     },
+    // Configuración para evitar problemas de caché en desarrollo
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
   },
   build: {
     assetsInlineLimit: 0,

@@ -52,7 +52,7 @@ export default function Reportes() {
     <main className="mx-auto max-w-6xl p-4 space-y-6">
       <h2 className="text-2xl font-bold">Reportes</h2>
 
-      <section className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-lg border border-gray-700 p-4 bg-gray-800">
           <div className="text-sm text-gray-500">Año</div>
           <input className="mt-1 border border-gray-300 dark:border-gray-700 p-2 rounded w-full" type="number" value={year} onChange={(e)=>setYear(Number(e.target.value))} />
@@ -67,9 +67,12 @@ export default function Reportes() {
           <div className="text-sm text-gray-500">Facturación anual</div>
           <div className="text-2xl font-semibold">{summary.total_year.toFixed(2)} €</div>
         </div>
-        <div className="rounded-lg border border-gray-700 p-4 flex items-end gap-2 bg-gray-800">
-          <button onClick={downloadClients} className="bg-primary text-white px-3 py-2 rounded hover-scale-button">Exportar clientes XLSX</button>
-          <button onClick={downloadInvoices} className="bg-secondary text-white px-3 py-2 rounded hover-scale-button">Exportar facturas XLSX</button>
+        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800 sm:col-span-2 lg:col-span-1">
+          <div className="text-sm text-gray-500 mb-2">Exportar datos</div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button onClick={downloadClients} className="bg-primary text-white px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap">Exportar clientes XLSX</button>
+            <button onClick={downloadInvoices} className="bg-secondary text-white px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap">Exportar facturas XLSX</button>
+          </div>
         </div>
       </section>
 
@@ -83,7 +86,7 @@ export default function Reportes() {
             return (
               <div key={m} className="flex flex-col items-center justify-end gap-1">
                 <div
-                  className="w-full h-48 relative hover-glow-scale"
+                  className="w-full h-48 relative"
                   onMouseEnter={(e)=>{
                     const rect = e.currentTarget.getBoundingClientRect()
                     setTip({
@@ -99,7 +102,7 @@ export default function Reportes() {
                   }}
                   onMouseLeave={()=>setTip(null)}
                 >
-                  <div className="absolute bottom-0 left-0 right-0 rounded-sm bg-cyan-400/80" style={{ height: `${heightPct}%` }} />
+                  <div className="absolute bottom-0 left-0 right-0 rounded-sm bg-cyan-400/80 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-cyan-500/20 cursor-pointer" style={{ height: `${heightPct}%` }} />
                 </div>
                 <div className="text-xs text-gray-500">{m}</div>
               </div>
@@ -133,7 +136,7 @@ export default function Reportes() {
             return (
               <div key={i} className="flex flex-col items-center gap-1">
                 <div 
-                  className="w-full h-10 rounded hover-glow-scale" 
+                  className={`w-full h-10 rounded transition-all duration-300 ${value > 0 ? 'cursor-pointer hover:scale-[1.02] hover:shadow-md hover:shadow-cyan-500/30' : ''}`}
                   style={{ backgroundColor: `rgba(8,180,216,${intensity || 0.12})` }}
                   title={`${day} de ${months[month-1]}: ${value.toFixed(2)} €`}
                 />

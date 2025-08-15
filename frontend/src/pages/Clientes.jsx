@@ -18,6 +18,12 @@ export default function Clientes() {
   const [clientInvoices, setClientInvoices] = useState({ loading: false, items: [], total: 0 })
   const [clientDocs, setClientDocs] = useState({ loading: false, items: [] })
   const [uploading, setUploading] = useState(false)
+  const [invoicesPage, setInvoicesPage] = useState(1)
+  const [imagesPage, setImagesPage] = useState(1)
+  const [docsPage, setDocsPage] = useState(1)
+  const invoicesPageSize = 10
+  const imagesPageSize = 6
+  const docsPageSize = 5
   const apiBase = (import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')
 
   useEffect(() => {
@@ -33,6 +39,9 @@ export default function Clientes() {
   async function openClientModal(client) {
     setSelectedClient(client)
     setTab('facturas')
+    setInvoicesPage(1)
+    setImagesPage(1)
+    setDocsPage(1)
     await loadClientInvoices(client.id)
   }
 
@@ -152,7 +161,7 @@ export default function Clientes() {
         <label className="flex flex-col gap-1"><span className="text-sm text-gray-500">Teléfono</span><input className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand" name="phone" value={form.phone} onChange={handleChange} required /></label>
         <label className="flex flex-col gap-1 sm:col-span-2"><span className="text-sm text-gray-500">IBAN</span><input className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand" name="iban" value={form.iban} onChange={handleChange} /></label>
         <div className="sm:col-span-2">
-          <button className="bg-primary hover:opacity-90 transition text-white px-4 py-2 rounded hover-scale-button" type="submit">Guardar</button>
+          <button className="bg-primary hover:opacity-90 active:scale-95 focus:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-brand focus:ring-opacity-50" type="submit">Guardar</button>
         </div>
       </form>
       <section>
@@ -193,7 +202,7 @@ export default function Clientes() {
                   <div className="hidden md:block">
                     <ul className="space-y-2">
                        {pageItems.map((client) => (
-                         <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer hover:bg-gray-800/80 hover-scale-card" onClick={()=>openClientModal(client)}>
+                         <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer hover:bg-gray-800/80 active:scale-95 active:bg-gray-700 transition-all duration-200" onClick={()=>openClientModal(client)}>
                           <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_12rem_minmax(0,1.6fr)_12rem] gap-6 items-start">
                             <div className="font-medium leading-snug break-words">{client.name}</div>
                             <div className="text-gray-500 justify-self-center text-center whitespace-nowrap">{client.cif}</div>
@@ -203,7 +212,7 @@ export default function Clientes() {
                             </div>
                             <div className="text-sm text-gray-400 sm:text-center flex flex-col items-end sm:items-center gap-1 justify-center">
                                <span className="whitespace-nowrap">{client.created_at ? String(client.created_at).slice(0,10) : ''}</span>
-                               <button className="text-red-600 underline" onClick={(e)=>{ e.stopPropagation(); deleteClient(client) }}>Eliminar</button>
+                               <button className="text-red-600 underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded" onClick={(e)=>{ e.stopPropagation(); deleteClient(client) }}>Eliminar</button>
                             </div>
                           </div>
                         </li>
@@ -214,7 +223,7 @@ export default function Clientes() {
                   {/* Mobile cards */}
                   <div className="md:hidden space-y-2">
                      {pageItems.map((client) => (
-                       <div key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer hover-scale-card" onClick={()=>openClientModal(client)}>
+                       <div key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer active:scale-95 active:bg-gray-700 transition-all duration-200" onClick={()=>openClientModal(client)}>
                         <div className="space-y-1">
                           <div className="text-xs text-gray-500">Nombre</div>
                             <div className="font-medium text-left">{client.name}</div>
@@ -229,7 +238,7 @@ export default function Clientes() {
                           <div className="text-gray-300">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
                         </div>
                          <div className="mt-3 flex items-center gap-4" onClick={(e)=>e.stopPropagation()}>
-                           <button className="text-red-600 underline" onClick={()=>deleteClient(client)}>Eliminar</button>
+                           <button className="text-red-600 underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded" onClick={()=>deleteClient(client)}>Eliminar</button>
                         </div>
                       </div>
                     ))}
@@ -266,7 +275,7 @@ export default function Clientes() {
       </section>
       {selectedClient && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={()=>setSelectedClient(null)}>
-          <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 w-full max-w-3xl" onClick={e=>e.stopPropagation()}>
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h4 className="text-xl font-semibold">{selectedClient.name}</h4>
@@ -275,26 +284,69 @@ export default function Clientes() {
               <button className="text-gray-400 hover:text-white" onClick={()=>setSelectedClient(null)}>Cerrar</button>
             </div>
             <div className="mt-4 flex gap-2">
-              <button onClick={()=>onTabChange('facturas')} className={tab==='facturas' ? 'bg-primary text-white px-4 py-2 rounded hover-scale-sm' : 'px-4 py-2 rounded border border-gray-700 hover-scale-sm'}>Facturas</button>
-              <button onClick={()=>onTabChange('documentos')} className={tab==='documentos' ? 'bg-primary text-white px-4 py-2 rounded hover-scale-sm' : 'px-4 py-2 rounded border border-gray-700 hover-scale-sm'}>Documentacion</button>
+              <button onClick={()=>onTabChange('facturas')} className={tab==='facturas' ? 'bg-primary text-white px-4 py-2 rounded active:scale-95 transition-transform duration-200 focus:ring-2 focus:ring-brand focus:ring-opacity-50' : 'px-4 py-2 rounded border border-gray-700 active:scale-95 active:bg-gray-700 transition-transform duration-200 focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50'}>Facturas</button>
+              <button onClick={()=>onTabChange('documentos')} className={tab==='documentos' ? 'bg-primary text-white px-4 py-2 rounded active:scale-95 transition-transform duration-200 focus:ring-2 focus:ring-brand focus:ring-opacity-50' : 'px-4 py-2 rounded border border-gray-700 active:scale-95 active:bg-gray-700 transition-transform duration-200 focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50'}>Documentacion</button>
             </div>
             {tab==='facturas' && (
               <div className="mt-4">
                 {clientInvoices.loading ? <Skeleton count={3} height={24} /> : (
                   clientInvoices.items.length ? (
-                    <ul className="divide-y divide-gray-800">
-                      {clientInvoices.items.map(inv => (
-                        <li key={inv.id} onClick={()=>downloadClientInvoice(inv)} className="py-2 flex items-center justify-between rounded px-2 hover:bg-gray-800/80 cursor-pointer hover-scale-modal">
-                          <div className="space-x-3">
-                            <span className="font-medium">{inv.number}</span>
-                            <span className="text-gray-400">{inv.date}</span>
-                            <span className="text-gray-400">{inv.type}</span>
-                            <span className="text-gray-400 tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
+                    <>
+                      <ul className="divide-y divide-gray-800">
+                        {(() => {
+                          const totalPages = Math.max(1, Math.ceil(clientInvoices.items.length / invoicesPageSize))
+                          const safePage = Math.min(invoicesPage, totalPages)
+                          const start = (safePage - 1) * invoicesPageSize
+                          const pageItems = clientInvoices.items.slice(start, start + invoicesPageSize)
+                          return pageItems.map(inv => (
+                            <li key={inv.id} onClick={()=>downloadClientInvoice(inv)} className="py-2 flex items-center justify-between rounded px-2 hover:bg-gray-800/80 cursor-pointer hover:scale-[1.02] transition-all duration-200">
+                              <div className="space-x-3">
+                                <span className="font-medium">{inv.number}</span>
+                                <span className="text-gray-400">{inv.date}</span>
+                                <span className="text-gray-400">{inv.type}</span>
+                                <span className="text-gray-400 tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
+                              </div>
+                              <div className="text-brand text-sm">Descargar</div>
+                            </li>
+                          ))
+                        })()}
+                      </ul>
+                      {(() => {
+                        const totalPages = Math.max(1, Math.ceil(clientInvoices.items.length / invoicesPageSize))
+                        const safePage = Math.min(invoicesPage, totalPages)
+                        return totalPages > 1 ? (
+                          <div className="flex items-center justify-center gap-2 mt-4">
+                            <button
+                              onClick={() => setInvoicesPage(Math.max(1, safePage - 1))}
+                              disabled={safePage <= 1}
+                              className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                            >
+                              Anterior
+                            </button>
+                            {[...Array(totalPages)].map((_, i) => (
+                              <button
+                                key={i}
+                                onClick={() => setInvoicesPage(i + 1)}
+                                className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
+                                  safePage === i + 1 
+                                    ? 'bg-brand text-white' 
+                                    : 'bg-gray-700 text-white hover:bg-gray-600'
+                                }`}
+                              >
+                                {i + 1}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => setInvoicesPage(Math.min(totalPages, safePage + 1))}
+                              disabled={safePage >= totalPages}
+                              className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                            >
+                              Siguiente
+                            </button>
                           </div>
-                          <div className="text-brand text-sm">Descargar</div>
-                        </li>
-                      ))}
-                    </ul>
+                        ) : null
+                      })()}
+                    </>
                   ) : <div className="text-gray-400">Sin facturas</div>
                 )}
               </div>
@@ -304,41 +356,127 @@ export default function Clientes() {
                 <div>
                   <h5 className="font-semibold mb-2">Documentos <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='document').length}</span></h5>
                   {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
-                    <div className="space-y-2">
-                      {clientDocs.items.filter(d=>d.category==='document').map(d => (
-                        <div key={d.id} className="flex items-center justify-between">
-                          <a className="underline text-brand" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer">{d.filename}</a>
-                          <button className="text-red-500 underline" onClick={async()=>{
-                            if(!window.confirm('¿Eliminar documento?')) return;
-                            try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' } }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
-                          }}>Eliminar</button>
-                        </div>
-                      ))}
-                      <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-2 hover-scale-button">
-                        <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
-                        Subir PDF
-                      </label>
-                    </div>
+                    <>
+                      {(() => {
+                        const documents = clientDocs.items.filter(d=>d.category==='document')
+                        const totalPages = Math.max(1, Math.ceil(documents.length / docsPageSize))
+                        const safePage = Math.min(docsPage, totalPages)
+                        const start = (safePage - 1) * docsPageSize
+                        const pageItems = documents.slice(start, start + docsPageSize)
+                        return (
+                          <>
+                            <div className="space-y-2">
+                              {pageItems.map(d => (
+                                <div key={d.id} className="flex items-center justify-between">
+                                  <a className="underline text-brand hover:scale-105 transition-all duration-200 inline-block" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer">{d.filename}</a>
+                                  <button className="text-red-500 underline hover:scale-105 transition-transform duration-200 inline-block" onClick={async()=>{
+                                    if(!window.confirm('¿Eliminar documento?')) return;
+                                    try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' } }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                                  }}>Eliminar</button>
+                                </div>
+                              ))}
+                              <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-2 hover:scale-105 transition-all duration-200">
+                                <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
+                                Subir PDF
+                              </label>
+                            </div>
+                            {totalPages > 1 && (
+                              <div className="flex items-center justify-center gap-2 mt-4">
+                                <button
+                                  onClick={() => setDocsPage(Math.max(1, safePage - 1))}
+                                  disabled={safePage <= 1}
+                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                >
+                                  Anterior
+                                </button>
+                                {[...Array(totalPages)].map((_, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => setDocsPage(i + 1)}
+                                    className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
+                                      safePage === i + 1 
+                                        ? 'bg-brand text-white' 
+                                        : 'bg-gray-700 text-white hover:bg-gray-600'
+                                    }`}
+                                  >
+                                    {i + 1}
+                                  </button>
+                                ))}
+                                <button
+                                  onClick={() => setDocsPage(Math.min(totalPages, safePage + 1))}
+                                  disabled={safePage >= totalPages}
+                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                >
+                                  Siguiente
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
+                    </>
                   )}
                 </div>
                 <div>
                   <h5 className="font-semibold mb-2">Imagenes <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='image').length}</span></h5>
                   {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
                     <>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {clientDocs.items.filter(d=>d.category==='image').map(d => (
-                          <div key={d.id} className="group relative">
-                            <a href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer" className="block hover-scale-image">
-                              <img src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} alt={d.filename} className="w-full h-32 object-cover rounded border border-gray-700" />
-                            </a>
-                            <button className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100" onClick={async()=>{
-                              if(!window.confirm('¿Eliminar imagen?')) return;
-                              try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' } }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
-                            }}>Eliminar</button>
-                          </div>
-                        ))}
-                      </div>
-                      <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-2 hover-scale-button">
+                      {(() => {
+                        const images = clientDocs.items.filter(d=>d.category==='image')
+                        const totalPages = Math.max(1, Math.ceil(images.length / imagesPageSize))
+                        const safePage = Math.min(imagesPage, totalPages)
+                        const start = (safePage - 1) * imagesPageSize
+                        const pageItems = images.slice(start, start + imagesPageSize)
+                        return (
+                          <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              {pageItems.map(d => (
+                                <div key={d.id} className="group relative">
+                                  <a href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300">
+                                    <img src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} alt={d.filename} className="w-full h-32 object-cover rounded border border-gray-700" />
+                                  </a>
+                                  <button className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 hover:scale-105 transition-all duration-200" onClick={async()=>{
+                                    if(!window.confirm('¿Eliminar imagen?')) return;
+                                    try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' } }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                                  }}>Eliminar</button>
+                                </div>
+                              ))}
+                            </div>
+                            {totalPages > 1 && (
+                              <div className="flex items-center justify-center gap-2 mt-4">
+                                <button
+                                  onClick={() => setImagesPage(Math.max(1, safePage - 1))}
+                                  disabled={safePage <= 1}
+                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                >
+                                  Anterior
+                                </button>
+                                {[...Array(totalPages)].map((_, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => setImagesPage(i + 1)}
+                                    className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
+                                      safePage === i + 1 
+                                        ? 'bg-brand text-white' 
+                                        : 'bg-gray-700 text-white hover:bg-gray-600'
+                                    }`}
+                                  >
+                                    {i + 1}
+                                  </button>
+                                ))}
+                                <button
+                                  onClick={() => setImagesPage(Math.min(totalPages, safePage + 1))}
+                                  disabled={safePage >= totalPages}
+                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                >
+                                  Siguiente
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
+                      <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-4 hover:scale-105 transition-all duration-200">
                         <input type="file" accept="image/*" className="hidden" onChange={(e)=>handleUpload(e,'image')} disabled={uploading} />
                         Subir imagen
                       </label>

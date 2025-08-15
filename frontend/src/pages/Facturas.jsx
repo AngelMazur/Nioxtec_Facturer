@@ -469,7 +469,7 @@ export default function Facturas() {
           <button
             type="button"
             onClick={addItem}
-            className="bg-secondary hover:opacity-90 transition px-2 py-1.5 rounded text-white min-w-[8rem] text-center hover-scale-button"
+            className="bg-secondary hover:opacity-90 hover:scale-105 transition-all duration-200 px-2 py-1.5 rounded text-white min-w-[8rem] text-center"
           >
             Añadir línea
           </button>
@@ -481,7 +481,7 @@ export default function Facturas() {
               (deleteMode
                 ? "bg-red-700"
                 : "bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed") +
-              " hover:opacity-90 transition px-2 py-1.5 rounded text-white min-w-[8rem] text-center"
+              " hover:opacity-90 hover:scale-105 transition-all duration-200 px-2 py-1.5 rounded text-white min-w-[8rem] text-center"
             }
             title={deleteMode ? 'Cancelar modo eliminar (ESC para salir)' : 'Entrar en modo eliminar'}
           >
@@ -493,8 +493,8 @@ export default function Facturas() {
             className={
               ((form.items?.length || 0) === 0
                 ? "opacity-50 cursor-not-allowed "
-                : "hover:opacity-90 hover-scale-button ") +
-              "bg-primary transition text-white px-3 py-1.5 rounded min-w-[8rem] text-center"
+                : "hover:opacity-90 hover:scale-105 ") +
+              "bg-primary transition-all duration-200 text-white px-3 py-1.5 rounded min-w-[8rem] text-center"
             }
           >
             Guardar
@@ -559,7 +559,7 @@ export default function Facturas() {
                         {pageItems.map(inv=>{
                           const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
                           return (
-                            <tr key={inv.id} onClick={()=>openPreview(inv.id)} className="cursor-pointer group hover-scale-card">
+                            <tr key={inv.id} onClick={()=>openPreview(inv.id)} className="cursor-pointer group hover:scale-[1.02] transition-all duration-200">
                               <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors rounded-l-lg whitespace-nowrap font-medium">{inv.number}</td>
                               <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors truncate">{clientName}</td>
                               <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-center text-sm text-gray-300">{inv.date?.slice(0,10)}</td>
@@ -584,7 +584,7 @@ export default function Facturas() {
                     {pageItems.map(inv=>{
                       const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
                       return (
-                        <div key={inv.id} className="p-3 bg-gray-800 border border-gray-700 rounded hover-scale-card" onClick={()=>openPreview(inv.id)}>
+                        <div key={inv.id} className="p-3 bg-gray-800 border border-gray-700 rounded active:scale-95 active:bg-gray-700 transition-all duration-200" onClick={()=>openPreview(inv.id)}>
                           <div className="space-y-1">
                             <div className="text-xs text-gray-500">Número</div>
                             <div className="font-medium">{inv.number}</div>
@@ -598,9 +598,9 @@ export default function Facturas() {
                             <div className="font-semibold text-gray-100">{(inv.total ?? 0).toFixed(2)} €</div>
                           </div>
                           <div className="mt-3 flex items-center gap-4" onClick={(e)=>e.stopPropagation()}>
-                            <button className="text-brand underline" onClick={()=>downloadInvoice(inv.id, inv.number)}>PDF</button>
-                            <button className="underline" onClick={()=>duplicateInvoice(inv)}>Duplicar</button>
-                            <button className="text-red-600 underline" onClick={()=>deleteInvoice(inv)}>Eliminar</button>
+                            <button className="text-brand underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-brand focus:ring-opacity-50 rounded" onClick={()=>downloadInvoice(inv.id, inv.number)}>PDF</button>
+                            <button className="underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 rounded" onClick={()=>duplicateInvoice(inv)}>Duplicar</button>
+                            <button className="text-red-600 underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded" onClick={()=>deleteInvoice(inv)}>Eliminar</button>
                           </div>
                         </div>
                       )

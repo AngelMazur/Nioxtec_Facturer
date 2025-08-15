@@ -269,7 +269,7 @@ if enable_talisman:
 limiter = Limiter(
     key_func=get_remote_address,
     app=app,
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["1000 per day", "300 per hour"],
     storage_uri=os.getenv('LIMITER_STORAGE_URI', "memory://"),
 )
 
@@ -935,6 +935,7 @@ def upload_client_document(client_id):
 
 @app.route('/api/clients/<int:client_id>/documents/<int:doc_id>', methods=['GET'])
 @jwt_required()
+@limiter.limit("100 per minute")
 def get_client_document(client_id, doc_id):
     doc = ClientDocument.query.filter_by(id=doc_id, client_id=client_id).first_or_404()
     abs_path = os.path.join(UPLOADS_ROOT, doc.stored_path)
