@@ -202,7 +202,7 @@ export default function Clientes() {
                   <div className="hidden md:block">
                     <ul className="space-y-2">
                        {pageItems.map((client) => (
-                         <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer hover:bg-gray-800/80 active:scale-95 active:bg-gray-700 transition-all duration-200" onClick={()=>openClientModal(client)}>
+                         <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer hover:scale-[1.02] hover:bg-gray-800/80 active:scale-95 active:bg-gray-700 transition-all duration-200" onClick={()=>openClientModal(client)}>
                           <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_12rem_minmax(0,1.6fr)_12rem] gap-6 items-start">
                             <div className="font-medium leading-snug break-words">{client.name}</div>
                             <div className="text-gray-500 justify-self-center text-center whitespace-nowrap">{client.cif}</div>
@@ -223,7 +223,7 @@ export default function Clientes() {
                   {/* Mobile cards */}
                   <div className="md:hidden space-y-2">
                      {pageItems.map((client) => (
-                       <div key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer active:scale-95 active:bg-gray-700 transition-all duration-200" onClick={()=>openClientModal(client)}>
+                       <div key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer hover:scale-[1.02] active:scale-95 active:bg-gray-700 transition-all duration-200" onClick={()=>openClientModal(client)}>
                         <div className="space-y-1">
                           <div className="text-xs text-gray-500">Nombre</div>
                             <div className="font-medium text-left">{client.name}</div>
