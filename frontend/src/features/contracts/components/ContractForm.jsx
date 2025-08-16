@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useStore } from '../../../store/store'
 import { extractPlaceholders } from '../utils/contractParser'
-import { loadContractTemplate } from '../services/contractService'
+import { loadContractTemplate, loadCompanyConfig } from '../services/contractService'
 
 /**
  * Dynamic contract form component
  * Generates form fields based on template placeholders
  */
-export default function ContractForm({ onFormDataChange, onTemplateLoaded }) {
-  const { clients } = useStore()
+export default function ContractForm({ onFormDataChange, onTemplateLoaded, selectedClient }) {
+  const { token } = useStore()
   const [_template, setTemplate] = useState('')
   const [placeholders, setPlaceholders] = useState([])
   const [formData, setFormData] = useState({})
@@ -43,6 +43,31 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded }) {
         })
         setFormData(initialData)
         
+        // Auto-fill client data if selectedClient is provided
+        if (selectedClient) {
+          const clientData = {
+            ...initialData,
+            'NOMBRE DEL CLIENTE': selectedClient.name,
+            'NIF/NIE CLIENTE': selectedClient.cif,
+            'DOMICILIO CLIENTE': selectedClient.address,
+            'EMAIL/S': selectedClient.email
+          }
+          setFormData(clientData)
+        }
+        
+        // Auto-fill provider data from company config
+        try {
+          const companyConfig = await loadCompanyConfig(token)
+          setFormData(prev => ({
+            ...prev,
+            'NOMBRE DEL PROVEEDOR': companyConfig.name,
+            'NIF PROVEEDOR': companyConfig.cif,
+            'DOMICILIO PROVEEDOR': companyConfig.address
+          }))
+        } catch (error) {
+          console.error('Error loading company config:', error)
+        }
+        
         onTemplateLoaded?.(templateContent)
       } catch (error) {
         console.error('Error loading template:', error)
@@ -52,7 +77,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded }) {
     }
     
     loadTemplate()
-  }, [onTemplateLoaded])
+  }, [onTemplateLoaded, selectedClient, token])
 
   // Notify parent of form data changes
   useEffect(() => {
@@ -65,32 +90,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded }) {
     }
   }, [formData, milestones, sla])
 
-  // Auto-fill client data when client is selected
-  const handleClientChange = (clientId) => {
-    const selectedClient = clients.find(c => c.id === parseInt(clientId))
-    if (selectedClient) {
-      setFormData(prev => ({
-        ...prev,
-        'NOMBRE DEL CLIENTE': selectedClient.name,
-        'NIF/NIE CLIENTE': selectedClient.cif,
-        'DOMICILIO CLIENTE': selectedClient.address,
-        'EMAIL/S': selectedClient.email
-      }))
-    }
-  }
 
-  // Auto-fill provider data (assuming first client is the provider)
-  const handleAutoFillProvider = () => {
-    if (clients.length > 0) {
-      const provider = clients[0] // Assuming first client is the provider
-      setFormData(prev => ({
-        ...prev,
-        'NOMBRE DEL PROVEEDOR': provider.name,
-        'NIF PROVEEDOR': provider.cif,
-        'DOMICILIO PROVEEDOR': provider.address
-      }))
-    }
-  }
 
   // Add milestone
   const addMilestone = () => {
@@ -139,36 +139,6 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded }) {
 
   return (
     <div className="space-y-6">
-      {/* Client Selection */}
-      <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-        <h3 className="text-lg font-semibold mb-4">Datos del Cliente</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-500">Seleccionar Cliente</span>
-            <select
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-              onChange={(e) => handleClientChange(e.target.value)}
-            >
-              <option value="">Selecciona un cliente</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="flex items-end">
-            <button
-              type="button"
-              onClick={handleAutoFillProvider}
-              className="bg-secondary hover:opacity-90 transition text-white px-4 py-2 rounded"
-            >
-              Auto-rellenar Proveedor
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Dynamic Form Fields */}
       <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
         <h3 className="text-lg font-semibold mb-4">Campos del Contrato</h3>

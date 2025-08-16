@@ -2,7 +2,7 @@
  * Contract service for loading templates and generating PDFs
  */
 
-import { apiPost, apiGetBlob } from '../../../lib/api'
+import { apiPost, apiGetBlob, apiGet } from '../../../lib/api'
 import { contractTemplate } from '../templates/contractTemplate'
 
 /**
@@ -39,6 +39,20 @@ export async function generateContractPDF(contractContent, filename, token) {
   } catch (error) {
     console.error('Error generating PDF:', error)
     throw new Error('Error al generar el PDF del contrato')
+  }
+}
+
+/**
+ * Load company configuration
+ * @param {string} token - JWT token
+ * @returns {Promise<Object>} Company configuration
+ */
+export async function loadCompanyConfig(token) {
+  try {
+    return await apiGet('/company/config', token)
+  } catch (error) {
+    console.error('Error loading company config:', error)
+    throw new Error('Error al cargar la configuración de la empresa')
   }
 }
 

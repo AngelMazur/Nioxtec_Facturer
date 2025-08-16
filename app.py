@@ -985,6 +985,34 @@ def list_invoices_by_client(client_id):
         'total': total,
     })
 
+
+@app.get('/api/company/config')
+@jwt_required()
+def get_company_config():
+    """Get company configuration for contract generation."""
+    company = CompanyConfig.query.first()
+    if not company:
+        # Return default company config
+        return jsonify({
+            'name': 'Mi Empresa',
+            'cif': 'A00000000',
+            'address': 'Dirección de ejemplo',
+            'email': 'info@example.com',
+            'phone': '000 000 000',
+            'iban': '',
+            'website': ''
+        })
+    
+    return jsonify({
+        'name': company.name,
+        'cif': company.cif,
+        'address': company.address,
+        'email': company.email,
+        'phone': company.phone,
+        'iban': company.iban or '',
+        'website': company.website or ''
+    })
+
 @app.route('/api/invoices/<int:invoice_id>', methods=['PUT'])
 @jwt_required()
 def update_invoice(invoice_id):
