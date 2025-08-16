@@ -142,12 +142,12 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
       {/* Dynamic Form Fields */}
       <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
         <h3 className="text-lg font-semibold mb-4">Campos del Contrato</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {placeholders.map(placeholder => (
             <label key={placeholder} className="flex flex-col gap-1">
-              <span className="text-sm text-gray-500">{placeholder}</span>
+              <span className="text-sm text-gray-500 font-medium">{placeholder}</span>
               <input
-                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                className="border border-gray-300 dark:border-gray-600 p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full"
                 value={formData[placeholder] || ''}
                 onChange={(e) => setFormData(prev => ({
                   ...prev,
@@ -175,36 +175,36 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
         
         <div className="space-y-4">
           {milestones.map((milestone) => (
-            <div key={milestone.id} className="grid grid-cols-1 sm:grid-cols-5 gap-2 border border-gray-700 p-3 rounded">
+            <div key={milestone.id} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 border border-gray-700 p-4 rounded">
               <input
-                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                className="border border-gray-300 dark:border-gray-600 p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full"
                 placeholder="Nombre del hito"
                 value={milestone.name}
                 onChange={(e) => updateMilestone(milestone.id, 'name', e.target.value)}
               />
               <input
-                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                className="border border-gray-300 dark:border-gray-600 p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full"
                 placeholder="Descripción"
                 value={milestone.description}
                 onChange={(e) => updateMilestone(milestone.id, 'description', e.target.value)}
               />
               <input
                 type="date"
-                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                className="border border-gray-300 dark:border-gray-600 p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full"
                 value={milestone.date}
                 onChange={(e) => updateMilestone(milestone.id, 'date', e.target.value)}
               />
               <input
                 type="number"
                 step="0.01"
-                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                className="border border-gray-300 dark:border-gray-600 p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full"
                 placeholder="Importe"
                 value={milestone.amount}
                 onChange={(e) => updateMilestone(milestone.id, 'amount', parseFloat(e.target.value) || 0)}
               />
               <div className="flex gap-2">
                 <input
-                  className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand flex-1"
+                  className="border border-gray-300 dark:border-gray-600 p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand flex-1"
                   placeholder="Criterio"
                   value={milestone.criteria}
                   onChange={(e) => updateMilestone(milestone.id, 'criteria', e.target.value)}
@@ -212,7 +212,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
                 <button
                   type="button"
                   onClick={() => removeMilestone(milestone.id)}
-                  className="bg-red-600 hover:bg-red-700 transition text-white px-2 py-1 rounded text-sm"
+                  className="bg-red-600 hover:bg-red-700 transition text-white px-3 py-1 rounded text-sm"
                 >
                   ×
                 </button>
@@ -225,19 +225,19 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
       {/* SLA Section */}
       <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
         <h3 className="text-lg font-semibold mb-4">Niveles de Servicio (SLA)</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Object.entries(sla).map(([level, config]) => (
-            <div key={level} className="border border-gray-700 p-3 rounded">
-              <h4 className="font-medium mb-2 capitalize">{level}</h4>
-              <div className="space-y-2">
+            <div key={level} className="border border-gray-700 p-4 rounded">
+              <h4 className="font-medium mb-3 capitalize text-base">{level}</h4>
+              <div className="space-y-3">
                 <input
-                  className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm"
+                  className="border border-gray-300 dark:border-gray-600 p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full"
                   placeholder="Tiempo respuesta"
                   value={config.response}
                   onChange={(e) => updateSLA(level, 'response', e.target.value)}
                 />
                 <input
-                  className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm"
+                  className="border border-gray-300 dark:border-gray-600 p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full"
                   placeholder="Tiempo resolución"
                   value={config.resolution}
                   onChange={(e) => updateSLA(level, 'resolution', e.target.value)}

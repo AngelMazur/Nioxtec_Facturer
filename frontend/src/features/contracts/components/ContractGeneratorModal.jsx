@@ -63,8 +63,8 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-7xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 z-50">
+      <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-7xl h-[95vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h2 className="text-xl font-semibold">Generador de Contratos</h2>
@@ -104,9 +104,9 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
 
         {/* Content */}
         <div className="flex-1 overflow-hidden">
-          <div className="h-full flex">
+          <div className="h-full flex flex-col lg:flex-row">
             {/* Form Panel */}
-            <div className={`w-1/2 p-6 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`}>
+            <div className={`w-full lg:w-1/2 p-4 lg:p-6 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`}>
               <ContractForm
                 onFormDataChange={handleFormDataChange}
                 onTemplateLoaded={handleTemplateLoaded}
@@ -115,7 +115,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
             </div>
 
             {/* Preview Panel */}
-            <div className={`w-1/2 p-6 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
+            <div className={`w-full lg:w-1/2 p-4 lg:p-6 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
               <ContractPreview
                 template={template}
                 formData={formData}
