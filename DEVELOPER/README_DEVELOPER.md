@@ -113,6 +113,14 @@ C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\register_deploy_task.ps1
 schtasks /Run /TN "Nioxtec Deploy"
 ```
 
+### Auto-inicio completo del sistema
+Para configurar el inicio automático completo (Cloudflare + Deploy) al arrancar el PC:
+```powershell
+# Registrar startup master para auto-inicio
+C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\register_startup_master.ps1
+```
+Esto creará la tarea "Nioxtec Startup Master" que se ejecutará automáticamente al arrancar el PC.
+
 ## Scripts de un clic
 
 Están en `DEVELOPER/scripts/`:
@@ -120,12 +128,17 @@ Están en `DEVELOPER/scripts/`:
 - `stop_all.ps1`: detiene Backend y Frontend
 - `start_all.ps1`: inicia Backend y Frontend
 - `deploy_prod.ps1`: despliegue completo (para en orden, hace backup, actualiza, compila y arranca; incluye health-check)
+- `start_cloudflare.ps1`: inicia Cloudflare cuando está caído (útil después de reinicios)
+- `startup_master.ps1`: script maestro que coordina el inicio completo del sistema
+- `register_startup_master.ps1`: registra el startup_master para auto-inicio al arrancar el PC
 
 Ejecuta con PowerShell (Administrador):
 ```powershell
 PS C:\> C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\stop_all.ps1
 PS C:\> C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\start_all.ps1
 PS C:\> C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\deploy_prod.ps1
+PS C:\> C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\start_cloudflare.ps1
+PS C:\> C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\startup_master.ps1
 ```
 
 ## Cloudflare Tunnel
@@ -137,6 +150,21 @@ sc.exe query cloudflared
 # o
 Get-ScheduledTask -TaskName "Cloudflared Tunnel" | Get-ScheduledTaskInfo
 ```
+
+### Si Cloudflare está caído después de reiniciar
+
+Si después de reiniciar el PC, Cloudflare no se conecta automáticamente:
+
+```powershell
+# Ejecutar script para iniciar Cloudflare
+C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\start_cloudflare.ps1
+```
+
+Este script:
+- Ejecuta la tarea programada de Cloudflare
+- Espera a que se conecte
+- Verifica que la API responde correctamente
+- Muestra el estado de la conexión
 
 ## Diagnóstico rápido
 ```powershell
