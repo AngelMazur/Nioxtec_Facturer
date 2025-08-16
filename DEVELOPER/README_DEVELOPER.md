@@ -129,7 +129,7 @@ Están en `DEVELOPER/scripts/`:
 - `start_all.ps1`: inicia Backend y Frontend
 - `deploy_prod.ps1`: despliegue completo (para en orden, hace backup, actualiza, compila y arranca; incluye health-check)
 - `start_cloudflare.ps1`: inicia Cloudflare cuando está caído (útil después de reinicios)
-- `startup_master.ps1`: script maestro que coordina el inicio completo del sistema
+- `startup_master.ps1`: script maestro que coordina el inicio completo del sistema (incluye limpieza automática de logs)
 - `register_startup_master.ps1`: registra el startup_master para auto-inicio al arrancar el PC
 
 Ejecuta con PowerShell (Administrador):

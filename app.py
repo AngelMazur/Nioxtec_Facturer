@@ -1306,6 +1306,186 @@ def login():
     return jsonify({'access_token': token})
 
 
+# -------------------------------------
+# Contract Generation
+# -------------------------------------
+
+@app.post('/api/contracts/generate-pdf')
+@jwt_required()
+@limiter.limit("10 per minute")
+def generate_contract_pdf():
+    """
+    Generate PDF from contract content.
+    
+    Accepts markdown content and generates a PDF with proper formatting.
+    
+    Returns:
+        JSON: Generated filename on success
+    """
+    data = request.get_json(force=True)
+    content = data.get('content')
+    filename = data.get('filename', 'contract.pdf')
+    
+    if not content:
+        return jsonify({'error': 'Content is required'}), 400
+    
+    try:
+        # Convert markdown to HTML
+        import markdown
+        html_content = markdown.markdown(content, extensions=['tables'])
+        
+        # Create contract template HTML
+        contract_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    margin: 2cm;
+                    font-size: 12pt;
+                }}
+                h1, h2, h3 {{
+                    color: #333;
+                    margin-top: 1.5em;
+                    margin-bottom: 0.5em;
+                }}
+                h1 {{ font-size: 18pt; }}
+                h2 {{ font-size: 16pt; }}
+                h3 {{ font-size: 14pt; }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 1em 0;
+                }}
+                th, td {{
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                    text-align: left;
+                }}
+                th {{
+                    background-color: #f5f5f5;
+                    font-weight: bold;
+                }}
+                .signature-section {{
+                    margin-top: 3em;
+                    page-break-before: always;
+                }}
+                .signature-line {{
+                    border-top: 1px solid #000;
+                    margin-top: 2em;
+                    padding-top: 0.5em;
+                }}
+            </style>
+        </head>
+        <body>
+            {html_content}
+        </body>
+        </html>
+        """
+        
+        # Generate PDF using wkhtmltopdf
+        if pdfkit is not None:
+            options = {
+                'enable-local-file-access': None,
+                'page-size': 'A4',
+                'margin-top': '1in',
+                'margin-right': '1in',
+                'margin-bottom': '1in',
+                'margin-left': '1in',
+                'encoding': 'UTF-8',
+                'no-outline': None,
+                'print-media-type': None,
+                'disable-smart-shrinking': None,
+                'zoom': 1.0,
+                'dpi': 96,
+                'minimum-font-size': 10
+            }
+            cfg = _resolve_pdfkit_configuration()
+            pdf_bytes = pdfkit.from_string(contract_html, False, options=options, configuration=cfg)
+        else:
+            # Fallback to reportlab
+            pdf_bytes = _generate_contract_pdf_fallback(content)
+        
+        # Save PDF to downloads folder
+        safe_filename = secure_filename(filename)
+        file_path = os.path.join(DOWNLOAD_FOLDER, safe_filename)
+        with open(file_path, 'wb') as f:
+            f.write(pdf_bytes)
+        
+        return jsonify({'filename': safe_filename})
+        
+    except Exception as e:
+        app.logger.error(f"Error generating contract PDF: {e}")
+        return jsonify({'error': 'Error generating PDF'}), 500
+
+
+@app.get('/api/contracts/download/<filename>')
+@jwt_required()
+def download_contract_pdf(filename):
+    """
+    Download generated contract PDF.
+    
+    Args:
+        filename: Name of the PDF file to download
+        
+    Returns:
+        PDF file as attachment
+    """
+    try:
+        file_path = os.path.join(DOWNLOAD_FOLDER, secure_filename(filename))
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'File not found'}), 404
+        
+        return send_file(file_path, mimetype='application/pdf', as_attachment=True)
+        
+    except Exception as e:
+        app.logger.error(f"Error downloading contract PDF: {e}")
+        return jsonify({'error': 'Error downloading file'}), 500
+
+
+def _generate_contract_pdf_fallback(content):
+    """
+    Fallback PDF generation using reportlab for contracts.
+    """
+    if not reportlab_available:
+        raise Exception("No PDF generation available")
+    
+    buffer = io.BytesIO()
+    doc = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    
+    # Simple text rendering
+    y = height - 50
+    doc.setFont("Helvetica", 12)
+    
+    lines = content.split('\n')
+    for line in lines:
+        if y < 50:  # New page
+            doc.showPage()
+            y = height - 50
+            doc.setFont("Helvetica", 12)
+        
+        if line.strip().startswith('#'):
+            # Header
+            level = len(line) - len(line.lstrip('#'))
+            font_size = 16 - level * 2
+            doc.setFont("Helvetica-Bold", font_size)
+            doc.drawString(50, y, line.lstrip('#').strip())
+            y -= font_size + 10
+        else:
+            # Regular text
+            doc.setFont("Helvetica", 12)
+            doc.drawString(50, y, line)
+            y -= 15
+    
+    doc.save()
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
 if __name__ == '__main__':
     debug_env = os.getenv('FLASK_DEBUG', 'true').lower() in ('1', 'true', 'yes')
     # Escuchar en 0.0.0.0 para permitir acceso externo cuando se necesite.

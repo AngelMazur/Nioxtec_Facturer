@@ -4,6 +4,7 @@ import { apiGet, apiPost, apiDelete, apiGetBlob } from '../lib/api'
 import toast from 'react-hot-toast'
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
+import ContractGeneratorModal from '../features/contracts/components/ContractGeneratorModal'
 
 export default function Clientes() {
   const { clients, setClients, token } = useStore()
@@ -21,6 +22,8 @@ export default function Clientes() {
   const [invoicesPage, setInvoicesPage] = useState(1)
   const [imagesPage, setImagesPage] = useState(1)
   const [docsPage, setDocsPage] = useState(1)
+  const [showContractModal, setShowContractModal] = useState(false)
+  const [selectedClientForContract, setSelectedClientForContract] = useState(null)
   const invoicesPageSize = 10
   const imagesPageSize = 6
   const docsPageSize = 5
@@ -43,6 +46,11 @@ export default function Clientes() {
     setImagesPage(1)
     setDocsPage(1)
     await loadClientInvoices(client.id)
+  }
+
+  function openContractModal(client) {
+    setSelectedClientForContract(client)
+    setShowContractModal(true)
   }
 
   async function loadClientInvoices(clientId) {
@@ -393,10 +401,18 @@ export default function Clientes() {
                                   }}>Eliminar</button>
                                 </div>
                               ))}
-                              <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-2 hover:scale-105 transition-all duration-200">
+                                                          <div className="flex gap-2 mt-2">
+                              <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200">
                                 <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
                                 Subir PDF
                               </label>
+                              <button
+                                onClick={() => openContractModal(selectedClient)}
+                                className="inline-flex items-center gap-2 bg-primary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200"
+                              >
+                                Crear Contrato
+                              </button>
+                            </div>
                             </div>
                             {totalPages > 1 && (
                               <div className="flex items-center justify-center gap-2 mt-4">
@@ -506,6 +522,13 @@ export default function Clientes() {
           </div>
         </div>
       )}
+
+      {/* Contract Generator Modal */}
+      <ContractGeneratorModal
+        isOpen={showContractModal}
+        onClose={() => setShowContractModal(false)}
+        selectedClient={selectedClientForContract}
+      />
     </main>
   )
 }
