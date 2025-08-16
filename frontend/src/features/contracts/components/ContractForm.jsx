@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useStore } from '../../../store/store'
 import { extractPlaceholders } from '../utils/contractParser'
 import { loadContractTemplate } from '../services/contractService'
@@ -20,6 +20,10 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded }) {
     medium: { response: '4 h', resolution: '2 dias' },
     low: { response: '1 dia', resolution: '5 dias' }
   })
+  
+  // Use ref to store the latest onFormDataChange function
+  const onFormDataChangeRef = useRef(onFormDataChange)
+  onFormDataChangeRef.current = onFormDataChange
 
   // Load template and extract placeholders
   useEffect(() => {
@@ -52,8 +56,8 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded }) {
 
   // Notify parent of form data changes
   useEffect(() => {
-    if (onFormDataChange) {
-      onFormDataChange({
+    if (onFormDataChangeRef.current) {
+      onFormDataChangeRef.current({
         ...formData,
         milestones,
         sla
