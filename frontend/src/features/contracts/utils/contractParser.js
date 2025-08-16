@@ -13,8 +13,36 @@ export function extractPlaceholders(markdown) {
   const placeholders = new Set()
   let match
 
-  while ((match = placeholderRegex.exec(markdown)) !== null) {
-    placeholders.add(match[1].trim())
+  // Split markdown into lines to exclude table content
+  const lines = markdown.split('\n')
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    
+    // Skip table header separators (lines with |---|)
+    if (line.trim().match(/^\|[\s\-:|]+\|$/)) {
+      continue
+    }
+    
+    // Skip table content (lines that start with | and contain values like [15 min], [4 h], etc.)
+    if (line.trim().startsWith('|') && line.includes('[') && line.includes(']')) {
+      // Check if this line contains table values that shouldn't be treated as placeholders
+      const tableValueRegex = /\|[\s]*\[([^\]]+)\][\s]*\|/g
+      let tableMatch
+      while ((tableMatch = tableValueRegex.exec(line)) !== null) {
+        const value = tableMatch[1].trim()
+        // Skip common table values that shouldn't be form fields
+        if (!['15 min', '4 h', '1 h', '8 h', '2 dias', '1 dia', '5 dias'].includes(value)) {
+          placeholders.add(value)
+        }
+      }
+      continue
+    }
+    
+    // Process regular placeholders in non-table lines
+    while ((match = placeholderRegex.exec(line)) !== null) {
+      placeholders.add(match[1].trim())
+    }
   }
 
   return Array.from(placeholders).sort()
