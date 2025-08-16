@@ -52,12 +52,14 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded }) {
 
   // Notify parent of form data changes
   useEffect(() => {
-    onFormDataChange?.({
-      ...formData,
-      milestones,
-      sla
-    })
-  }, [formData, milestones, sla, onFormDataChange])
+    if (onFormDataChange) {
+      onFormDataChange({
+        ...formData,
+        milestones,
+        sla
+      })
+    }
+  }, [formData, milestones, sla])
 
   // Auto-fill client data when client is selected
   const handleClientChange = (clientId) => {

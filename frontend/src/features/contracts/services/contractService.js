@@ -3,6 +3,7 @@
  */
 
 import { apiPost, apiGetBlob } from '../../../lib/api'
+import { contractTemplate } from '../templates/contractTemplate'
 
 /**
  * Load contract template from file
@@ -10,13 +11,8 @@ import { apiPost, apiGetBlob } from '../../../lib/api'
  */
 export async function loadContractTemplate() {
   try {
-    // In a real implementation, this would be an API call
-    // For now, we'll import the template directly
-    const response = await fetch('/src/features/contracts/templates/Plantilla_Contrato_Servicios.md')
-    if (!response.ok) {
-      throw new Error('No se pudo cargar la plantilla del contrato')
-    }
-    return await response.text()
+    // Return the imported template directly
+    return contractTemplate
   } catch (error) {
     console.error('Error loading template:', error)
     throw new Error('Error al cargar la plantilla del contrato')

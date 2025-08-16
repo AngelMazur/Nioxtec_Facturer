@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useStore } from '../../../store/store'
 import { generateContractPDF, downloadContractPDF } from '../services/contractService'
 import { fillCompleteTemplate } from '../utils/contractParser'
@@ -17,14 +17,14 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
   const [generatingPDF, setGeneratingPDF] = useState(false)
 
   // Handle form data changes
-  const handleFormDataChange = (data) => {
+  const handleFormDataChange = useCallback((data) => {
     setFormData(data)
-  }
+  }, [])
 
   // Handle template loaded
-  const handleTemplateLoaded = (templateContent) => {
+  const handleTemplateLoaded = useCallback((templateContent) => {
     setTemplate(templateContent)
-  }
+  }, [])
 
   // Generate and download PDF
   const handleGeneratePDF = async () => {
