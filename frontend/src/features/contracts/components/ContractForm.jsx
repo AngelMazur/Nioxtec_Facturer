@@ -8,8 +8,8 @@ import { loadContractTemplate } from '../services/contractService'
  * Generates form fields based on template placeholders
  */
 export default function ContractForm({ onFormDataChange, onTemplateLoaded }) {
-  const { clients, token } = useStore()
-  const [template, setTemplate] = useState('')
+  const { clients } = useStore()
+  const [_template, setTemplate] = useState('')
   const [placeholders, setPlaceholders] = useState([])
   const [formData, setFormData] = useState({})
   const [loading, setLoading] = useState(true)
@@ -198,7 +198,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded }) {
         </div>
         
         <div className="space-y-4">
-          {milestones.map((milestone, index) => (
+          {milestones.map((milestone) => (
             <div key={milestone.id} className="grid grid-cols-1 sm:grid-cols-5 gap-2 border border-gray-700 p-3 rounded">
               <input
                 className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
