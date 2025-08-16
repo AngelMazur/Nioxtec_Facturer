@@ -41,7 +41,14 @@ export function extractPlaceholders(markdown) {
     
     // Process regular placeholders in non-table lines
     while ((match = placeholderRegex.exec(line)) !== null) {
-      placeholders.add(match[1].trim())
+      const placeholder = match[1].trim()
+      // Skip empty placeholders and common non-field patterns
+      if (placeholder && placeholder.length > 0 && 
+          !placeholder.includes('Plantilla editable') &&
+          !placeholder.includes('Rellena los campos') &&
+          !placeholder.includes('elimina las notas')) {
+        placeholders.add(placeholder)
+      }
     }
   }
 
