@@ -301,6 +301,8 @@ class CompanyConfig(db.Model):
     name = db.Column(db.String(128), nullable=False)
     cif = db.Column(db.String(32), nullable=False)
     address = db.Column(db.String(256), nullable=False)
+    city = db.Column(db.String(128))
+    province = db.Column(db.String(128))
     email = db.Column(db.String(128), nullable=False)
     phone = db.Column(db.String(64), nullable=False)
     iban = db.Column(db.String(64))
@@ -997,6 +999,8 @@ def get_company_config():
             'name': 'Mi Empresa',
             'cif': 'A00000000',
             'address': 'Dirección de ejemplo',
+            'city': 'Ciudad',
+            'province': 'Provincia',
             'email': 'info@example.com',
             'phone': '000 000 000',
             'iban': '',
@@ -1007,6 +1011,8 @@ def get_company_config():
         'name': company.name,
         'cif': company.cif,
         'address': company.address,
+        'city': company.city or '',
+        'province': company.province or '',
         'email': company.email,
         'phone': company.phone,
         'iban': company.iban or '',
