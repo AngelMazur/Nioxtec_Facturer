@@ -51,17 +51,6 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
             'telefono': selectedClient.phone || '',
             'correo': selectedClient.email,
             
-            // Campos de producto con valores por defecto
-            'modelo': 'Digital Screen Pro',
-            'pulgadas': '55 pulgadas',
-            'numero_serie': `NIOXTEC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
-            
-            // Campos financieros con valores por defecto
-            'importe_total_en_euros_iva_incluido': '1500.00',
-            'numero_de_plazos': '12',
-            'importe_de_cada_cuota': '125.00',
-            'tabla_de_interes': '10% interés mensual', // Se calcula automáticamente
-            
             // Mapeo para template de renting
             'nombre_de_la_empresa_o_persona': selectedClient.name,
             'nombre_representante': selectedClient.name,
@@ -108,30 +97,12 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
     const uniquePlaceholders = []
     const seen = new Set()
     
-    // Mapeo de campos duplicados para detectarlos mejor
-    const duplicateMapping = {
-      'DNI DEL CLIENTE': 'Dni del comprador',
-      'Dni del comprador': 'DNI DEL CLIENTE',
-      'Nombre del comprador': 'Nombre completo del cliente',
-      'Nombre completo del cliente': 'Nombre del comprador',
-      'Modelo del producto': 'Modelo',
-      'Modelo': 'Modelo del producto',
-      'Pulgadas del producto': 'Pulgadas',
-      'Pulgadas': 'Pulgadas del producto',
-      'Número de serie del producto': 'Número de Serie',
-      'Número de Serie': 'Número de serie del producto',
-    }
-    
     placeholders.forEach(placeholder => {
       if (placeholder && placeholder.trim() !== '') {
         // Normalize placeholder for comparison
         const normalized = placeholder.toLowerCase().replace(/[^a-z0-9]/g, '')
         
-        // Check if this is a duplicate of an already processed field
-        const duplicateOf = duplicateMapping[placeholder]
-        const isDuplicate = duplicateOf && seen.has(duplicateOf.toLowerCase().replace(/[^a-z0-9]/g, ''))
-        
-        if (!seen.has(normalized) && !isDuplicate) {
+        if (!seen.has(normalized)) {
           seen.add(normalized)
           uniquePlaceholders.push(placeholder)
         }
@@ -140,6 +111,28 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
     
     return uniquePlaceholders
   }
+
+  // Interest table mapping based on number of installments
+  const interestTable = {
+    3: "Sin intereses",
+    6: "5% interés mensual",
+    12: "10% interés mensual", 
+    18: "20% interés mensual",
+    24: "30% interés mensual"
+  }
+
+  // Auto-calculate interest table when number of installments changes
+  useEffect(() => {
+    if (selectedTemplate?.id === 'compraventa' && formData.numero_de_plazos) {
+      const numPlazos = parseInt(formData.numero_de_plazos)
+      const interestText = interestTable[numPlazos] || "Sin intereses"
+      
+      setFormData(prev => ({
+        ...prev,
+        tabla_de_interes: interestText
+      }))
+    }
+  }, [formData.numero_de_plazos, selectedTemplate?.id])
 
   // Mapping from document placeholders to form data keys (inverse of backend mapping)
   const getFormKeyFromPlaceholder = (placeholder) => {
