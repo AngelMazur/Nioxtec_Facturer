@@ -106,7 +106,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
         <div className="flex-1 overflow-hidden flex flex-col">
           <div className="flex-1 flex flex-col lg:flex-row min-h-0">
             {/* Form Panel */}
-            <div className={`w-full lg:w-1/2 p-3 lg:p-4 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
+            <div className={`w-full lg:w-1/2 p-2 lg:p-3 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
               <ContractForm
                 onFormDataChange={handleFormDataChange}
                 onTemplateLoaded={handleTemplateLoaded}
