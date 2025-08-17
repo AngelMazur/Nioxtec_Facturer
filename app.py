@@ -1552,8 +1552,19 @@ def generate_contract_pdf():
                         line-height: 1.6;
                         margin: 1.5cm 1.2cm 1.5cm 1.2cm;
                         font-size: 11pt;
+                                        }}
+                    .header {{
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 2em;
+                        page-break-inside: avoid;
                     }}
-
+                    .header img {{
+                        max-height: 80px;
+                        max-width: 200px;
+                        object-fit: contain;
+                    }}
                     h1, h2, h3 {{
                         color: #65AAC3;
                         margin-top: 1.5em;
@@ -1626,9 +1637,12 @@ def generate_contract_pdf():
                         padding-top: 0.5em;
                     }}
                 </style>
-            </head>
+                        </head>
             <body>
-
+                <div class="header">
+                    <img src="file://{os.path.abspath('static/contracts/images/header-left.png')}" alt="Header Left" />
+                    <img src="file://{os.path.abspath('static/contracts/images/header-right.png')}" alt="Header Right" />
+                </div>
                 {html_content}
             </body>
             </html>
@@ -1696,7 +1710,27 @@ def download_contract_pdf(filename):
         return jsonify({'error': 'Error downloading file'}), 500
 
 
-
+@app.get('/static/contracts/images/<filename>')
+def serve_contract_image(filename):
+    """
+    Serve contract images for PDF generation.
+    
+    Args:
+        filename: Name of the image file
+        
+    Returns:
+        Image file
+    """
+    try:
+        image_path = os.path.join('static', 'contracts', 'images', secure_filename(filename))
+        if not os.path.exists(image_path):
+            return jsonify({'error': 'Image not found'}), 404
+        
+        return send_file(image_path)
+        
+    except Exception as e:
+        app.logger.error(f"Error serving contract image: {e}")
+        return jsonify({'error': 'Error serving image'}), 500
 
 
 def slugify(text):
