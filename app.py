@@ -1514,15 +1514,18 @@ def generate_contract_pdf():
                 'numero_serie' # 7mo _________ → Número de serie del producto
             ]
         
+        # Global counter for underscore placeholders in compraventa template
+        global_underscore_counter = 0
+        
         # Fill placeholders in paragraphs
-        underscore_counter = 0  # Reset counter for paragraphs
         for paragraph in doc.paragraphs:
             for placeholder_name, placeholder_token in original_tokens.items():
                 # Special handling for underscore placeholders in compraventa
                 if template_id == 'compraventa' and placeholder_name == '_________':
-                    underscore_counter += 1
-                    if underscore_counter <= len(underscore_mapping):
-                        form_key = underscore_mapping[underscore_counter - 1]
+                    global_underscore_counter += 1
+                    if global_underscore_counter <= len(underscore_mapping):
+                        form_key = underscore_mapping[global_underscore_counter - 1]
+                        app.logger.info(f"Underscore #{global_underscore_counter} mapped to {form_key}")
                     else:
                         form_key = 'firma'  # Default for additional underscores
                 else:
@@ -1537,7 +1540,6 @@ def generate_contract_pdf():
                         replacements_made.append(f"{placeholder_name} -> {value}")
         
         # Fill placeholders in tables
-        underscore_counter = 0  # Reset counter for tables
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
@@ -1545,9 +1547,10 @@ def generate_contract_pdf():
                         for placeholder_name, placeholder_token in original_tokens.items():
                             # Special handling for underscore placeholders in compraventa
                             if template_id == 'compraventa' and placeholder_name == '_________':
-                                underscore_counter += 1
-                                if underscore_counter <= len(underscore_mapping):
-                                    form_key = underscore_mapping[underscore_counter - 1]
+                                global_underscore_counter += 1
+                                if global_underscore_counter <= len(underscore_mapping):
+                                    form_key = underscore_mapping[global_underscore_counter - 1]
+                                    app.logger.info(f"Underscore #{global_underscore_counter} mapped to {form_key}")
                                 else:
                                     form_key = 'firma'  # Default for additional underscores
                             else:
