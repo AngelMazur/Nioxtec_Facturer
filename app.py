@@ -12,7 +12,7 @@ non‑programmers can understand the overall flow.
 The core ideas implemented here follow widely accepted
 recommendations for invoice management.  For example, the EU
 directive on invoicing requires that each invoice include a unique
-sequential number, the date of issue, the supplier’s and customer’s
+sequential number, the date of issue, the supplier's and customer's
 VAT numbers, the full names and addresses of both parties and the
 detailed description of goods or services provided【816995957740757†L97-L115】.  In
 addition, the database schema uses one‑to‑many relationships
@@ -536,7 +536,7 @@ def _generate_pdf_fallback(invoice: 'Invoice', client: 'Client', company: 'Compa
 # submitting forms via fetch/XHR.
 
 # Create database tables once at startup.  The `before_first_request` decorator
-# was removed in Flask 3【582101706213846†L169-L173】, so we explicitly initialize
+# was removed in Flask 3【582101706213846†L169-L173】, so we explicitly initialize
 # the database here using the application context.
 with app.app_context():
     db.create_all()
@@ -1457,6 +1457,42 @@ def generate_contract_pdf():
             '_________': 'firma',  # For signature line
         }
         
+        # Special handling for compraventa template with multiple "_________" placeholders
+        # We need to map them to different client data fields
+        if template_id == 'compraventa':
+            # Define the order of underscore placeholders for compraventa template
+            underscore_mapping = [
+                'numero',      # DNI
+                'direccion',   # Domicilio  
+                'telefono',    # Teléfono
+                'correo',      # Correo
+                'modelo',      # Modelo
+                'marca',       # Pulgadas
+                'numero_serie' # Número de serie
+            ]
+            
+            # Create a counter for underscore replacements
+            underscore_counter = 0
+            for placeholder_name, placeholder_token in original_tokens.items():
+                if placeholder_name == '_________':
+                    underscore_counter += 1
+                    if underscore_counter == 1:
+                        placeholder_mapping['_________'] = underscore_mapping[0]  # DNI
+                    elif underscore_counter == 2:
+                        placeholder_mapping['_________'] = underscore_mapping[1]  # Domicilio
+                    elif underscore_counter == 3:
+                        placeholder_mapping['_________'] = underscore_mapping[2]  # Teléfono
+                    elif underscore_counter == 4:
+                        placeholder_mapping['_________'] = underscore_mapping[3]  # Correo
+                    elif underscore_counter == 5:
+                        placeholder_mapping['_________'] = underscore_mapping[4]  # Modelo
+                    elif underscore_counter == 6:
+                        placeholder_mapping['_________'] = underscore_mapping[5]  # Pulgadas
+                    elif underscore_counter == 7:
+                        placeholder_mapping['_________'] = underscore_mapping[6]  # Número de serie
+                    else:
+                        placeholder_mapping['_________'] = 'firma'  # Default to signature
+        
         # Debug logging
         app.logger.info(f"Template placeholders: {list(original_tokens.keys())}")
         app.logger.info(f"Form data keys: {list(form_data.keys())}")
@@ -1466,30 +1502,62 @@ def generate_contract_pdf():
         # Log which placeholders will be replaced
         replacements_made = []
         
+        # Special handling for compraventa template underscore placeholders
+        if template_id == 'compraventa':
+            underscore_mapping = [
+                'numero',      # DNI
+                'direccion',   # Domicilio  
+                'telefono',    # Teléfono
+                'correo',      # Correo
+                'modelo',      # Modelo
+                'marca',       # Pulgadas
+                'numero_serie' # Número de serie
+            ]
+        
         # Fill placeholders in paragraphs
+        underscore_counter = 0  # Reset counter for paragraphs
         for paragraph in doc.paragraphs:
             for placeholder_name, placeholder_token in original_tokens.items():
-                # Map placeholder to form data key
-                form_key = placeholder_mapping.get(placeholder_name, placeholder_name)
+                # Special handling for underscore placeholders in compraventa
+                if template_id == 'compraventa' and placeholder_name == '_________':
+                    underscore_counter += 1
+                    if underscore_counter <= len(underscore_mapping):
+                        form_key = underscore_mapping[underscore_counter - 1]
+                    else:
+                        form_key = 'firma'  # Default for additional underscores
+                else:
+                    # Map placeholder to form data key
+                    form_key = placeholder_mapping.get(placeholder_name, placeholder_name)
+                
                 if form_key in form_data:
                     value = str(form_data[form_key])
                     if placeholder_token in paragraph.text:
-                        app.logger.info(f"Replacing {placeholder_token} with {value} in paragraph")
+                        app.logger.info(f"Replacing {placeholder_token} with {value} in paragraph (key: {form_key})")
                         paragraph.text = paragraph.text.replace(placeholder_token, value)
                         replacements_made.append(f"{placeholder_name} -> {value}")
         
         # Fill placeholders in tables
+        underscore_counter = 0  # Reset counter for tables
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
                         for placeholder_name, placeholder_token in original_tokens.items():
-                            # Map placeholder to form data key
-                            form_key = placeholder_mapping.get(placeholder_name, placeholder_name)
+                            # Special handling for underscore placeholders in compraventa
+                            if template_id == 'compraventa' and placeholder_name == '_________':
+                                underscore_counter += 1
+                                if underscore_counter <= len(underscore_mapping):
+                                    form_key = underscore_mapping[underscore_counter - 1]
+                                else:
+                                    form_key = 'firma'  # Default for additional underscores
+                            else:
+                                # Map placeholder to form data key
+                                form_key = placeholder_mapping.get(placeholder_name, placeholder_name)
+                            
                             if form_key in form_data:
                                 value = str(form_data[form_key])
                                 if placeholder_token in paragraph.text:
-                                    app.logger.info(f"Replacing {placeholder_token} with {value} in table cell")
+                                    app.logger.info(f"Replacing {placeholder_token} with {value} in table cell (key: {form_key})")
                                     paragraph.text = paragraph.text.replace(placeholder_token, value)
                                     replacements_made.append(f"{placeholder_name} -> {value}")
         
