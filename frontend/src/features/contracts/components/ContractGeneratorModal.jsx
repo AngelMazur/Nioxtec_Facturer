@@ -63,16 +63,16 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 z-50">
-      <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-7xl max-h-[90vh] overflow-hidden">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 z-50">
+        <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-6xl max-h-[85vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className="text-xl font-semibold">Generador de Contratos</h2>
+        <div className="flex items-center justify-between p-3 lg:p-4 border-b border-gray-700">
+          <h2 className="text-lg lg:text-xl font-semibold">Generador de Contratos</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white transition-colors p-1"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -82,7 +82,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
         <div className="flex border-b border-gray-700">
           <button
             onClick={() => setActiveTab('form')}
-            className={`px-6 py-3 text-sm font-medium transition-colors ${
+            className={`flex-1 px-3 lg:px-6 py-2 lg:py-3 text-xs lg:text-sm font-medium transition-colors ${
               activeTab === 'form'
                 ? 'bg-primary text-white'
                 : 'text-gray-300 hover:text-white hover:bg-gray-800'
@@ -92,7 +92,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
           </button>
           <button
             onClick={() => setActiveTab('preview')}
-            className={`px-6 py-3 text-sm font-medium transition-colors ${
+            className={`flex-1 px-3 lg:px-6 py-2 lg:py-3 text-xs lg:text-sm font-medium transition-colors ${
               activeTab === 'preview'
                 ? 'bg-primary text-white'
                 : 'text-gray-300 hover:text-white hover:bg-gray-800'
@@ -106,7 +106,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
         <div className="flex-1 overflow-hidden">
           <div className="h-full flex flex-col lg:flex-row">
             {/* Form Panel */}
-            <div className={`w-full lg:w-1/2 p-4 lg:p-6 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(90vh - 140px)' }}>
+            <div className={`w-full lg:w-1/2 p-3 lg:p-4 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 120px)' }}>
               <ContractForm
                 onFormDataChange={handleFormDataChange}
                 onTemplateLoaded={handleTemplateLoaded}
@@ -115,7 +115,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
             </div>
 
             {/* Preview Panel */}
-            <div className={`w-full lg:w-1/2 p-4 lg:p-6 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(90vh - 140px)' }}>
+            <div className={`w-full lg:w-1/2 p-3 lg:p-4 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 120px)' }}>
               <ContractPreview
                 template={template}
                 formData={formData}

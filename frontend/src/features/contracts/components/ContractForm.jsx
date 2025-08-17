@@ -140,14 +140,14 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
   return (
     <div className="space-y-6">
       {/* Dynamic Form Fields */}
-      <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-        <h3 className="text-lg font-semibold mb-4">Campos del Contrato</h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-gray-800 p-3 lg:p-4 rounded-lg border border-gray-700">
+          <h3 className="text-base lg:text-lg font-semibold mb-3 lg:mb-4">Campos del Contrato</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
           {placeholders.map(placeholder => (
             <label key={placeholder} className="flex flex-col gap-1">
-              <span className="text-sm text-gray-500 font-medium">{placeholder}</span>
+              <span className="text-xs lg:text-sm text-gray-500 font-medium">{placeholder}</span>
               <input
-                className="border border-gray-300 dark:border-gray-600 p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full"
+                className="border border-gray-300 dark:border-gray-600 p-2 lg:p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm lg:text-base"
                 value={formData[placeholder] || ''}
                 onChange={(e) => setFormData(prev => ({
                   ...prev,
@@ -161,13 +161,13 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
       </div>
 
       {/* Milestones Section */}
-      <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Hitos del Proyecto</h3>
+      <div className="bg-gray-800 p-3 lg:p-4 rounded-lg border border-gray-700">
+        <div className="flex items-center justify-between mb-3 lg:mb-4">
+          <h3 className="text-base lg:text-lg font-semibold">Hitos del Proyecto</h3>
           <button
             type="button"
             onClick={addMilestone}
-            className="bg-primary hover:opacity-90 transition text-white px-3 py-1.5 rounded text-sm"
+            className="bg-primary hover:opacity-90 transition text-white px-2 lg:px-3 py-1 lg:py-1.5 rounded text-xs lg:text-sm"
           >
             Añadir Hito
           </button>
@@ -175,7 +175,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
         
         <div className="space-y-4">
           {milestones.map((milestone) => (
-            <div key={milestone.id} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 border border-gray-700 p-4 rounded">
+            <div key={milestone.id} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 lg:gap-3 border border-gray-700 p-3 lg:p-4 rounded">
               <input
                 className="border border-gray-300 dark:border-gray-600 p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full"
                 placeholder="Nombre del hito"
