@@ -44,10 +44,12 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
         if (selectedClient) {
           const clientData = {
             ...initialData,
-            'nombre_del_cliente': selectedClient.name,
-            'nif_nie_cliente': selectedClient.cif,
-            'domicilio_cliente': selectedClient.address,
-            'email_s': selectedClient.email
+            'nombre_completo_del_cliente': selectedClient.name,
+            'nombre_de_la_empresa_o_persona': selectedClient.name,
+            'numero': selectedClient.cif,
+            'direccion': selectedClient.address,
+            'telefono': selectedClient.phone || '',
+            'correo': selectedClient.email
           }
           setFormData(clientData)
         }
@@ -108,20 +110,42 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
       <div className="bg-gray-800 p-2 lg:p-3 rounded-lg border border-gray-700 flex-1 flex flex-col">
         <h3 className="text-base lg:text-lg font-semibold mb-3 lg:mb-4">Campos del Contrato</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 lg:gap-3 flex-1">
-          {placeholders.map(placeholder => (
-            <label key={placeholder} className="flex flex-col gap-1">
-              <span className="text-xs lg:text-sm text-gray-500 font-medium">{placeholder}</span>
-              <input
-                className="border border-gray-300 dark:border-gray-600 p-2 lg:p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm lg:text-base"
-                value={formData[placeholder] || ''}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  [placeholder]: e.target.value
-                }))}
-                placeholder={`Ingresa ${placeholder.toLowerCase()}`}
-              />
-            </label>
-          ))}
+          {placeholders
+            .filter(placeholder => placeholder && placeholder.trim() !== '') // Filter out empty placeholders
+            .map(placeholder => {
+              // Format placeholder for display
+              const displayLabel = placeholder
+                .split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ')
+              
+              // Generate appropriate placeholder text
+              const getPlaceholderText = (key) => {
+                if (key.includes('nombre') && key.includes('cliente')) return 'Nombre del cliente'
+                if (key.includes('importe') && key.includes('total')) return 'Ej: 1000.00'
+                if (key.includes('importe') && key.includes('cuota')) return 'Ej: 250.00'
+                if (key.includes('marca')) return 'Ej: Toyota'
+                if (key.includes('modelo')) return 'Ej: Corolla'
+                if (key.includes('plataforma')) return 'Ej: PayPal'
+                if (key.includes('iban')) return 'Ej: ES91 2100 0418 4502 0005 1332'
+                return `Ingresa ${displayLabel.toLowerCase()}`
+              }
+              
+              return (
+                <label key={placeholder} className="flex flex-col gap-1">
+                  <span className="text-xs lg:text-sm text-gray-500 font-medium">{displayLabel}</span>
+                  <input
+                    className="border border-gray-300 dark:border-gray-600 p-2 lg:p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm lg:text-base"
+                    value={formData[placeholder] || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      [placeholder]: e.target.value
+                    }))}
+                    placeholder={getPlaceholderText(placeholder)}
+                  />
+                </label>
+              )
+            })}
         </div>
       </div>
 
