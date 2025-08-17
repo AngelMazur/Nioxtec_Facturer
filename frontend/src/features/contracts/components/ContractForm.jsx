@@ -46,6 +46,12 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
             ...initialData,
             // Mapeo para template de compraventa
             'nombre_completo_del_cliente': selectedClient.name,
+            'DNI DEL CLIENTE': selectedClient.cif,
+            'Dirección del cliente': selectedClient.address,
+            'Teléfono del cliente': selectedClient.phone || '',
+            'Correo del cliente': selectedClient.email,
+            'Nombre del comprador': selectedClient.name,
+            'Dni del comprador': selectedClient.cif,
             
             // Mapeo para template de renting
             'nombre_de_la_empresa_o_persona': selectedClient.name,
@@ -94,8 +100,25 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
     }
   }, [formData])
 
-
-
+  // Function to filter out duplicate fields and show only unique ones
+  const getUniquePlaceholders = () => {
+    const uniquePlaceholders = []
+    const seen = new Set()
+    
+    placeholders.forEach(placeholder => {
+      if (placeholder && placeholder.trim() !== '') {
+        // Normalize placeholder for comparison
+        const normalized = placeholder.toLowerCase().replace(/[^a-z0-9]/g, '')
+        
+        if (!seen.has(normalized)) {
+          seen.add(normalized)
+          uniquePlaceholders.push(placeholder)
+        }
+      }
+    })
+    
+    return uniquePlaceholders
+  }
 
 
   if (loading) {
@@ -124,8 +147,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
           )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 lg:gap-3 flex-1">
-          {placeholders
-            .filter(placeholder => placeholder && placeholder.trim() !== '') // Filter out empty placeholders
+          {getUniquePlaceholders()
             .map(placeholder => {
               // Format placeholder for display
               const displayLabel = placeholder
