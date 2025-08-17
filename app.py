@@ -29,6 +29,9 @@ for generating invoices, reports and other documents【239017722105616†L83-L94
 
 from datetime import datetime, timedelta
 import os
+import re
+import unicodedata
+from docx import Document
 from flask import Flask, jsonify, request, render_template, send_file, abort, url_for, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -1405,10 +1408,6 @@ def generate_contract_pdf():
     try:
         # Convert markdown to HTML
         import markdown
-import re
-import unicodedata
-from docx import Document
-import os
         html_content = markdown.markdown(content, extensions=['tables'])
         
         # Create contract template HTML
