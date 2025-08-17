@@ -1555,14 +1555,14 @@ def generate_contract_pdf():
                                         }}
                     .header {{
                         display: flex;
-                        justify-content: space-between;
+                        justify-content: center;
                         align-items: center;
-                        margin-bottom: 2em;
+                        margin-bottom: 1em;
                         page-break-inside: avoid;
                     }}
                     .header img {{
-                        max-height: 80px;
-                        max-width: 200px;
+                        max-height: 60px;
+                        max-width: 150px;
                         object-fit: contain;
                     }}
                     h1, h2, h3 {{
@@ -1640,8 +1640,7 @@ def generate_contract_pdf():
                         </head>
             <body>
                 <div class="header">
-                    <img src="file://{os.path.abspath('static/contracts/images/header-left.png')}" alt="Header Left" />
-                    <img src="file://{os.path.abspath('static/contracts/images/header-right.png')}" alt="Header Right" />
+                    <img src="file://{os.path.abspath('static/contracts/images/header-right.png')}" alt="NIOXTEC Logo" />
                 </div>
                 {html_content}
             </body>
@@ -1651,9 +1650,9 @@ def generate_contract_pdf():
             options = {
                 'enable-local-file-access': None,
                 'page-size': 'A4',
-                'margin-top': '1.5cm',
+                'margin-top': '0.75cm',
                 'margin-right': '1.2cm',
-                'margin-bottom': '1.5cm',
+                'margin-bottom': '0.75cm',
                 'margin-left': '1.2cm',
                 'encoding': 'UTF-8',
                 'no-outline': None,
