@@ -1433,7 +1433,7 @@ def generate_contract_pdf():
         
         # Mapping from document placeholders to form data keys
         placeholder_mapping = {
-            # Compraventa template
+            # Compraventa template - usar solo las claves principales
             'Nombre completo del cliente': 'nombre_completo_del_cliente',
             'DNI DEL CLIENTE': 'numero',
             'Dirección del cliente': 'direccion',
@@ -1446,8 +1446,13 @@ def generate_contract_pdf():
             'número de plazos': 'numero_de_plazos',
             'importe de cada cuota': 'importe_de_cada_cuota',
             'Tabla de interes': 'tabla_de_interes',
-            'Nombre del comprador': 'nombre_completo_del_cliente',
-            'Dni del comprador': 'numero',
+            
+            # Campos duplicados - mapear a las mismas claves principales
+            'Nombre del comprador': 'nombre_completo_del_cliente',  # = Nombre completo del cliente
+            'Dni del comprador': 'numero',  # = DNI DEL CLIENTE
+            'Modelo': 'modelo',  # = Modelo del producto
+            'Pulgadas': 'pulgadas',  # = Pulgadas del producto
+            'Número de Serie': 'numero_serie',  # = Número de serie del producto
             
             # Renting template
             'Nombre de la empresa o persona': 'nombre_de_la_empresa_o_persona',
@@ -1458,7 +1463,6 @@ def generate_contract_pdf():
             'Teléfono': 'telefono',
             'Correo': 'correo',
             'Marca': 'marca',
-            'Modelo': 'modelo',
             'importe en euros': 'importe_en_euros',
             'plataforma de pago': 'plataforma_de_pago',
             'IBAN': 'iban',
