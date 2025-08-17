@@ -264,19 +264,35 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
                 .join(' ')
               
               // Generate appropriate placeholder text
-              const getPlaceholderText = (key) => {
-                if (key.includes('nombre') && key.includes('cliente')) return 'Nombre del cliente'
-                if (key.includes('importe') && key.includes('total')) return 'Ej: 1000.00'
-                if (key.includes('importe') && key.includes('cuota')) return 'Ej: 250.00'
-                if (key.includes('marca')) return 'Ej: Toyota'
-                if (key.includes('modelo')) return 'Ej: Corolla'
-                if (key.includes('plataforma')) return 'Ej: PayPal'
-                if (key.includes('iban')) return 'Ej: ES91 2100 0418 4502 0005 1332'
-                if (key.includes('numero') && key.includes('plazos')) return 'Ej: 3, 6, 12, 18, 24'
-                if (key.includes('pulgadas')) return 'Ej: 55 pulgadas'
-                if (key.includes('numero') && key.includes('serie')) return 'Ej: NIOXTEC-2024-001'
-                if (key.includes('tabla') && key.includes('interes')) return 'Se calcula automáticamente'
-                return `Ingresa ${displayLabel.toLowerCase()}`
+              const getPlaceholderText = (placeholder) => {
+                // Usar el mapeo para obtener la clave correcta
+                const formKey = getFormKeyFromPlaceholder(placeholder)
+                
+                // Mapeo específico para placeholders
+                const placeholderTexts = {
+                  'nombre_completo_del_cliente': 'Nombre del cliente',
+                  'importe_total_en_euros_iva_incluido': 'Ej: 1000.00',
+                  'importe_de_cada_cuota': 'Ej: 250.00',
+                  'numero_de_plazos': 'Ej: 3, 6, 12, 18, 24',
+                  'tabla_de_interes': 'Se calcula automáticamente',
+                  'modelo': 'Ej: Digital Screen Pro',
+                  'pulgadas': 'Ej: 55 pulgadas',
+                  'numero_serie': 'Ej: NIOXTEC-2024-001',
+                  'numero': 'Ej: 12345678A',
+                  'direccion': 'Ej: Calle Mayor 123',
+                  'telefono': 'Ej: 612345678',
+                  'correo': 'Ej: cliente@email.com',
+                  'nombre_de_la_empresa_o_persona': 'Nombre de la empresa',
+                  'nombre_representante': 'Nombre del representante',
+                  'cargo': 'Ej: Director',
+                  'marca': 'Ej: NIOXTEC',
+                  'plataforma_de_pago': 'Ej: PayPal',
+                  'iban': 'Ej: ES91 2100 0418 4502 0005 1332',
+                  'importe_en_euros': 'Ej: 1000.00',
+                  'importe_ajustado': 'Ej: 950.00'
+                }
+                
+                return placeholderTexts[formKey] || `Ingresa ${placeholder.toLowerCase()}`
               }
               
               return (
