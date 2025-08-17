@@ -1557,13 +1557,17 @@ def generate_contract_pdf():
                         display: flex;
                         justify-content: center;
                         align-items: center;
+                        text-align: center;
                         margin-bottom: 1em;
                         page-break-inside: avoid;
+                        width: 100%;
                     }}
                     .header img {{
                         max-height: 60px;
                         max-width: 150px;
                         object-fit: contain;
+                        margin: 0 auto;
+                        display: block;
                     }}
                     h1, h2, h3 {{
                         color: #65AAC3;
