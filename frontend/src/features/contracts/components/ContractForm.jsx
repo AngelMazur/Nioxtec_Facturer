@@ -142,6 +142,30 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
     }
   }, [formData.numero_de_plazos, selectedTemplate?.id])
 
+  // Auto-calculate installment amount when total amount or number of installments changes
+  useEffect(() => {
+    if (selectedTemplate?.id === 'compraventa' && 
+        formData.importe_total_en_euros_iva_incluido && 
+        formData.numero_de_plazos) {
+      
+      const importeTotal = parseFloat(formData.importe_total_en_euros_iva_incluido)
+      const numPlazos = parseInt(formData.numero_de_plazos)
+      
+      if (importeTotal > 0 && numPlazos > 0) {
+        // Calcular con 4 decimales para mayor precisión
+        const cuotaCalculada = importeTotal / numPlazos
+        
+        // Redondear a 2 decimales para mostrar en frontend
+        const cuotaRedondeada = Math.round(cuotaCalculada * 100) / 100
+        
+        setFormData(prev => ({
+          ...prev,
+          importe_de_cada_cuota: cuotaRedondeada.toFixed(2)
+        }))
+      }
+    }
+  }, [formData.importe_total_en_euros_iva_incluido, formData.numero_de_plazos, selectedTemplate?.id])
+
   // Mapping from document placeholders to form data keys (inverse of backend mapping)
   const getFormKeyFromPlaceholder = (placeholder) => {
     const mapping = {
