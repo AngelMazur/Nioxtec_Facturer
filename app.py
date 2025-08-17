@@ -1550,18 +1550,53 @@ def generate_contract_pdf():
                     body {{
                         font-family: "Cambria", "Times New Roman", serif;
                         line-height: 1.6;
-                        margin: 1.5cm 1cm 1.5cm 1cm;
+                        margin: 1.5cm 1.2cm 1.5cm 1.2cm;
                         font-size: 11pt;
                     }}
                     h1, h2, h3 {{
-                        color: #333;
+                        color: #65AAC3;
                         margin-top: 1.5em;
                         margin-bottom: 0.5em;
                         font-family: "Cambria", "Times New Roman", serif;
+                        font-weight: bold;
                     }}
-                    h1 {{ font-size: 16pt; }}
-                    h2 {{ font-size: 14pt; }}
-                    h3 {{ font-size: 12pt; }}
+                    h1 {{ 
+                        font-size: 16pt; 
+                        color: #65AAC3;
+                        font-weight: bold;
+                    }}
+                    h2 {{ 
+                        font-size: 14pt; 
+                        color: #65AAC3;
+                        font-weight: bold;
+                    }}
+                    h3 {{ 
+                        font-size: 12pt; 
+                        color: #65AAC3;
+                        font-weight: bold;
+                    }}
+                    /* Estilos específicos para títulos del contrato */
+                    .contract-title {{
+                        font-size: 18pt;
+                        color: #65AAC3;
+                        font-weight: bold;
+                        text-align: center;
+                        margin-bottom: 2em;
+                    }}
+                    .section-title {{
+                        font-size: 14pt;
+                        color: #65AAC3;
+                        font-weight: bold;
+                        margin-top: 2em;
+                        margin-bottom: 1em;
+                    }}
+                    .subsection-title {{
+                        font-size: 12pt;
+                        color: #65AAC3;
+                        font-weight: bold;
+                        margin-top: 1.5em;
+                        margin-bottom: 0.5em;
+                    }}
                     table {{
                         width: 100%;
                         border-collapse: collapse;
@@ -1601,9 +1636,9 @@ def generate_contract_pdf():
                 'enable-local-file-access': None,
                 'page-size': 'A4',
                 'margin-top': '1.5cm',
-                'margin-right': '1cm',
+                'margin-right': '1.2cm',
                 'margin-bottom': '1.5cm',
-                'margin-left': '1cm',
+                'margin-left': '1.2cm',
                 'encoding': 'UTF-8',
                 'no-outline': None,
                 'print-media-type': None,
