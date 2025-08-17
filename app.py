@@ -1431,12 +1431,46 @@ def generate_contract_pdf():
         
         original_tokens = template_info.get('original_tokens', {})
         
+        # Mapping from document placeholders to form data keys
+        placeholder_mapping = {
+            # Compraventa template
+            'Nombre completo del cliente': 'nombre_completo_del_cliente',
+            'importe de cada cuota': 'importe_de_cada_cuota',
+            'importe total en euros, IVA incluido': 'importe_total_en_euros_iva_incluido',
+            
+            # Renting template
+            'Nombre de la empresa o persona': 'nombre_de_la_empresa_o_persona',
+            'Número': 'numero',
+            'Dirección': 'direccion',
+            'Nombre representante': 'nombre_representante',
+            'Cargo': 'cargo',
+            'Teléfono': 'telefono',
+            'Correo': 'correo',
+            'Marca': 'marca',
+            'Modelo': 'modelo',
+            'importe en euros': 'importe_en_euros',
+            'plataforma de pago': 'plataforma_de_pago',
+            'IBAN': 'iban',
+            'importe ajustado': 'importe_ajustado',
+            
+            # Common placeholders
+            '_________': 'firma',  # For signature line
+        }
+        
+        # Debug logging
+        app.logger.info(f"Template placeholders: {list(original_tokens.keys())}")
+        app.logger.info(f"Form data keys: {list(form_data.keys())}")
+        app.logger.info(f"Form data: {form_data}")
+        
         # Fill placeholders in paragraphs
         for paragraph in doc.paragraphs:
             for placeholder_name, placeholder_token in original_tokens.items():
-                if placeholder_name in form_data:
-                    value = str(form_data[placeholder_name])
+                # Map placeholder to form data key
+                form_key = placeholder_mapping.get(placeholder_name, placeholder_name)
+                if form_key in form_data:
+                    value = str(form_data[form_key])
                     if placeholder_token in paragraph.text:
+                        app.logger.info(f"Replacing {placeholder_token} with {value} in paragraph")
                         paragraph.text = paragraph.text.replace(placeholder_token, value)
         
         # Fill placeholders in tables
@@ -1445,9 +1479,12 @@ def generate_contract_pdf():
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
                         for placeholder_name, placeholder_token in original_tokens.items():
-                            if placeholder_name in form_data:
-                                value = str(form_data[placeholder_name])
+                            # Map placeholder to form data key
+                            form_key = placeholder_mapping.get(placeholder_name, placeholder_name)
+                            if form_key in form_data:
+                                value = str(form_data[form_key])
                                 if placeholder_token in paragraph.text:
+                                    app.logger.info(f"Replacing {placeholder_token} with {value} in table cell")
                                     paragraph.text = paragraph.text.replace(placeholder_token, value)
         
         # Save filled DOCX temporarily
