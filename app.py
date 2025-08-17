@@ -1581,20 +1581,20 @@ def generate_contract_pdf():
                         color: #65AAC3;
                         font-weight: bold;
                         text-align: center;
-                        margin-bottom: 2em;
+                        margin-bottom: 1em;
                     }}
                     .section-title {{
                         font-size: 14pt;
                         color: #65AAC3;
                         font-weight: bold;
                         margin-top: 2em;
-                        margin-bottom: 1em;
+                        margin-bottom: 0.5em;
                     }}
                     .subsection-title {{
                         font-size: 12pt;
                         color: #65AAC3;
                         font-weight: bold;
-                        margin-top: 1.5em;
+                        margin-top: 1em;
                         margin-bottom: 0.5em;
                     }}
                     table {{
@@ -1752,16 +1752,22 @@ def _docx_to_html(docx_path):
         if paragraph.text.strip():
             text = paragraph.text.strip()
             
+            # Debug logging
+            app.logger.info(f"Processing paragraph: '{text}'")
+            
             # Detectar títulos basándose en el contenido y formato
             if text.upper() == "CONTRATO DE COMPRAVENTA A PLAZOS SIN INTERESES":
                 # Título principal del contrato
-                html_parts.append(f'<h1 class="contract-title">{text}</h1>')
+                app.logger.info(f"Detected main title: {text}")
+                html_parts.append(f'<h1 class="contract-title" style="font-size: 16pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 1em;">{text}</h1>')
             elif text.upper() == "PARTES INTERVINIENTES":
                 # Sección principal
-                html_parts.append(f'<h2 class="section-title">{text}</h2>')
+                app.logger.info(f"Detected section title: {text}")
+                html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 2em; margin-bottom: 0.5em;">{text}</h2>')
             elif text.upper() in ["VENDEDOR", "COMPRADOR", "OBJETO DEL CONTRATO", "GARANTÍA", "IMPAGO", "PROTECCIÓN DE DATOS", "JURISDICCIÓN"]:
                 # Subtítulos
-                html_parts.append(f'<h3 class="subsection-title">{text}</h3>')
+                app.logger.info(f"Detected subsection title: {text}")
+                html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h3>')
             else:
                 # Texto normal
                 text = text.replace('\n', '<br>')
