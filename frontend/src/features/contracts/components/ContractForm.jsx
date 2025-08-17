@@ -142,7 +142,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
       {/* Dynamic Form Fields */}
       <div className="bg-gray-800 p-3 lg:p-4 rounded-lg border border-gray-700 flex-1 flex flex-col">
         <h3 className="text-base lg:text-lg font-semibold mb-3 lg:mb-4">Campos del Contrato</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4 flex-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 flex-1">
           {placeholders.map(placeholder => (
             <label key={placeholder} className="flex flex-col gap-1">
               <span className="text-xs lg:text-sm text-gray-500 font-medium">{placeholder}</span>
