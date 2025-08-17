@@ -1417,7 +1417,7 @@ def generate_contract_pdf():
             return jsonify({'error': 'Invalid template ID'}), 400
         
         # Load and fill DOCX template
-        template_path = os.path.join('frontend', 'src', 'features', 'contracts', 'templates', template_filename)
+        template_path = os.path.join(STATIC_FOLDER, 'contracts', 'templates', template_filename)
         if not os.path.exists(template_path):
             return jsonify({'error': 'Template file not found'}), 404
         
@@ -1751,7 +1751,7 @@ def extract_placeholders_from_docx(filename):
     """Extract placeholders from DOCX file."""
     try:
         # Path to the template file
-        template_path = os.path.join(os.path.dirname(__file__), 'frontend', 'src', 'features', 'contracts', 'templates', filename)
+        template_path = os.path.join(STATIC_FOLDER, 'contracts', 'templates', filename)
         
         if not os.path.exists(template_path):
             return {'error': f'Template file not found: {filename}'}
