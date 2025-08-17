@@ -160,6 +160,50 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
                 </label>
               )
             })}
+          
+          {/* Additional fields for compraventa template */}
+          {selectedTemplate?.id === 'compraventa' && (
+            <>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs lg:text-sm text-gray-500 font-medium">Modelo</span>
+                <input
+                  className="border border-gray-300 dark:border-gray-600 p-2 lg:p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm lg:text-base"
+                  value={formData['modelo'] || ''}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    'modelo': e.target.value
+                  }))}
+                  placeholder="Ej: Digital Screen Pro"
+                />
+              </label>
+              
+              <label className="flex flex-col gap-1">
+                <span className="text-xs lg:text-sm text-gray-500 font-medium">Pulgadas</span>
+                <input
+                  className="border border-gray-300 dark:border-gray-600 p-2 lg:p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm lg:text-base"
+                  value={formData['pulgadas'] || ''}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    'pulgadas': e.target.value
+                  }))}
+                  placeholder="Ej: 55 pulgadas"
+                />
+              </label>
+              
+              <label className="flex flex-col gap-1">
+                <span className="text-xs lg:text-sm text-gray-500 font-medium">Número de Serie</span>
+                <input
+                  className="border border-gray-300 dark:border-gray-600 p-2 lg:p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm lg:text-base"
+                  value={formData['numero_serie'] || ''}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    'numero_serie': e.target.value
+                  }))}
+                  placeholder="Ej: NIOXTEC-2024-001"
+                />
+              </label>
+            </>
+          )}
         </div>
       </div>
 

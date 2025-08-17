@@ -1505,13 +1505,13 @@ def generate_contract_pdf():
         # Special handling for compraventa template underscore placeholders
         if template_id == 'compraventa':
             underscore_mapping = [
-                'numero',      # DNI
-                'direccion',   # Domicilio  
-                'telefono',    # Teléfono
-                'correo',      # Correo
-                'modelo',      # Modelo
-                'marca',       # Pulgadas
-                'numero_serie' # Número de serie
+                'numero',      # 1er _________ → DNI del cliente
+                'direccion',   # 2do _________ → Domicilio del cliente  
+                'telefono',    # 3er _________ → Teléfono del cliente
+                'correo',      # 4to _________ → Correo del cliente
+                'modelo',      # 5to _________ → Modelo del producto
+                'pulgadas',    # 6to _________ → Pulgadas del producto
+                'numero_serie' # 7mo _________ → Número de serie del producto
             ]
         
         # Fill placeholders in paragraphs
