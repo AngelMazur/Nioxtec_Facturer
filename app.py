@@ -1759,15 +1759,21 @@ def _docx_to_html(docx_path):
             if text.upper() == "CONTRATO DE COMPRAVENTA A PLAZOS SIN INTERESES":
                 # Título principal del contrato
                 app.logger.info(f"Detected main title: {text}")
-                html_parts.append(f'<h1 class="contract-title" style="font-size: 16pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 1em;">{text}</h1>')
+                html_parts.append(f'<h1 class="contract-title" style="font-size: 16pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 0.5em;">{text}</h1>')
             elif text.upper() == "PARTES INTERVINIENTES":
                 # Sección principal
                 app.logger.info(f"Detected section title: {text}")
-                html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 2em; margin-bottom: 0.5em;">{text}</h2>')
-            elif text.upper() in ["VENDEDOR", "COMPRADOR", "OBJETO DEL CONTRATO", "GARANTÍA", "IMPAGO", "PROTECCIÓN DE DATOS", "JURISDICCIÓN"]:
-                # Subtítulos
-                app.logger.info(f"Detected subsection title: {text}")
-                html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h3>')
+                html_parts.append(f'<h2 class="section-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
+            elif text.upper() in ["VENDEDOR", "COMPRADOR", "OBJETO DEL CONTRATO", "GARANTÍA", "IMPAGO", "PROTECCIÓN DE DATOS", "JURISDICCIÓN", "ENTREGA"]:
+                # Verificar que sea un título independiente (no parte de una frase)
+                if len(text.split()) <= 3 and not any(char in text for char in ['.', ',', ':', ';']):
+                    app.logger.info(f"Detected subsection title: {text}")
+                    html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h3>')
+                else:
+                    # Es parte de una frase, tratarlo como texto normal
+                    app.logger.info(f"Title word found in sentence, treating as normal text: {text}")
+                    text = text.replace('\n', '<br>')
+                    html_parts.append(f'<p>{text}</p>')
             else:
                 # Texto normal
                 text = text.replace('\n', '<br>')
