@@ -62,9 +62,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
             ...prev,
             'NOMBRE DEL PROVEEDOR': companyConfig.name,
             'NIF PROVEEDOR': companyConfig.cif,
-            'DOMICILIO PROVEEDOR': companyConfig.address,
-            'CIUDAD': companyConfig.city,
-            'CIUDAD/PROVINCIA': companyConfig.province
+            'DOMICILIO PROVEEDOR': companyConfig.address
           }))
         } catch (error) {
           console.error('Error loading company config:', error)
