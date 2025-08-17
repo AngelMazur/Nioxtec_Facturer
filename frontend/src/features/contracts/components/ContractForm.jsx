@@ -113,19 +113,27 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
   }
 
   // Interest table mapping based on number of installments
-  const interestTable = {
-    3: "Sin intereses",
-    6: "5% interés mensual",
-    12: "10% interés mensual", 
-    18: "20% interés mensual",
-    24: "30% interés mensual"
+  const getInterestText = (numPlazos) => {
+    if (numPlazos >= 0 && numPlazos <= 3) {
+      return "Sin intereses"
+    } else if (numPlazos >= 4 && numPlazos <= 6) {
+      return "5% interés mensual"
+    } else if (numPlazos >= 7 && numPlazos <= 12) {
+      return "10% interés mensual"
+    } else if (numPlazos >= 13 && numPlazos <= 18) {
+      return "20% interés mensual"
+    } else if (numPlazos >= 19 && numPlazos <= 24) {
+      return "30% interés mensual"
+    } else {
+      return "Sin intereses" // Por defecto
+    }
   }
 
   // Auto-calculate interest table when number of installments changes
   useEffect(() => {
     if (selectedTemplate?.id === 'compraventa' && formData.numero_de_plazos) {
       const numPlazos = parseInt(formData.numero_de_plazos)
-      const interestText = interestTable[numPlazos] || "Sin intereses"
+      const interestText = getInterestText(numPlazos)
       
       setFormData(prev => ({
         ...prev,

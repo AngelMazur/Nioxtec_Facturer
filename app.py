@@ -1466,18 +1466,24 @@ def generate_contract_pdf():
         }
         
         # Interest table mapping based on number of installments
-        interest_table = {
-            3: "Sin intereses",
-            6: "5% interés mensual",
-            12: "10% interés mensual", 
-            18: "20% interés mensual",
-            24: "30% interés mensual"
-        }
+        def get_interest_text(num_plazos):
+            if 0 <= num_plazos <= 3:
+                return "Sin intereses"
+            elif 4 <= num_plazos <= 6:
+                return "5% interés mensual"
+            elif 7 <= num_plazos <= 12:
+                return "10% interés mensual"
+            elif 13 <= num_plazos <= 18:
+                return "20% interés mensual"
+            elif 19 <= num_plazos <= 24:
+                return "30% interés mensual"
+            else:
+                return "Sin intereses"  # Por defecto
         
         # Calculate interest based on number of installments
         if template_id == 'compraventa' and 'numero_de_plazos' in form_data:
             num_plazos = int(form_data.get('numero_de_plazos', 3))
-            interest_text = interest_table.get(num_plazos, "Sin intereses")
+            interest_text = get_interest_text(num_plazos)
             form_data['tabla_de_interes'] = interest_text
         
         # Debug logging
