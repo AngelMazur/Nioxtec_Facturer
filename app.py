@@ -1424,22 +1424,31 @@ def generate_contract_pdf():
         # Load DOCX document
         doc = Document(template_path)
         
+        # Get original placeholders from template
+        template_info = extract_placeholders_from_docx(template_filename)
+        if 'error' in template_info:
+            return jsonify({'error': template_info['error']}), 400
+        
+        original_tokens = template_info.get('original_tokens', {})
+        
         # Fill placeholders in paragraphs
         for paragraph in doc.paragraphs:
-            for key, value in form_data.items():
-                placeholder = f'[{key}]'
-                if placeholder in paragraph.text:
-                    paragraph.text = paragraph.text.replace(placeholder, str(value))
+            for placeholder_name, placeholder_token in original_tokens.items():
+                if placeholder_name in form_data:
+                    value = str(form_data[placeholder_name])
+                    if placeholder_token in paragraph.text:
+                        paragraph.text = paragraph.text.replace(placeholder_token, value)
         
         # Fill placeholders in tables
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
-                        for key, value in form_data.items():
-                            placeholder = f'[{key}]'
-                            if placeholder in paragraph.text:
-                                paragraph.text = paragraph.text.replace(placeholder, str(value))
+                        for placeholder_name, placeholder_token in original_tokens.items():
+                            if placeholder_name in form_data:
+                                value = str(form_data[placeholder_name])
+                                if placeholder_token in paragraph.text:
+                                    paragraph.text = paragraph.text.replace(placeholder_token, value)
         
         # Save filled DOCX temporarily
         temp_docx_path = os.path.join(DOWNLOAD_FOLDER, f'temp_{secure_filename(filename)}.docx')
@@ -1585,7 +1594,7 @@ def extract_placeholders_from_docx(filename):
             return {'error': f'Template file not found: {filename}'}
         
         doc = Document(template_path)
-        placeholders = {}
+        placeholders = set()
         
         # Process paragraphs
         for paragraph in doc.paragraphs:
@@ -1593,9 +1602,7 @@ def extract_placeholders_from_docx(filename):
             # Find all placeholders in the paragraph
             matches = re.findall(r'\[(.+?)\]', text)
             for match in matches:
-                original = f'[{match}]'
-                slug = slugify(match)
-                placeholders[slug] = original
+                placeholders.add(match.strip())
         
         # Process tables
         for table in doc.tables:
@@ -1605,13 +1612,11 @@ def extract_placeholders_from_docx(filename):
                     # Find all placeholders in the cell
                     matches = re.findall(r'\[(.+?)\]', text)
                     for match in matches:
-                        original = f'[{match}]'
-                        slug = slugify(match)
-                        placeholders[slug] = original
+                        placeholders.add(match.strip())
         
         return {
-            'placeholders': list(placeholders.keys()),
-            'original_tokens': placeholders
+            'placeholders': list(placeholders),
+            'original_tokens': {placeholder: f'[{placeholder}]' for placeholder in placeholders}
         }
         
     except Exception as e:

@@ -47,7 +47,14 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
       // Generate filename
       const clientName = formData['nombre_completo_del_cliente'] || formData['nombre_de_la_empresa_o_persona'] || 'Cliente'
       const date = new Date().toISOString().slice(0, 10)
-      const filename = `Contrato_${clientName.replace(/\s+/g, '_')}_${date}.pdf`
+      
+      // Clean template name by removing "Plantilla_" prefix and file extension
+      let templateName = selectedTemplate.name
+      if (selectedTemplate.filename && selectedTemplate.filename.startsWith('Plantilla_')) {
+        templateName = selectedTemplate.filename.replace('Plantilla_', '').replace('.docx', '')
+      }
+      
+      const filename = `${templateName}_${clientName.replace(/\s+/g, '_')}_${date}.pdf`
       
       // Generate PDF using template ID and form data
       const pdfBlob = await generateContractPDF(selectedTemplate.id, formData, filename, token)
