@@ -142,6 +142,10 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
                 if (key.includes('modelo')) return 'Ej: Corolla'
                 if (key.includes('plataforma')) return 'Ej: PayPal'
                 if (key.includes('iban')) return 'Ej: ES91 2100 0418 4502 0005 1332'
+                if (key.includes('numero') && key.includes('plazos')) return 'Ej: 3, 6, 12, 18, 24'
+                if (key.includes('pulgadas')) return 'Ej: 55 pulgadas'
+                if (key.includes('numero') && key.includes('serie')) return 'Ej: NIOXTEC-2024-001'
+                if (key.includes('tabla') && key.includes('interes')) return 'Se calcula automáticamente'
                 return `Ingresa ${displayLabel.toLowerCase()}`
               }
               
