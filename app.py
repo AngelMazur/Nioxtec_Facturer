@@ -1548,28 +1548,33 @@ def generate_contract_pdf():
                 <meta charset="UTF-8">
                 <style>
                     body {{
-                        font-family: Arial, sans-serif;
+                        font-family: "Cambria", "Times New Roman", serif;
                         line-height: 1.6;
-                        margin: 2cm;
-                        font-size: 12pt;
+                        margin: 1.5cm 1cm 1.5cm 1cm;
+                        font-size: 11pt;
                     }}
                     h1, h2, h3 {{
                         color: #333;
                         margin-top: 1.5em;
                         margin-bottom: 0.5em;
+                        font-family: "Cambria", "Times New Roman", serif;
                     }}
-                    h1 {{ font-size: 18pt; }}
-                    h2 {{ font-size: 16pt; }}
-                    h3 {{ font-size: 14pt; }}
+                    h1 {{ font-size: 16pt; }}
+                    h2 {{ font-size: 14pt; }}
+                    h3 {{ font-size: 12pt; }}
                     table {{
                         width: 100%;
                         border-collapse: collapse;
                         margin: 1em 0;
+                        font-family: "Cambria", "Times New Roman", serif;
+                        font-size: 11pt;
                     }}
                     th, td {{
                         border: 1px solid #ddd;
                         padding: 8px;
                         text-align: left;
+                        font-family: "Cambria", "Times New Roman", serif;
+                        font-size: 11pt;
                     }}
                     th {{
                         background-color: #f5f5f5;
@@ -1595,10 +1600,10 @@ def generate_contract_pdf():
             options = {
                 'enable-local-file-access': None,
                 'page-size': 'A4',
-                'margin-top': '1in',
-                'margin-right': '1in',
-                'margin-bottom': '1in',
-                'margin-left': '1in',
+                'margin-top': '1.5cm',
+                'margin-right': '1cm',
+                'margin-bottom': '1.5cm',
+                'margin-left': '1cm',
                 'encoding': 'UTF-8',
                 'no-outline': None,
                 'print-media-type': None,
