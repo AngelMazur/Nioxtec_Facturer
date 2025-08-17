@@ -95,15 +95,16 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
   // Function to filter out duplicate fields and show only unique ones
   const getUniquePlaceholders = () => {
     const uniquePlaceholders = []
-    const seen = new Set()
+    const seenKeys = new Set()
     
     placeholders.forEach(placeholder => {
       if (placeholder && placeholder.trim() !== '') {
-        // Normalize placeholder for comparison
-        const normalized = placeholder.toLowerCase().replace(/[^a-z0-9]/g, '')
+        // Obtener la clave final del mapeo
+        const finalKey = getFormKeyFromPlaceholder(placeholder)
         
-        if (!seen.has(normalized)) {
-          seen.add(normalized)
+        // Si ya hemos visto esta clave final, no agregar el placeholder
+        if (!seenKeys.has(finalKey)) {
+          seenKeys.add(finalKey)
           uniquePlaceholders.push(placeholder)
         }
       }
@@ -169,7 +170,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
   // Mapping from document placeholders to form data keys (inverse of backend mapping)
   const getFormKeyFromPlaceholder = (placeholder) => {
     const mapping = {
-      // Compraventa template
+      // Compraventa template - usar solo las claves principales
       'Nombre completo del cliente': 'nombre_completo_del_cliente',
       'DNI DEL CLIENTE': 'numero',
       'Dirección del cliente': 'direccion',
@@ -182,8 +183,13 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
       'número de plazos': 'numero_de_plazos',
       'importe de cada cuota': 'importe_de_cada_cuota',
       'Tabla de interes': 'tabla_de_interes',
-      'Nombre del comprador': 'nombre_completo_del_cliente',
-      'Dni del comprador': 'numero',
+      
+      // Campos duplicados - mapear a las mismas claves principales
+      'Nombre del comprador': 'nombre_completo_del_cliente', // = Nombre completo del cliente
+      'Dni del comprador': 'numero', // = DNI DEL CLIENTE
+      'Modelo': 'modelo', // = Modelo del producto
+      'Pulgadas': 'pulgadas', // = Pulgadas del producto
+      'Número de Serie': 'numero_serie', // = Número de serie del producto
       
       // Renting template
       'Nombre de la empresa o persona': 'nombre_de_la_empresa_o_persona',
@@ -194,7 +200,6 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
       'Teléfono': 'telefono',
       'Correo': 'correo',
       'Marca': 'marca',
-      'Modelo': 'modelo',
       'importe en euros': 'importe_en_euros',
       'plataforma de pago': 'plataforma_de_pago',
       'IBAN': 'iban',
@@ -284,9 +289,9 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
                   'correo': 'Ej: cliente@email.com',
                   'nombre_de_la_empresa_o_persona': 'Nombre de la empresa',
                   'nombre_representante': 'Nombre del representante',
-                  'cargo': 'Ej: Director',
+                  'cargo': 'Ej: Gerente',
                   'marca': 'Ej: NIOXTEC',
-                  'plataforma_de_pago': 'Ej: PayPal',
+                  'plataforma_de_pago': 'Ej: Transferencia',
                   'iban': 'Ej: ES91 2100 0418 4502 0005 1332',
                   'importe_en_euros': 'Ej: 1000.00',
                   'importe_ajustado': 'Ej: 950.00'
@@ -311,54 +316,8 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
               )
             })
           })()}
-          
-          {/* Additional fields for compraventa template */}
-          {selectedTemplate?.id === 'compraventa' && (
-            <>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs lg:text-sm text-gray-500 font-medium">Modelo</span>
-                <input
-                  className="border border-gray-300 dark:border-gray-600 p-2 lg:p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm lg:text-base"
-                  value={formData['modelo'] || ''}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    'modelo': e.target.value
-                  }))}
-                  placeholder="Ej: Digital Screen Pro"
-                />
-              </label>
-              
-              <label className="flex flex-col gap-1">
-                <span className="text-xs lg:text-sm text-gray-500 font-medium">Pulgadas</span>
-                <input
-                  className="border border-gray-300 dark:border-gray-600 p-2 lg:p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm lg:text-base"
-                  value={formData['pulgadas'] || ''}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    'pulgadas': e.target.value
-                  }))}
-                  placeholder="Ej: 55 pulgadas"
-                />
-              </label>
-              
-              <label className="flex flex-col gap-1">
-                <span className="text-xs lg:text-sm text-gray-500 font-medium">Número de Serie</span>
-                <input
-                  className="border border-gray-300 dark:border-gray-600 p-2 lg:p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm lg:text-base"
-                  value={formData['numero_serie'] || ''}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    'numero_serie': e.target.value
-                  }))}
-                  placeholder="Ej: NIOXTEC-2024-001"
-                />
-              </label>
-            </>
-          )}
         </div>
       </div>
-
-
     </div>
   )
 }
