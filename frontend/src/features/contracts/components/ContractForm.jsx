@@ -44,25 +44,24 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
         if (selectedClient) {
           const clientData = {
             ...initialData,
-            // Mapeo para template de compraventa
+            // Mapeo para template de compraventa - usar claves del backend
             'nombre_completo_del_cliente': selectedClient.name,
-            'DNI DEL CLIENTE': selectedClient.cif,
-            'Dirección del cliente': selectedClient.address,
-            'Teléfono del cliente': selectedClient.phone || '',
-            'Correo del cliente': selectedClient.email,
-            'Nombre del comprador': selectedClient.name,
-            'Dni del comprador': selectedClient.cif,
-            
-            // Mapeo para template de renting
-            'nombre_de_la_empresa_o_persona': selectedClient.name,
             'numero': selectedClient.cif,
             'direccion': selectedClient.address,
             'telefono': selectedClient.phone || '',
             'correo': selectedClient.email,
-            'iban': selectedClient.iban || '',
+            'modelo': '', // Se rellena manualmente
+            'pulgadas': '', // Se rellena manualmente
+            'numero_serie': '', // Se rellena manualmente
+            'importe_total_en_euros_iva_incluido': '', // Se rellena manualmente
+            'numero_de_plazos': '', // Se rellena manualmente
+            'importe_de_cada_cuota': '', // Se rellena manualmente
+            'tabla_de_interes': '', // Se calcula automáticamente
             
-            // Campos adicionales que pueden estar en el cliente
-            'nombre_representante': selectedClient.name, // Por defecto usa el nombre del cliente
+            // Mapeo para template de renting
+            'nombre_de_la_empresa_o_persona': selectedClient.name,
+            'nombre_representante': selectedClient.name,
+            'iban': selectedClient.iban || '',
           }
           setFormData(clientData)
         }
@@ -118,6 +117,44 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
     })
     
     return uniquePlaceholders
+  }
+
+  // Mapping from document placeholders to form data keys (inverse of backend mapping)
+  const getFormKeyFromPlaceholder = (placeholder) => {
+    const mapping = {
+      // Compraventa template
+      'Nombre completo del cliente': 'nombre_completo_del_cliente',
+      'DNI DEL CLIENTE': 'numero',
+      'Dirección del cliente': 'direccion',
+      'Teléfono del cliente': 'telefono',
+      'Correo del cliente': 'correo',
+      'Modelo del producto': 'modelo',
+      'Pulgadas del producto': 'pulgadas',
+      'Número de serie del producto': 'numero_serie',
+      'importe total en euros, IVA incluido': 'importe_total_en_euros_iva_incluido',
+      'número de plazos': 'numero_de_plazos',
+      'importe de cada cuota': 'importe_de_cada_cuota',
+      'Tabla de interes': 'tabla_de_interes',
+      'Nombre del comprador': 'nombre_completo_del_cliente',
+      'Dni del comprador': 'numero',
+      
+      // Renting template
+      'Nombre de la empresa o persona': 'nombre_de_la_empresa_o_persona',
+      'Número': 'numero',
+      'Dirección': 'direccion',
+      'Nombre representante': 'nombre_representante',
+      'Cargo': 'cargo',
+      'Teléfono': 'telefono',
+      'Correo': 'correo',
+      'Marca': 'marca',
+      'Modelo': 'modelo',
+      'importe en euros': 'importe_en_euros',
+      'plataforma de pago': 'plataforma_de_pago',
+      'IBAN': 'iban',
+      'importe ajustado': 'importe_ajustado',
+    }
+    
+    return mapping[placeholder] || placeholder
   }
 
 
@@ -176,10 +213,10 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
                   <span className="text-xs lg:text-sm text-gray-500 font-medium">{displayLabel}</span>
                   <input
                     className="border border-gray-300 dark:border-gray-600 p-2 lg:p-3 rounded focus:outline-none focus:ring-2 focus:ring-brand w-full text-sm lg:text-base"
-                    value={formData[placeholder] || ''}
+                    value={formData[getFormKeyFromPlaceholder(placeholder)] || ''}
                     onChange={(e) => setFormData(prev => ({
                       ...prev,
-                      [placeholder]: e.target.value
+                      [getFormKeyFromPlaceholder(placeholder)]: e.target.value
                     }))}
                     placeholder={getPlaceholderText(placeholder)}
                   />
