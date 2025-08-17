@@ -50,13 +50,17 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
             'direccion': selectedClient.address,
             'telefono': selectedClient.phone || '',
             'correo': selectedClient.email,
-            'modelo': '', // Se rellena manualmente
-            'pulgadas': '', // Se rellena manualmente
-            'numero_serie': '', // Se rellena manualmente
-            'importe_total_en_euros_iva_incluido': '', // Se rellena manualmente
-            'numero_de_plazos': '', // Se rellena manualmente
-            'importe_de_cada_cuota': '', // Se rellena manualmente
-            'tabla_de_interes': '', // Se calcula automáticamente
+            
+            // Campos de producto con valores por defecto
+            'modelo': 'Digital Screen Pro',
+            'pulgadas': '55 pulgadas',
+            'numero_serie': `NIOXTEC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+            
+            // Campos financieros con valores por defecto
+            'importe_total_en_euros_iva_incluido': '1500.00',
+            'numero_de_plazos': '12',
+            'importe_de_cada_cuota': '125.00',
+            'tabla_de_interes': '10% interés mensual', // Se calcula automáticamente
             
             // Mapeo para template de renting
             'nombre_de_la_empresa_o_persona': selectedClient.name,
@@ -104,12 +108,30 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
     const uniquePlaceholders = []
     const seen = new Set()
     
+    // Mapeo de campos duplicados para detectarlos mejor
+    const duplicateMapping = {
+      'DNI DEL CLIENTE': 'Dni del comprador',
+      'Dni del comprador': 'DNI DEL CLIENTE',
+      'Nombre del comprador': 'Nombre completo del cliente',
+      'Nombre completo del cliente': 'Nombre del comprador',
+      'Modelo del producto': 'Modelo',
+      'Modelo': 'Modelo del producto',
+      'Pulgadas del producto': 'Pulgadas',
+      'Pulgadas': 'Pulgadas del producto',
+      'Número de serie del producto': 'Número de Serie',
+      'Número de Serie': 'Número de serie del producto',
+    }
+    
     placeholders.forEach(placeholder => {
       if (placeholder && placeholder.trim() !== '') {
         // Normalize placeholder for comparison
         const normalized = placeholder.toLowerCase().replace(/[^a-z0-9]/g, '')
         
-        if (!seen.has(normalized)) {
+        // Check if this is a duplicate of an already processed field
+        const duplicateOf = duplicateMapping[placeholder]
+        const isDuplicate = duplicateOf && seen.has(duplicateOf.toLowerCase().replace(/[^a-z0-9]/g, ''))
+        
+        if (!seen.has(normalized) && !isDuplicate) {
           seen.add(normalized)
           uniquePlaceholders.push(placeholder)
         }
