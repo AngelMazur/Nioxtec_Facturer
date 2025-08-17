@@ -138,11 +138,11 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
   }
 
   return (
-    <div className="space-y-4 lg:space-y-6">
+    <div className="flex flex-col h-full space-y-4 lg:space-y-6">
       {/* Dynamic Form Fields */}
-              <div className="bg-gray-800 p-3 lg:p-4 rounded-lg border border-gray-700">
-          <h3 className="text-base lg:text-lg font-semibold mb-3 lg:mb-4">Campos del Contrato</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
+      <div className="bg-gray-800 p-3 lg:p-4 rounded-lg border border-gray-700 flex-1 flex flex-col">
+        <h3 className="text-base lg:text-lg font-semibold mb-3 lg:mb-4">Campos del Contrato</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4 flex-1">
           {placeholders.map(placeholder => (
             <label key={placeholder} className="flex flex-col gap-1">
               <span className="text-xs lg:text-sm text-gray-500 font-medium">{placeholder}</span>
@@ -161,7 +161,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
       </div>
 
       {/* Milestones Section */}
-      <div className="bg-gray-800 p-3 lg:p-4 rounded-lg border border-gray-700">
+      <div className="bg-gray-800 p-3 lg:p-4 rounded-lg border border-gray-700 flex-shrink-0">
         <div className="flex items-center justify-between mb-3 lg:mb-4">
           <h3 className="text-base lg:text-lg font-semibold">Hitos del Proyecto</h3>
           <button
@@ -223,7 +223,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
       </div>
 
       {/* SLA Section */}
-      <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+      <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex-shrink-0">
         <h3 className="text-lg font-semibold mb-4">Niveles de Servicio (SLA)</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Object.entries(sla).map(([level, config]) => (
