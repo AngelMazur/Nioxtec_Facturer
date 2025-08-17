@@ -44,12 +44,19 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
         if (selectedClient) {
           const clientData = {
             ...initialData,
+            // Mapeo para template de compraventa
             'nombre_completo_del_cliente': selectedClient.name,
+            
+            // Mapeo para template de renting
             'nombre_de_la_empresa_o_persona': selectedClient.name,
             'numero': selectedClient.cif,
             'direccion': selectedClient.address,
             'telefono': selectedClient.phone || '',
-            'correo': selectedClient.email
+            'correo': selectedClient.email,
+            'iban': selectedClient.iban || '',
+            
+            // Campos adicionales que pueden estar en el cliente
+            'nombre_representante': selectedClient.name, // Por defecto usa el nombre del cliente
           }
           setFormData(clientData)
         }

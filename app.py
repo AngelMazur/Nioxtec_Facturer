@@ -1461,6 +1461,10 @@ def generate_contract_pdf():
         app.logger.info(f"Template placeholders: {list(original_tokens.keys())}")
         app.logger.info(f"Form data keys: {list(form_data.keys())}")
         app.logger.info(f"Form data: {form_data}")
+        app.logger.info(f"Placeholder mapping: {placeholder_mapping}")
+        
+        # Log which placeholders will be replaced
+        replacements_made = []
         
         # Fill placeholders in paragraphs
         for paragraph in doc.paragraphs:
@@ -1472,6 +1476,7 @@ def generate_contract_pdf():
                     if placeholder_token in paragraph.text:
                         app.logger.info(f"Replacing {placeholder_token} with {value} in paragraph")
                         paragraph.text = paragraph.text.replace(placeholder_token, value)
+                        replacements_made.append(f"{placeholder_name} -> {value}")
         
         # Fill placeholders in tables
         for table in doc.tables:
@@ -1486,6 +1491,10 @@ def generate_contract_pdf():
                                 if placeholder_token in paragraph.text:
                                     app.logger.info(f"Replacing {placeholder_token} with {value} in table cell")
                                     paragraph.text = paragraph.text.replace(placeholder_token, value)
+                                    replacements_made.append(f"{placeholder_name} -> {value}")
+        
+        app.logger.info(f"Total replacements made: {len(replacements_made)}")
+        app.logger.info(f"Replacements: {replacements_made}")
         
         # Save filled DOCX temporarily
         temp_docx_path = os.path.join(DOWNLOAD_FOLDER, f'temp_{secure_filename(filename)}.docx')
