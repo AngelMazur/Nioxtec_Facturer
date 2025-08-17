@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useStore } from '../../../store/store'
 import { generateContractPDF, downloadContractPDF } from '../services/contractService'
-import { fillCompleteTemplate } from '../utils/contractParser'
 import ContractForm from './ContractForm'
 import ContractPreview from './ContractPreview'
 import TemplateSelector from './TemplateSelector'
@@ -36,7 +35,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
 
   // Generate and download PDF
   const handleGeneratePDF = async () => {
-    if (!template || !formData) {
+    if (!selectedTemplate || !formData) {
       toast.error('No hay datos suficientes para generar el contrato')
       return
     }
@@ -44,16 +43,13 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     try {
       setGeneratingPDF(true)
       
-      // Fill the template with form data
-      const filledContent = fillCompleteTemplate(template, formData, formData)
-      
       // Generate filename
-      const clientName = formData['NOMBRE DEL CLIENTE'] || 'Cliente'
+      const clientName = formData['nombre_completo_del_cliente'] || formData['nombre_de_la_empresa_o_persona'] || 'Cliente'
       const date = new Date().toISOString().slice(0, 10)
       const filename = `Contrato_${clientName.replace(/\s+/g, '_')}_${date}.pdf`
       
-      // Generate PDF
-      const pdfBlob = await generateContractPDF(filledContent, filename, token)
+      // Generate PDF using template ID and form data
+      const pdfBlob = await generateContractPDF(selectedTemplate.id, formData, filename, token)
       
       // Download PDF
       downloadContractPDF(pdfBlob, filename)

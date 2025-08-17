@@ -23,15 +23,17 @@ export async function loadContractPlaceholders(templateId, token) {
 
 /**
  * Generate PDF from filled contract template
- * @param {string} contractContent - Filled contract content
+ * @param {string} templateId - Template ID
+ * @param {Object} formData - Form data with placeholder values
  * @param {string} filename - Desired filename
  * @param {string} token - JWT token
  * @returns {Promise<Blob>} PDF blob
  */
-export async function generateContractPDF(contractContent, filename, token) {
+export async function generateContractPDF(templateId, formData, filename, token) {
   try {
     const response = await apiPost('/contracts/generate-pdf', {
-      content: contractContent,
+      template_id: templateId,
+      form_data: formData,
       filename: filename
     }, token)
     

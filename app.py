@@ -1393,77 +1393,115 @@ def generate_contract_pdf():
     """
     Generate PDF from contract content.
     
-    Accepts markdown content and generates a PDF with proper formatting.
+    Accepts DOCX template ID and form data, fills the template and generates a PDF.
     
     Returns:
         JSON: Generated filename on success
     """
     data = request.get_json(force=True)
-    content = data.get('content')
+    template_id = data.get('template_id')
+    form_data = data.get('form_data', {})
     filename = data.get('filename', 'contract.pdf')
     
-    if not content:
-        return jsonify({'error': 'Content is required'}), 400
+    if not template_id:
+        return jsonify({'error': 'Template ID is required'}), 400
     
     try:
-        # Convert markdown to HTML
-        import markdown
-        html_content = markdown.markdown(content, extensions=['tables'])
+        # Get template filename
+        template_filename = None
+        if template_id == 'compraventa':
+            template_filename = 'Contrato_Compraventa_Plazos_NIOXTEC_v5.docx'
+        elif template_id == 'renting':
+            template_filename = 'Plantilla_Contrato_Renting_Firma_Datos_v2.docx'
+        else:
+            return jsonify({'error': 'Invalid template ID'}), 400
         
-        # Create contract template HTML
-        contract_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                body {{
-                    font-family: Arial, sans-serif;
-                    line-height: 1.6;
-                    margin: 2cm;
-                    font-size: 12pt;
-                }}
-                h1, h2, h3 {{
-                    color: #333;
-                    margin-top: 1.5em;
-                    margin-bottom: 0.5em;
-                }}
-                h1 {{ font-size: 18pt; }}
-                h2 {{ font-size: 16pt; }}
-                h3 {{ font-size: 14pt; }}
-                table {{
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin: 1em 0;
-                }}
-                th, td {{
-                    border: 1px solid #ddd;
-                    padding: 8px;
-                    text-align: left;
-                }}
-                th {{
-                    background-color: #f5f5f5;
-                    font-weight: bold;
-                }}
-                .signature-section {{
-                    margin-top: 3em;
-                    page-break-before: always;
-                }}
-                .signature-line {{
-                    border-top: 1px solid #000;
-                    margin-top: 2em;
-                    padding-top: 0.5em;
-                }}
-            </style>
-        </head>
-        <body>
-            {html_content}
-        </body>
-        </html>
-        """
+        # Load and fill DOCX template
+        template_path = os.path.join('frontend', 'src', 'features', 'contracts', 'templates', template_filename)
+        if not os.path.exists(template_path):
+            return jsonify({'error': 'Template file not found'}), 404
         
-        # Generate PDF using wkhtmltopdf
+        # Load DOCX document
+        doc = Document(template_path)
+        
+        # Fill placeholders in paragraphs
+        for paragraph in doc.paragraphs:
+            for key, value in form_data.items():
+                placeholder = f'[{key}]'
+                if placeholder in paragraph.text:
+                    paragraph.text = paragraph.text.replace(placeholder, str(value))
+        
+        # Fill placeholders in tables
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for key, value in form_data.items():
+                            placeholder = f'[{key}]'
+                            if placeholder in paragraph.text:
+                                paragraph.text = paragraph.text.replace(placeholder, str(value))
+        
+        # Save filled DOCX temporarily
+        temp_docx_path = os.path.join(DOWNLOAD_FOLDER, f'temp_{secure_filename(filename)}.docx')
+        doc.save(temp_docx_path)
+        
+        # Convert DOCX to PDF using wkhtmltopdf
         if pdfkit is not None:
+            # Convert DOCX to HTML first (simple approach)
+            html_content = _docx_to_html(temp_docx_path)
+            
+            # Create contract template HTML
+            contract_html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        margin: 2cm;
+                        font-size: 12pt;
+                    }}
+                    h1, h2, h3 {{
+                        color: #333;
+                        margin-top: 1.5em;
+                        margin-bottom: 0.5em;
+                    }}
+                    h1 {{ font-size: 18pt; }}
+                    h2 {{ font-size: 16pt; }}
+                    h3 {{ font-size: 14pt; }}
+                    table {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 1em 0;
+                    }}
+                    th, td {{
+                        border: 1px solid #ddd;
+                        padding: 8px;
+                        text-align: left;
+                    }}
+                    th {{
+                        background-color: #f5f5f5;
+                        font-weight: bold;
+                    }}
+                    .signature-section {{
+                        margin-top: 3em;
+                        page-break-before: always;
+                    }}
+                    .signature-line {{
+                        border-top: 1px solid #000;
+                        margin-top: 2em;
+                        padding-top: 0.5em;
+                    }}
+                </style>
+            </head>
+            <body>
+                {html_content}
+            </body>
+            </html>
+            """
+            
             options = {
                 'enable-local-file-access': None,
                 'page-size': 'A4',
@@ -1483,7 +1521,11 @@ def generate_contract_pdf():
             pdf_bytes = pdfkit.from_string(contract_html, False, options=options, configuration=cfg)
         else:
             # Fallback to reportlab
-            pdf_bytes = _generate_contract_pdf_fallback(content)
+            pdf_bytes = _generate_contract_pdf_fallback(_docx_to_text(temp_docx_path))
+        
+        # Clean up temporary DOCX file
+        if os.path.exists(temp_docx_path):
+            os.remove(temp_docx_path)
         
         # Save PDF to downloads folder
         safe_filename = secure_filename(filename)
@@ -1574,6 +1616,47 @@ def extract_placeholders_from_docx(filename):
         
     except Exception as e:
         return {'error': f'Error processing DOCX: {str(e)}'}
+
+def _docx_to_html(docx_path):
+    """Convert DOCX to HTML for PDF generation."""
+    doc = Document(docx_path)
+    html_parts = []
+    
+    for paragraph in doc.paragraphs:
+        if paragraph.text.strip():
+            # Simple paragraph to HTML conversion
+            text = paragraph.text.replace('\n', '<br>')
+            html_parts.append(f'<p>{text}</p>')
+    
+    for table in doc.tables:
+        html_parts.append('<table border="1" style="width: 100%; border-collapse: collapse; margin: 1em 0;">')
+        for row in table.rows:
+            html_parts.append('<tr>')
+            for cell in row.cells:
+                cell_text = cell.text.replace('\n', '<br>')
+                html_parts.append(f'<td style="padding: 8px; border: 1px solid #ddd;">{cell_text}</td>')
+            html_parts.append('</tr>')
+        html_parts.append('</table>')
+    
+    return '\n'.join(html_parts)
+
+def _docx_to_text(docx_path):
+    """Convert DOCX to plain text for fallback PDF generation."""
+    doc = Document(docx_path)
+    text_parts = []
+    
+    for paragraph in doc.paragraphs:
+        if paragraph.text.strip():
+            text_parts.append(paragraph.text)
+    
+    for table in doc.tables:
+        for row in table.rows:
+            row_text = []
+            for cell in row.cells:
+                row_text.append(cell.text.strip())
+            text_parts.append(' | '.join(row_text))
+    
+    return '\n'.join(text_parts)
 
 def _generate_contract_pdf_fallback(content):
     """

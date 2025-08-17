@@ -1,15 +1,14 @@
 # Generador de Contratos
 
-Esta funcionalidad permite generar contratos en PDF a partir de plantillas Markdown con placeholders dinámicos.
+Esta funcionalidad permite generar contratos en PDF a partir de plantillas DOCX con placeholders dinámicos.
 
 ## Características
 
-- **Parsing automático de placeholders**: Detecta automáticamente todos los campos `[PLACEHOLDER]` en la plantilla
-- **Formulario dinámico**: Genera campos de formulario basados en los placeholders detectados
-- **Autorrelleno de datos**: Carga automáticamente datos del cliente y proveedor desde la API existente
-- **Preview en tiempo real**: Muestra una vista previa del contrato con los campos rellenados
-- **Generación de PDF**: Crea PDFs profesionales con formato adecuado
-- **Gestión de hitos y SLA**: Permite configurar hitos del proyecto y niveles de servicio
+- **Plantillas DOCX**: Soporte para plantillas de Word con placeholders
+- **Formulario dinámico**: Generación automática de campos basada en placeholders
+- **Auto-relleno**: Datos del cliente y proveedor se rellenan automáticamente
+- **Vista previa**: Visualización del contrato antes de generar PDF
+- **Generación PDF**: Creación de PDFs con formato profesional
 
 ## Estructura de Archivos
 
@@ -18,15 +17,13 @@ contracts/
 ├── components/
 │   ├── ContractGeneratorModal.jsx    # Modal principal
 │   ├── ContractForm.jsx              # Formulario dinámico
-│   └── ContractPreview.jsx           # Vista previa
+│   ├── ContractPreview.jsx           # Vista previa
+│   └── TemplateSelector.jsx          # Selector de plantillas
 ├── services/
 │   └── contractService.js            # Servicios de API
-├── utils/
-│   └── contractParser.js             # Utilidades de parsing
 ├── templates/
-│   └── Plantilla_Contrato_Servicios.md # Plantilla base
-├── __tests__/
-│   └── contractParser.test.js        # Tests unitarios
+│   ├── Contrato_Compraventa_Plazos_NIOXTEC_v5.docx
+│   └── Plantilla_Contrato_Renting_Firma_Datos_v2.docx
 ├── index.js                          # Exports
 └── README.md                         # Esta documentación
 ```
@@ -37,42 +34,70 @@ contracts/
 
 El botón "Crear Contrato" está disponible en la página de Clientes, junto al botón "Subir PDF".
 
-### 2. Completar el Formulario
+### 2. Seleccionar Plantilla
 
-1. **Seleccionar Cliente**: Elige un cliente de la lista para auto-rellenar sus datos
-2. **Auto-rellenar Proveedor**: Usa el botón para cargar datos del proveedor
-3. **Completar Campos**: Rellena los campos dinámicos generados automáticamente
-4. **Configurar Hitos**: Añade hitos del proyecto con fechas, importes y criterios
-5. **Configurar SLA**: Define niveles de servicio y tiempos de respuesta
+1. **Elegir Tipo**: Selecciona entre "Contrato de Compraventa" o "Contrato de Renting"
+2. **Cargar Campos**: Los placeholders se extraen automáticamente del DOCX
 
-### 3. Vista Previa
+### 3. Completar el Formulario
 
-- Cambia a la pestaña "Vista Previa" para ver el contrato renderizado
-- Toggle entre vista renderizada y markdown raw
+1. **Datos del Cliente**: Se auto-rellenan desde el cliente seleccionado
+2. **Datos del Proveedor**: Se auto-rellenan desde la configuración de la empresa
+3. **Campos Dinámicos**: Rellena los campos generados automáticamente
+
+### 4. Vista Previa
+
+- Cambia a la pestaña "Vista Previa" para ver el contrato
 - Verifica que todos los campos estén correctamente rellenados
 
-### 4. Generar PDF
+### 5. Generar PDF
 
 - Haz clic en "Generar PDF" para crear y descargar el documento
 - El archivo se nombra automáticamente: `Contrato_[Cliente]_[YYYY-MM-DD].pdf`
 
 ## API Endpoints
 
-### POST /api/contracts/generate-pdf
-Genera un PDF a partir del contenido del contrato.
+### GET /api/contracts/templates
+Lista las plantillas disponibles.
 
-**Body:**
+**Response:**
 ```json
-{
-  "content": "Contenido markdown del contrato",
-  "filename": "nombre_del_archivo.pdf"
-}
+[
+  {
+    "id": "compraventa",
+    "name": "Contrato de Compraventa",
+    "filename": "Contrato_Compraventa_Plazos_NIOXTEC_v5.docx",
+    "description": "Contrato de compraventa con plazos"
+  }
+]
 ```
+
+### GET /api/contracts/templates/{id}/placeholders
+Extrae placeholders de una plantilla DOCX.
 
 **Response:**
 ```json
 {
-  "filename": "nombre_del_archivo.pdf"
+  "placeholders": ["nombre_completo_del_cliente", "importe_total"],
+  "original_tokens": {
+    "nombre_completo_del_cliente": "[Nombre completo del cliente]",
+    "importe_total": "[Importe total]"
+  }
+}
+```
+
+### POST /api/contracts/generate-pdf
+Genera un PDF a partir de una plantilla DOCX rellenada.
+
+**Body:**
+```json
+{
+  "template_id": "compraventa",
+  "form_data": {
+    "nombre_completo_del_cliente": "Juan Pérez",
+    "importe_total": "1000"
+  },
+  "filename": "Contrato_Juan_Perez_2024-01-15.pdf"
 }
 ```
 
@@ -81,20 +106,12 @@ Descarga el PDF generado.
 
 ## Plantillas
 
-Las plantillas usan sintaxis Markdown con placeholders entre corchetes:
+Las plantillas usan archivos DOCX con placeholders entre corchetes:
 
-```markdown
-# CONTRATO DE SERVICIOS
-
-Cliente: [NOMBRE DEL CLIENTE]
-NIF: [NIF/NIE CLIENTE]
-Domicilio: [DOMICILIO CLIENTE]
-
-## Hitos del Proyecto
-
-| Hito/Entregable | Descripción | Fecha | Precio | Criterio |
-|---|---|---|---:|---|
-| [HITO 1] | [DESCRIPCION] | [DD/MM/AAAA] | [IMPORTE] | [CRITERIO] |
+```
+[Nombre completo del cliente]
+[Importe total en euros, IVA incluido]
+[Fecha de firma]
 ```
 
 ## Validaciones
@@ -104,18 +121,10 @@ Domicilio: [DOMICILIO CLIENTE]
 - Los importes se formatean con 2 decimales
 - Los NIF/CIF se validan según el formato español
 
-## Tests
-
-Ejecuta los tests unitarios:
-
-```bash
-npm test contracts/__tests__/contractParser.test.js
-```
-
 ## Dependencias
 
 - **Frontend**: React, Tailwind CSS, react-hot-toast
-- **Backend**: Flask, markdown, pdfkit/reportlab
+- **Backend**: Flask, python-docx, pdfkit/reportlab
 - **No se añaden dependencias nuevas** - usa las existentes del proyecto
 
 ## Integración
