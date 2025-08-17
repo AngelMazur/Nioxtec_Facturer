@@ -1644,7 +1644,7 @@ def generate_contract_pdf():
                         </head>
             <body>
                 <div class="header">
-                    <img src="file://{os.path.abspath('static/contracts/images/header-right.png')}" alt="NIOXTEC Logo" />
+                    <img src="{Path(os.path.join(STATIC_FOLDER, 'contracts', 'images', 'header-right.png')).resolve().as_uri()}" alt="NIOXTEC Logo" />
                 </div>
                 {html_content}
             </body>
