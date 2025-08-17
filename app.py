@@ -1556,7 +1556,7 @@ def generate_contract_pdf():
                     h1, h2, h3 {{
                         color: #65AAC3;
                         margin-top: 1.5em;
-                        margin-bottom: 0.5em;
+                        margin-bottom: 0.2em;
                         font-family: "Cambria", "Times New Roman", serif;
                         font-weight: bold;
                     }}
@@ -1577,7 +1577,7 @@ def generate_contract_pdf():
                     }}
                     /* Estilos específicos para títulos del contrato */
                     .contract-title {{
-                        font-size: 18pt;
+                        font-size: 16pt;
                         color: #65AAC3;
                         font-weight: bold;
                         text-align: center;
