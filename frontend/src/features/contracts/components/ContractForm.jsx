@@ -1,15 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useStore } from '../../../store/store'
-import { extractPlaceholders } from '../utils/contractParser'
-import { loadContractTemplate, loadCompanyConfig } from '../services/contractService'
+import { loadContractPlaceholders, loadCompanyConfig } from '../services/contractService'
 
 /**
  * Dynamic contract form component
  * Generates form fields based on template placeholders
  */
-export default function ContractForm({ onFormDataChange, onTemplateLoaded, selectedClient }) {
+export default function ContractForm({ onFormDataChange, onTemplateLoaded, selectedClient, selectedTemplate }) {
   const { token } = useStore()
-  const [_template, setTemplate] = useState('')
   const [placeholders, setPlaceholders] = useState([])
   const [formData, setFormData] = useState({})
   const [loading, setLoading] = useState(true)
@@ -25,20 +23,25 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
   const onFormDataChangeRef = useRef(onFormDataChange)
   onFormDataChangeRef.current = onFormDataChange
 
-  // Load template and extract placeholders
+  // Load placeholders from selected template
   useEffect(() => {
-    async function loadTemplate() {
+    async function loadPlaceholders() {
+      if (!selectedTemplate) return
+      
       try {
         setLoading(true)
-        const templateContent = await loadContractTemplate()
-        setTemplate(templateContent)
+        const result = await loadContractPlaceholders(selectedTemplate.id, token)
         
-        const extractedPlaceholders = extractPlaceholders(templateContent)
-        setPlaceholders(extractedPlaceholders)
+        if (result.error) {
+          console.error('Error loading placeholders:', result.error)
+          return
+        }
+        
+        setPlaceholders(result.placeholders || [])
         
         // Initialize form data with empty values
         const initialData = {}
-        extractedPlaceholders.forEach(placeholder => {
+        result.placeholders.forEach(placeholder => {
           initialData[placeholder] = ''
         })
         setFormData(initialData)
@@ -47,10 +50,10 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
         if (selectedClient) {
           const clientData = {
             ...initialData,
-            'NOMBRE DEL CLIENTE': selectedClient.name,
-            'NIF/NIE CLIENTE': selectedClient.cif,
-            'DOMICILIO CLIENTE': selectedClient.address,
-            'EMAIL/S': selectedClient.email
+            'nombre_del_cliente': selectedClient.name,
+            'nif_nie_cliente': selectedClient.cif,
+            'domicilio_cliente': selectedClient.address,
+            'email_s': selectedClient.email
           }
           setFormData(clientData)
         }
@@ -60,24 +63,26 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
           const companyConfig = await loadCompanyConfig(token)
           setFormData(prev => ({
             ...prev,
-            'NOMBRE DEL PROVEEDOR': companyConfig.name,
-            'NIF PROVEEDOR': companyConfig.cif,
-            'DOMICILIO PROVEEDOR': companyConfig.address
+            'nombre_del_proveedor': companyConfig.name,
+            'nif_proveedor': companyConfig.cif,
+            'domicilio_proveedor': companyConfig.address,
+            'ciudad': companyConfig.city,
+            'ciudad_provincia': companyConfig.province
           }))
         } catch (error) {
           console.error('Error loading company config:', error)
         }
         
-        onTemplateLoaded?.(templateContent)
+        onTemplateLoaded?.(result)
       } catch (error) {
-        console.error('Error loading template:', error)
+        console.error('Error loading placeholders:', error)
       } finally {
         setLoading(false)
       }
     }
     
-    loadTemplate()
-  }, [onTemplateLoaded, selectedClient, token])
+    loadPlaceholders()
+  }, [selectedTemplate, selectedClient, token, onTemplateLoaded])
 
   // Notify parent of form data changes
   useEffect(() => {

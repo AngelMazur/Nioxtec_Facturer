@@ -6,16 +6,18 @@ import { apiPost, apiGetBlob, apiGet } from '../../../lib/api'
 import { contractTemplate } from '../templates/contractTemplate'
 
 /**
- * Load contract template from file
- * @returns {Promise<string>} Template content
+ * Load contract placeholders from DOCX template
+ * @param {string} templateId - Template ID
+ * @param {string} token - JWT token
+ * @returns {Promise<Object>} Placeholders data
  */
-export async function loadContractTemplate() {
+export async function loadContractPlaceholders(templateId, token) {
   try {
-    // Return the imported template directly
-    return contractTemplate
+    const response = await apiGet(`/contracts/templates/${templateId}/placeholders`, token)
+    return response
   } catch (error) {
-    console.error('Error loading template:', error)
-    throw new Error('Error al cargar la plantilla del contrato')
+    console.error('Error loading placeholders:', error)
+    throw new Error('Error al cargar los campos del contrato')
   }
 }
 

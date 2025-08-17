@@ -4,6 +4,7 @@ import { generateContractPDF, downloadContractPDF } from '../services/contractSe
 import { fillCompleteTemplate } from '../utils/contractParser'
 import ContractForm from './ContractForm'
 import ContractPreview from './ContractPreview'
+import TemplateSelector from './TemplateSelector'
 import toast from 'react-hot-toast'
 
 /**
@@ -11,6 +12,7 @@ import toast from 'react-hot-toast'
  */
 export default function ContractGeneratorModal({ isOpen, onClose, selectedClient = null }) {
   const { token } = useStore()
+  const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [template, setTemplate] = useState('')
   const [formData, setFormData] = useState({})
   const [activeTab, setActiveTab] = useState('form') // 'form' | 'preview'
@@ -19,6 +21,12 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
   // Handle form data changes
   const handleFormDataChange = useCallback((data) => {
     setFormData(data)
+  }, [])
+
+  // Handle template selection
+  const handleTemplateSelected = useCallback((template) => {
+    setSelectedTemplate(template)
+    setActiveTab('form')
   }, [])
 
   // Handle template loaded
@@ -79,77 +87,96 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-700">
-          <button
-            onClick={() => setActiveTab('form')}
-            className={`flex-1 px-3 lg:px-6 py-2 lg:py-3 text-xs lg:text-sm font-medium transition-colors ${
-              activeTab === 'form'
-                ? 'bg-primary text-white'
-                : 'text-gray-300 hover:text-white hover:bg-gray-800'
-            }`}
-          >
-            Formulario
-          </button>
-          <button
-            onClick={() => setActiveTab('preview')}
-            className={`flex-1 px-3 lg:px-6 py-2 lg:py-3 text-xs lg:text-sm font-medium transition-colors ${
-              activeTab === 'preview'
-                ? 'bg-primary text-white'
-                : 'text-gray-300 hover:text-white hover:bg-gray-800'
-            }`}
-          >
-            Vista Previa
-          </button>
-        </div>
+        {selectedTemplate && (
+          <div className="flex border-b border-gray-700">
+            <button
+              onClick={() => setActiveTab('form')}
+              className={`flex-1 px-3 lg:px-6 py-2 lg:py-3 text-xs lg:text-sm font-medium transition-colors ${
+                activeTab === 'form'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              Formulario
+            </button>
+            <button
+              onClick={() => setActiveTab('preview')}
+              className={`flex-1 px-3 lg:px-6 py-2 lg:py-3 text-xs lg:text-sm font-medium transition-colors ${
+                activeTab === 'preview'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              Vista Previa
+            </button>
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-hidden flex flex-col">
           <div className="flex-1 flex flex-col min-h-0">
+            {/* Template Selector */}
+            {!selectedTemplate && (
+              <div className="w-full overflow-y-auto" style={{ maxHeight: 'calc(85vh - 180px)' }}>
+                <TemplateSelector
+                  onTemplateSelected={handleTemplateSelected}
+                  token={token}
+                />
+              </div>
+            )}
+
             {/* Form Panel */}
-            <div className={`w-full p-2 lg:p-3 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
-              <ContractForm
-                onFormDataChange={handleFormDataChange}
-                onTemplateLoaded={handleTemplateLoaded}
-                selectedClient={selectedClient}
-              />
-            </div>
+            {selectedTemplate && (
+              <div className={`w-full p-2 lg:p-3 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
+                <ContractForm
+                  onFormDataChange={handleFormDataChange}
+                  onTemplateLoaded={handleTemplateLoaded}
+                  selectedClient={selectedClient}
+                  selectedTemplate={selectedTemplate}
+                />
+              </div>
+            )}
 
             {/* Preview Panel */}
-            <div className={`w-full p-3 lg:p-4 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
-              <ContractPreview
-                template={template}
-                formData={formData}
-                loading={!template}
-              />
-            </div>
+            {selectedTemplate && (
+              <div className={`w-full p-3 lg:p-4 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
+                <ContractPreview
+                  template={template}
+                  formData={formData}
+                  loading={!template}
+                />
+              </div>
+            )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-3 lg:p-4 border-t border-gray-700 bg-gray-900">
-          <div className="text-xs lg:text-sm text-gray-400">
-            {activeTab === 'form' ? 'Completa el formulario' : 'Revisa la vista previa'}
+        {selectedTemplate && (
+          <div className="flex items-center justify-between p-3 lg:p-4 border-t border-gray-700 bg-gray-900">
+            <div className="text-xs lg:text-sm text-gray-400">
+              {activeTab === 'form' ? 'Completa el formulario' : 'Revisa la vista previa'}
+            </div>
+            <div className="flex gap-2 lg:gap-3">
+              <button
+                onClick={onClose}
+                className="px-3 lg:px-4 py-2 text-gray-300 hover:text-white transition-colors text-sm lg:text-base"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGeneratePDF}
+                disabled={generatingPDF || !template || !formData}
+                className={`px-4 lg:px-6 py-2 rounded transition-all duration-200 text-sm lg:text-base ${
+                  generatingPDF || !template || !formData
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : 'bg-primary hover:opacity-90 text-white'
+                }`}
+              >
+                {generatingPDF ? 'Generando...' : 'Generar PDF'}
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2 lg:gap-3">
-            <button
-              onClick={onClose}
-              className="px-3 lg:px-4 py-2 text-gray-300 hover:text-white transition-colors text-sm lg:text-base"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleGeneratePDF}
-              disabled={generatingPDF || !template || !formData}
-              className={`px-4 lg:px-6 py-2 rounded transition-all duration-200 text-sm lg:text-base ${
-                generatingPDF || !template || !formData
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : 'bg-primary hover:opacity-90 text-white'
-              }`}
-            >
-              {generatingPDF ? 'Generando...' : 'Generar PDF'}
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )

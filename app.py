@@ -988,6 +988,45 @@ def list_invoices_by_client(client_id):
     })
 
 
+@app.get('/api/contracts/templates')
+@jwt_required()
+def list_contract_templates():
+    """List available contract templates."""
+    templates = [
+        {
+            'id': 'compraventa',
+            'name': 'Contrato de Compraventa',
+            'filename': 'Contrato_Compraventa_Plazos_NIOXTEC_v5.docx',
+            'description': 'Contrato de compraventa con plazos'
+        },
+        {
+            'id': 'renting',
+            'name': 'Contrato de Renting',
+            'filename': 'Plantilla_Contrato_Renting_Firma_Datos_v2.docx',
+            'description': 'Contrato de renting con firma y datos'
+        }
+    ]
+    return jsonify(templates)
+
+@app.get('/api/contracts/templates/<template_id>/placeholders')
+@jwt_required()
+def get_template_placeholders(template_id):
+    """Get placeholders from a specific template."""
+    templates = {
+        'compraventa': 'Contrato_Compraventa_Plazos_NIOXTEC_v5.docx',
+        'renting': 'Plantilla_Contrato_Renting_Firma_Datos_v2.docx'
+    }
+    
+    if template_id not in templates:
+        return jsonify({'error': 'Template not found'}), 404
+    
+    result = extract_placeholders_from_docx(templates[template_id])
+    
+    if 'error' in result:
+        return jsonify(result), 400
+    
+    return jsonify(result)
+
 @app.get('/api/company/config')
 @jwt_required()
 def get_company_config():
@@ -1366,6 +1405,10 @@ def generate_contract_pdf():
     try:
         # Convert markdown to HTML
         import markdown
+import re
+import unicodedata
+from docx import Document
+import os
         html_content = markdown.markdown(content, extensions=['tables'])
         
         # Create contract template HTML
@@ -1479,6 +1522,59 @@ def download_contract_pdf(filename):
         app.logger.error(f"Error downloading contract PDF: {e}")
         return jsonify({'error': 'Error downloading file'}), 500
 
+
+def slugify(text):
+    """Convert text to slug format (lowercase, no accents, spaces to underscores)."""
+    # Normalize unicode characters
+    text = unicodedata.normalize('NFD', text)
+    # Remove accents
+    text = ''.join(c for c in text if not unicodedata.combining(c))
+    # Convert to lowercase and replace spaces with underscores
+    text = re.sub(r'[^\w\s-]', '', text.lower())
+    text = re.sub(r'[-\s]+', '_', text)
+    return text.strip('_')
+
+def extract_placeholders_from_docx(filename):
+    """Extract placeholders from DOCX file."""
+    try:
+        # Path to the template file
+        template_path = os.path.join(os.path.dirname(__file__), 'frontend', 'src', 'features', 'contracts', 'templates', filename)
+        
+        if not os.path.exists(template_path):
+            return {'error': f'Template file not found: {filename}'}
+        
+        doc = Document(template_path)
+        placeholders = {}
+        
+        # Process paragraphs
+        for paragraph in doc.paragraphs:
+            text = paragraph.text
+            # Find all placeholders in the paragraph
+            matches = re.findall(r'\[(.+?)\]', text)
+            for match in matches:
+                original = f'[{match}]'
+                slug = slugify(match)
+                placeholders[slug] = original
+        
+        # Process tables
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    text = cell.text
+                    # Find all placeholders in the cell
+                    matches = re.findall(r'\[(.+?)\]', text)
+                    for match in matches:
+                        original = f'[{match}]'
+                        slug = slugify(match)
+                        placeholders[slug] = original
+        
+        return {
+            'placeholders': list(placeholders.keys()),
+            'original_tokens': placeholders
+        }
+        
+    except Exception as e:
+        return {'error': f'Error processing DOCX: {str(e)}'}
 
 def _generate_contract_pdf_fallback(content):
     """
