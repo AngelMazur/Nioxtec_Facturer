@@ -1553,6 +1553,26 @@ def generate_contract_pdf():
                         margin: 1.5cm 1.2cm 1.5cm 1.2cm;
                         font-size: 11pt;
                     }}
+                    .header {{
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 2em;
+                        page-break-inside: avoid;
+                    }}
+                    .header-left {{
+                        flex: 1;
+                        text-align: left;
+                    }}
+                    .header-right {{
+                        flex: 1;
+                        text-align: right;
+                    }}
+                    .header img {{
+                        max-height: 80px;
+                        max-width: 200px;
+                        object-fit: contain;
+                    }}
                     h1, h2, h3 {{
                         color: #65AAC3;
                         margin-top: 1.5em;
@@ -1627,6 +1647,14 @@ def generate_contract_pdf():
                 </style>
             </head>
             <body>
+                <div class="header">
+                    <div class="header-left">
+                        <img src="static/contracts/images/header-left.png" alt="Header Left" />
+                    </div>
+                    <div class="header-right">
+                        <img src="static/contracts/images/header-right.png" alt="Header Right" />
+                    </div>
+                </div>
                 {html_content}
             </body>
             </html>
@@ -1692,6 +1720,29 @@ def download_contract_pdf(filename):
     except Exception as e:
         app.logger.error(f"Error downloading contract PDF: {e}")
         return jsonify({'error': 'Error downloading file'}), 500
+
+
+@app.get('/static/contracts/images/<filename>')
+def serve_contract_image(filename):
+    """
+    Serve contract images for PDF generation.
+    
+    Args:
+        filename: Name of the image file
+        
+    Returns:
+        Image file
+    """
+    try:
+        image_path = os.path.join('static', 'contracts', 'images', secure_filename(filename))
+        if not os.path.exists(image_path):
+            return jsonify({'error': 'Image not found'}), 404
+        
+        return send_file(image_path)
+        
+    except Exception as e:
+        app.logger.error(f"Error serving contract image: {e}")
+        return jsonify({'error': 'Error serving image'}), 500
 
 
 def slugify(text):
@@ -1768,7 +1819,7 @@ def _docx_to_html(docx_path):
                 # Verificar que sea un título independiente (no parte de una frase)
                 if len(text.split()) <= 3 and not any(char in text for char in ['.', ',', ':', ';']):
                     app.logger.info(f"Detected subsection title: {text}")
-                    html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h3>')
+                    html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.2em;">{text}</h3>')
                 else:
                     # Es parte de una frase, tratarlo como texto normal
                     app.logger.info(f"Title word found in sentence, treating as normal text: {text}")
