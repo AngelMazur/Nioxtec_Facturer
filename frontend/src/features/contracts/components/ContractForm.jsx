@@ -138,7 +138,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Dynamic Form Fields */}
               <div className="bg-gray-800 p-3 lg:p-4 rounded-lg border border-gray-700">
           <h3 className="text-base lg:text-lg font-semibold mb-3 lg:mb-4">Campos del Contrato</h3>
@@ -173,7 +173,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
           </button>
         </div>
         
-        <div className="space-y-4">
+        <div className="space-y-3 lg:space-y-4">
           {milestones.map((milestone) => (
             <div key={milestone.id} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 lg:gap-3 border border-gray-700 p-3 lg:p-4 rounded">
               <input

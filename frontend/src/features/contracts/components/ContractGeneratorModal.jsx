@@ -64,7 +64,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
 
   return (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 z-50">
-        <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-6xl max-h-[85vh] overflow-hidden">
+        <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-6xl max-h-[85vh] overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-3 lg:p-4 border-b border-gray-700">
           <h2 className="text-lg lg:text-xl font-semibold">Generador de Contratos</h2>
@@ -103,10 +103,10 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full flex flex-col lg:flex-row">
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 flex flex-col lg:flex-row min-h-0">
             {/* Form Panel */}
-            <div className={`w-full lg:w-1/2 p-3 lg:p-4 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 120px)' }}>
+            <div className={`w-full lg:w-1/2 p-3 lg:p-4 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
               <ContractForm
                 onFormDataChange={handleFormDataChange}
                 onTemplateLoaded={handleTemplateLoaded}
@@ -115,7 +115,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
             </div>
 
             {/* Preview Panel */}
-            <div className={`w-full lg:w-1/2 p-3 lg:p-4 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 120px)' }}>
+            <div className={`w-full lg:w-1/2 p-3 lg:p-4 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
               <ContractPreview
                 template={template}
                 formData={formData}
@@ -126,21 +126,21 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-4 border-t border-gray-700">
-          <div className="text-sm text-gray-400">
+        <div className="flex items-center justify-between p-3 lg:p-4 border-t border-gray-700 bg-gray-900">
+          <div className="text-xs lg:text-sm text-gray-400">
             {activeTab === 'form' ? 'Completa el formulario' : 'Revisa la vista previa'}
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 lg:gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+              className="px-3 lg:px-4 py-2 text-gray-300 hover:text-white transition-colors text-sm lg:text-base"
             >
               Cancelar
             </button>
             <button
               onClick={handleGeneratePDF}
               disabled={generatingPDF || !template || !formData}
-              className={`px-6 py-2 rounded transition-all duration-200 ${
+              className={`px-4 lg:px-6 py-2 rounded transition-all duration-200 text-sm lg:text-base ${
                 generatingPDF || !template || !formData
                   ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                   : 'bg-primary hover:opacity-90 text-white'
