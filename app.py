@@ -1649,10 +1649,10 @@ def generate_contract_pdf():
             <body>
                 <div class="header">
                     <div class="header-left">
-                        <img src="static/contracts/images/header-left.png" alt="Header Left" />
+                        <img src="file://{os.path.abspath('static/contracts/images/header-left.png')}" alt="Header Left" />
                     </div>
                     <div class="header-right">
-                        <img src="static/contracts/images/header-right.png" alt="Header Right" />
+                        <img src="file://{os.path.abspath('static/contracts/images/header-right.png')}" alt="Header Right" />
                     </div>
                 </div>
                 {html_content}
