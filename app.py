@@ -1750,9 +1750,22 @@ def _docx_to_html(docx_path):
     
     for paragraph in doc.paragraphs:
         if paragraph.text.strip():
-            # Simple paragraph to HTML conversion
-            text = paragraph.text.replace('\n', '<br>')
-            html_parts.append(f'<p>{text}</p>')
+            text = paragraph.text.strip()
+            
+            # Detectar títulos basándose en el contenido y formato
+            if text.upper() == "CONTRATO DE COMPRAVENTA A PLAZOS SIN INTERESES":
+                # Título principal del contrato
+                html_parts.append(f'<h1 class="contract-title">{text}</h1>')
+            elif text.upper() == "PARTES INTERVINIENTES":
+                # Sección principal
+                html_parts.append(f'<h2 class="section-title">{text}</h2>')
+            elif text.upper() in ["VENDEDOR", "COMPRADOR", "OBJETO DEL CONTRATO", "GARANTÍA", "IMPAGO", "PROTECCIÓN DE DATOS", "JURISDICCIÓN"]:
+                # Subtítulos
+                html_parts.append(f'<h3 class="subsection-title">{text}</h3>')
+            else:
+                # Texto normal
+                text = text.replace('\n', '<br>')
+                html_parts.append(f'<p>{text}</p>')
     
     for table in doc.tables:
         html_parts.append('<table border="1" style="width: 100%; border-collapse: collapse; margin: 1em 0;">')
