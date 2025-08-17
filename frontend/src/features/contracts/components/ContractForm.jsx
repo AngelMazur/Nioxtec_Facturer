@@ -231,8 +231,32 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
           )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 lg:gap-3 flex-1">
-          {getUniquePlaceholders()
-            .map(placeholder => {
+          {(() => {
+            const uniquePlaceholders = getUniquePlaceholders()
+            
+            // Ordenar campos para mejor UX
+            const sortedPlaceholders = uniquePlaceholders.sort((a, b) => {
+              // Prioridad 1: Importe total
+              if (a.includes('importe total')) return -1
+              if (b.includes('importe total')) return 1
+              
+              // Prioridad 2: Número de plazos
+              if (a.includes('número de plazos')) return -1
+              if (b.includes('número de plazos')) return 1
+              
+              // Prioridad 3: Importe de cada cuota
+              if (a.includes('importe de cada cuota')) return -1
+              if (b.includes('importe de cada cuota')) return 1
+              
+              // Prioridad 4: Tabla de interés
+              if (a.includes('tabla de interes')) return -1
+              if (b.includes('tabla de interes')) return 1
+              
+              // Resto alfabéticamente
+              return a.localeCompare(b)
+            })
+            
+            return sortedPlaceholders.map(placeholder => {
               // Format placeholder for display
               const displayLabel = placeholder
                 .split('_')
@@ -269,7 +293,8 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
                   />
                 </label>
               )
-            })}
+            })
+          })()}
           
           {/* Additional fields for compraventa template */}
           {selectedTemplate?.id === 'compraventa' && (
