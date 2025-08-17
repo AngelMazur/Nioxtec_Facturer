@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { apiGet } from '../../../lib/api'
 
 export default function TemplateSelector({ onTemplateSelected, token }) {
@@ -6,11 +6,7 @@ export default function TemplateSelector({ onTemplateSelected, token }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    loadTemplates()
-  }, [])
-
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     try {
       setLoading(true)
       const data = await apiGet('/contracts/templates', token)
@@ -21,7 +17,11 @@ export default function TemplateSelector({ onTemplateSelected, token }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token])
+
+  useEffect(() => {
+    loadTemplates()
+  }, [loadTemplates])
 
   const handleTemplateSelect = (template) => {
     onTemplateSelected(template)

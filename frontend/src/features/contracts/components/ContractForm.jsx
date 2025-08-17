@@ -108,7 +108,14 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
     <div className="flex flex-col h-full space-y-4 lg:space-y-6">
       {/* Dynamic Form Fields */}
       <div className="bg-gray-800 p-2 lg:p-3 rounded-lg border border-gray-700 flex-1 flex flex-col">
-        <h3 className="text-base lg:text-lg font-semibold mb-3 lg:mb-4">Campos del Contrato</h3>
+        <div className="flex items-center justify-between mb-3 lg:mb-4">
+          <h3 className="text-base lg:text-lg font-semibold">Campos del Contrato</h3>
+          {selectedTemplate && (
+            <span className="text-xs lg:text-sm text-primary font-medium bg-primary/10 px-2 py-1 rounded">
+              {selectedTemplate.name}
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 lg:gap-3 flex-1">
           {placeholders
             .filter(placeholder => placeholder && placeholder.trim() !== '') // Filter out empty placeholders

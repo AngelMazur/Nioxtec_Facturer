@@ -27,7 +27,12 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     setActiveTab('form')
   }, [])
 
-
+  // Handle back to template selection
+  const handleBackToTemplates = useCallback(() => {
+    setSelectedTemplate(null)
+    setFormData({})
+    setActiveTab('form')
+  }, [])
 
   // Generate and download PDF
   const handleGeneratePDF = async () => {
@@ -67,7 +72,25 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
         <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-6xl max-h-[85vh] overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-3 lg:p-4 border-b border-gray-700">
-          <h2 className="text-lg lg:text-xl font-semibold">Generador de Contratos</h2>
+          <div className="flex items-center gap-3">
+            {selectedTemplate && (
+              <button
+                onClick={handleBackToTemplates}
+                className="text-gray-400 hover:text-white transition-colors p-1"
+                title="Volver a selección de plantillas"
+              >
+                <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+            <div>
+              <h2 className="text-lg lg:text-xl font-semibold">Generador de Contratos</h2>
+              {selectedTemplate && (
+                <p className="text-sm text-gray-400 mt-1">{selectedTemplate.name}</p>
+              )}
+            </div>
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors p-1"
