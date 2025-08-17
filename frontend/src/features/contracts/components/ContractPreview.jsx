@@ -1,54 +1,11 @@
-import { useState, useEffect } from 'react'
-import { fillCompleteTemplate } from '../utils/contractParser'
+import { useState } from 'react'
 
 /**
  * Contract preview component
- * Shows rendered markdown with filled placeholders
+ * Shows a preview of the form data that will be used in the contract
  */
-export default function ContractPreview({ template, formData, loading = false }) {
-  const [renderedContent, setRenderedContent] = useState('')
+export default function ContractPreview({ formData, loading = false }) {
   const [showRaw, setShowRaw] = useState(false)
-
-  // Update rendered content when template or form data changes
-  useEffect(() => {
-    if (template && formData) {
-      try {
-        const filled = fillCompleteTemplate(template, formData, formData)
-        setRenderedContent(filled)
-      } catch (error) {
-        console.error('Error filling template:', error)
-        setRenderedContent('Error al procesar el contrato')
-      }
-    }
-  }, [template, formData])
-
-  // Simple markdown to HTML converter for preview
-  const renderMarkdown = (markdown) => {
-    return markdown
-      // Headers
-      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-8 mb-4">$1</h1>')
-      
-      // Bold and italic
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      
-      // Lists
-      .replace(/^\* (.*$)/gim, '<li class="ml-4">$1</li>')
-      .replace(/(<li.*<\/li>)/s, '<ul class="list-disc ml-4 mb-4">$1</ul>')
-      
-      // Tables
-      .replace(/\| (.*) \|/g, '<td class="border border-gray-600 px-3 py-2">$1</td>')
-      .replace(/(<td.*<\/td>)/s, '<tr>$1</tr>')
-      .replace(/(<tr.*<\/tr>)/s, '<table class="w-full border-collapse border border-gray-600 mb-4">$1</table>')
-      
-      // Line breaks
-      .replace(/\n/g, '<br>')
-      
-      // Remove table header separators
-      .replace(/\|.*\|.*\|.*\|.*\|/g, '')
-  }
 
   if (loading) {
     return (
@@ -63,30 +20,60 @@ export default function ContractPreview({ template, formData, loading = false })
     )
   }
 
+  // Format form data for display
+  const formatFormData = (data) => {
+    if (!data || Object.keys(data).length === 0) {
+      return 'No hay datos para mostrar'
+    }
+
+    return Object.entries(data)
+      .filter(([key, value]) => value && value.toString().trim() !== '')
+      .map(([key, value]) => {
+        // Format key for display
+        const displayKey = key
+          .split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+        
+        return `${displayKey}: ${value}`
+      })
+      .join('\n')
+  }
+
+  const formattedData = formatFormData(formData)
+
   return (
     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Vista Previa del Contrato</h3>
+        <h3 className="text-lg font-semibold">Vista Previa de Datos</h3>
         <button
           type="button"
           onClick={() => setShowRaw(!showRaw)}
           className="text-sm text-brand hover:underline"
         >
-          {showRaw ? 'Ver Renderizado' : 'Ver Markdown'}
+          {showRaw ? 'Ver Formateado' : 'Ver Raw'}
         </button>
       </div>
       
       <div className="bg-gray-900 p-4 rounded border border-gray-700 max-h-96 overflow-y-auto">
         {showRaw ? (
           <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono">
-            {renderedContent}
+            {JSON.stringify(formData, null, 2)}
           </pre>
         ) : (
-          <div 
-            className="text-gray-100 prose prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(renderedContent) }}
-          />
+          <div className="text-gray-100 space-y-2">
+            {formattedData.split('\n').map((line, index) => (
+              <div key={index} className="py-1 border-b border-gray-700 last:border-b-0">
+                {line}
+              </div>
+            ))}
+          </div>
         )}
+      </div>
+      
+      <div className="mt-4 p-3 bg-blue-900/20 border border-blue-700/30 rounded text-sm text-blue-300">
+        <strong>Nota:</strong> Esta es una vista previa de los datos que se usarán para rellenar la plantilla DOCX. 
+        El PDF final mantendrá el formato original de la plantilla.
       </div>
     </div>
   )

@@ -12,7 +12,6 @@ import toast from 'react-hot-toast'
 export default function ContractGeneratorModal({ isOpen, onClose, selectedClient = null }) {
   const { token } = useStore()
   const [selectedTemplate, setSelectedTemplate] = useState(null)
-  const [template, setTemplate] = useState('')
   const [formData, setFormData] = useState({})
   const [activeTab, setActiveTab] = useState('form') // 'form' | 'preview'
   const [generatingPDF, setGeneratingPDF] = useState(false)
@@ -28,10 +27,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     setActiveTab('form')
   }, [])
 
-  // Handle template loaded
-  const handleTemplateLoaded = useCallback((templateContent) => {
-    setTemplate(templateContent)
-  }, [])
+
 
   // Generate and download PDF
   const handleGeneratePDF = async () => {
@@ -126,7 +122,6 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
               <div className={`w-full p-2 lg:p-3 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
                 <ContractForm
                   onFormDataChange={handleFormDataChange}
-                  onTemplateLoaded={handleTemplateLoaded}
                   selectedClient={selectedClient}
                   selectedTemplate={selectedTemplate}
                 />
@@ -137,9 +132,8 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
             {selectedTemplate && (
               <div className={`w-full p-3 lg:p-4 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
                 <ContractPreview
-                  template={template}
                   formData={formData}
-                  loading={!template}
+                  loading={!formData || Object.keys(formData).length === 0}
                 />
               </div>
             )}
@@ -161,9 +155,9 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
               </button>
               <button
                 onClick={handleGeneratePDF}
-                disabled={generatingPDF || !template || !formData}
+                disabled={generatingPDF || !formData || Object.keys(formData).length === 0}
                 className={`px-4 lg:px-6 py-2 rounded transition-all duration-200 text-sm lg:text-base ${
-                  generatingPDF || !template || !formData
+                  generatingPDF || !formData || Object.keys(formData).length === 0
                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     : 'bg-primary hover:opacity-90 text-white'
                 }`}
