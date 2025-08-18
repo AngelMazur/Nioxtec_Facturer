@@ -2036,16 +2036,40 @@ def _docx_to_html(docx_path):
             
             # Detectar títulos basándose en el contenido y formato
             if text.upper() == "CONTRATO DE COMPRAVENTA A PLAZOS SIN INTERESES":
-                # Título principal del contrato
+                # Título principal del contrato de compraventa
+                app.logger.info(f"Detected main title: {text}")
+                html_parts.append(f'<h1 class="contract-title" style="font-size: 16pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 0.5em;">{text}</h1>')
+            elif text.upper() == "CONTRATO DE RENTING DE PANTALLA PUBLICITARIA":
+                # Título principal del contrato de renting
                 app.logger.info(f"Detected main title: {text}")
                 html_parts.append(f'<h1 class="contract-title" style="font-size: 16pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 0.5em;">{text}</h1>')
             elif text.upper() == "PARTES INTERVINIENTES":
-                # Sección principal
+                # Sección principal del contrato de compraventa
                 app.logger.info(f"Detected section title: {text}")
-                html_parts.append(f'<h2 class="section-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
+                html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
+            elif text.upper() == "CLAUSULAS":
+                # Sección principal del contrato de renting
+                app.logger.info(f"Detected section title: {text}")
+                html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
+            elif text.upper() == "ACEPTACIÓN DEL CONTRATO":
+                # Sección principal del contrato de renting
+                app.logger.info(f"Detected section title: {text}")
+                html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
             elif text.upper() in ["VENDEDOR", "COMPRADOR", "OBJETO DEL CONTRATO", "GARANTÍA", "IMPAGO", "PROTECCIÓN DE DATOS", "JURISDICCIÓN", "ENTREGA"]:
+                # Subsecciones del contrato de compraventa
                 # Verificar que sea un título independiente (no parte de una frase)
                 if len(text.split()) <= 3 and not any(char in text for char in ['.', ',', ':', ';']):
+                    app.logger.info(f"Detected subsection title: {text}")
+                    html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.2em;">{text}</h3>')
+                else:
+                    # Es parte de una frase, tratarlo como texto normal
+                    app.logger.info(f"Title word found in sentence, treating as normal text: {text}")
+                    text = text.replace('\n', '<br>')
+                    html_parts.append(f'<p>{text}</p>')
+            elif text.upper() in ["1. OBJETO DEL CONTRATO", "2. DURACIÓN MÍNIMA DEL RENTING", "3. CUOTA DE RENTING Y FORMA DE PAGO", "4. CESIÓN DE PROPIEDAD", "5. USO, INSTALACIÓN Y CONTENIDOS", "6. SERVICIO TÉCNICO Y SOPORTE", "7. RESPONSABILIDAD Y BUENAS PRÁCTICAS", "8. FORMA DE PAGO Y AUTORIZACIÓN SEPA", "9. CANCELACIÓN ANTICIPADA", "10. JURISDICCIÓN"]:
+                # Subsecciones del contrato de renting
+                # Verificar que sea un título independiente (no parte de una frase)
+                if len(text.split()) <= 5 and not any(char in text for char in ['.', ',', ':', ';']):
                     app.logger.info(f"Detected subsection title: {text}")
                     html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.2em;">{text}</h3>')
                 else:
