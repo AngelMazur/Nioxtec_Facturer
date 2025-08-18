@@ -607,6 +607,23 @@ with app.app_context():
                 db.session.commit()
     except Exception:
         db.session.rollback()
+    # Migración rápida: asegurar columnas city y province en company_config (evita 500 en PDFs)
+    try:
+        inspector = inspect(db.engine)
+        cols = [c['name'] for c in inspector.get_columns('company_config')]
+        if 'city' not in cols:
+            if database_url.startswith('sqlite'):
+                db.session.execute(text("ALTER TABLE company_config ADD COLUMN city VARCHAR(128)"))
+            else:
+                db.session.execute(text("ALTER TABLE company_config ADD COLUMN city VARCHAR(128)"))
+        if 'province' not in cols:
+            if database_url.startswith('sqlite'):
+                db.session.execute(text("ALTER TABLE company_config ADD COLUMN province VARCHAR(128)"))
+            else:
+                db.session.execute(text("ALTER TABLE company_config ADD COLUMN province VARCHAR(128)"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
     # Crear usuario admin inicial si hay variables de entorno definidas y no existe
     admin_user = os.getenv('ADMIN_USERNAME')
     admin_pass = os.getenv('ADMIN_PASSWORD')
