@@ -27,7 +27,7 @@ export default function ContractPreview({ formData, loading = false }) {
     }
 
     return Object.entries(data)
-      .filter(([key, value]) => value && value.toString().trim() !== '')
+      .filter(([, value]) => value && value.toString().trim() !== '')
       .map(([key, value]) => {
         // Format key for display
         const displayKey = key

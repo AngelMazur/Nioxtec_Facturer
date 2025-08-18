@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useStore } from '../../../store/store'
-import { generateContractPDF, downloadContractPDF } from '../services/contractService'
+import { generateContractPDF, downloadContractPDF, saveContractAsClientDocument } from '../services/contractService'
 import ContractForm from './ContractForm'
 import ContractPreview from './ContractPreview'
 import TemplateSelector from './TemplateSelector'
@@ -9,12 +9,13 @@ import toast from 'react-hot-toast'
 /**
  * Main contract generator modal component
  */
-export default function ContractGeneratorModal({ isOpen, onClose, selectedClient = null }) {
+export default function ContractGeneratorModal({ isOpen, onClose, selectedClient = null, onDocumentSaved = null }) {
   const { token } = useStore()
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [formData, setFormData] = useState({})
   const [activeTab, setActiveTab] = useState('form') // 'form' | 'preview'
   const [generatingPDF, setGeneratingPDF] = useState(false)
+  const [savingDocument, setSavingDocument] = useState(false)
 
   // Handle form data changes
   const handleFormDataChange = useCallback((data) => {
@@ -34,6 +35,56 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     setActiveTab('form')
   }, [])
 
+  // Generate filename
+  const generateFilename = useCallback(() => {
+    const clientName = formData['nombre_completo_del_cliente'] || formData['nombre_de_la_empresa_o_persona'] || 'Cliente'
+    const date = new Date().toISOString().slice(0, 10)
+    
+    // Clean template name by removing "Plantilla_" prefix and file extension
+    let templateName = selectedTemplate.name
+    if (selectedTemplate.filename && selectedTemplate.filename.startsWith('Plantilla_')) {
+      templateName = selectedTemplate.filename.replace('Plantilla_', '').replace('.docx', '')
+    }
+    
+    return `${templateName}_${clientName.replace(/\s+/g, '_')}_${date}.pdf`
+  }, [formData, selectedTemplate])
+
+  // Save contract as client document
+  const handleSaveDocument = async () => {
+    if (!selectedTemplate || !formData) {
+      toast.error('No hay datos suficientes para guardar el contrato')
+      return
+    }
+
+    if (!selectedClient) {
+      toast.error('No hay cliente seleccionado para guardar el documento')
+      return
+    }
+
+    try {
+      setSavingDocument(true)
+      
+      const filename = generateFilename()
+      
+      // Save contract as client document
+      await saveContractAsClientDocument(selectedTemplate.id, formData, filename, selectedClient.id, token)
+      
+      toast.success('Contrato guardado como documento del cliente')
+      
+      // Call callback to refresh client documents if provided
+      if (onDocumentSaved && selectedClient) {
+        onDocumentSaved(selectedClient.id)
+      }
+      
+      onClose()
+    } catch (error) {
+      console.error('Error saving document:', error)
+      toast.error('Error al guardar el contrato como documento')
+    } finally {
+      setSavingDocument(false)
+    }
+  }
+
   // Generate and download PDF
   const handleGeneratePDF = async () => {
     if (!selectedTemplate || !formData) {
@@ -44,17 +95,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     try {
       setGeneratingPDF(true)
       
-      // Generate filename
-      const clientName = formData['nombre_completo_del_cliente'] || formData['nombre_de_la_empresa_o_persona'] || 'Cliente'
-      const date = new Date().toISOString().slice(0, 10)
-      
-      // Clean template name by removing "Plantilla_" prefix and file extension
-      let templateName = selectedTemplate.name
-      if (selectedTemplate.filename && selectedTemplate.filename.startsWith('Plantilla_')) {
-        templateName = selectedTemplate.filename.replace('Plantilla_', '').replace('.docx', '')
-      }
-      
-      const filename = `${templateName}_${clientName.replace(/\s+/g, '_')}_${date}.pdf`
+      const filename = generateFilename()
       
       // Generate PDF using template ID and form data
       const pdfBlob = await generateContractPDF(selectedTemplate.id, formData, filename, token)
@@ -183,11 +224,24 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
               >
                 Cancelar
               </button>
+              {selectedClient && (
+                <button
+                  onClick={handleSaveDocument}
+                  disabled={savingDocument || generatingPDF || !formData || Object.keys(formData).length === 0}
+                  className={`px-4 py-3 rounded transition-all duration-200 text-sm ${
+                    savingDocument || generatingPDF || !formData || Object.keys(formData).length === 0
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                      : 'bg-secondary text-white hover:scale-105'
+                  }`}
+                >
+                  {savingDocument ? 'Guardando...' : 'Guardar'}
+                </button>
+              )}
               <button
                 onClick={handleGeneratePDF}
-                disabled={generatingPDF || !formData || Object.keys(formData).length === 0}
+                disabled={generatingPDF || savingDocument || !formData || Object.keys(formData).length === 0}
                 className={`px-4 lg:px-6 py-2 rounded transition-all duration-200 text-sm lg:text-base ${
-                  generatingPDF || !formData || Object.keys(formData).length === 0
+                  generatingPDF || savingDocument || !formData || Object.keys(formData).length === 0
                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     : 'bg-primary hover:opacity-90 text-white'
                 }`}

@@ -528,6 +528,7 @@ export default function Clientes() {
         isOpen={showContractModal}
         onClose={() => setShowContractModal(false)}
         selectedClient={selectedClientForContract}
+        onDocumentSaved={loadClientDocs}
       />
     </main>
   )

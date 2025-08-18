@@ -1405,7 +1405,7 @@ def login():
 
 @app.post('/api/contracts/generate-pdf')
 @jwt_required()
-@limiter.limit("10 per minute")
+@limiter.limit("25 per minute")
 def generate_contract_pdf():
     """
     Generate PDF from contract content.
@@ -1728,6 +1728,226 @@ def download_contract_pdf(filename):
     except Exception as e:
         app.logger.error(f"Error downloading contract PDF: {e}")
         return jsonify({'error': 'Error downloading file'}), 500
+
+
+@app.post('/api/contracts/save-as-document')
+@jwt_required()
+@limiter.limit("10 per minute")
+def save_contract_as_document():
+    """
+    Save generated contract PDF as client document.
+    
+    Accepts template ID, form data, filename and client ID, generates PDF and saves it as client document.
+    
+    Returns:
+        JSON: Saved document info on success
+    """
+    data = request.get_json(force=True)
+    template_id = data.get('template_id')
+    form_data = data.get('form_data', {})
+    filename = data.get('filename', 'contract.pdf')
+    client_id = data.get('client_id')
+    
+    if not template_id:
+        return jsonify({'error': 'Template ID is required'}), 400
+    
+    if not client_id:
+        return jsonify({'error': 'Client ID is required'}), 400
+    
+    # Verify client exists
+    client = Client.query.get(client_id)
+    if not client:
+        return jsonify({'error': 'Client not found'}), 404
+    
+    try:
+        # Get template filename
+        template_filename = None
+        if template_id == 'compraventa':
+            template_filename = 'Contrato_Compraventa_Plazos_NIOXTEC_v5.docx'
+        elif template_id == 'renting':
+            template_filename = 'Plantilla_Contrato_Renting_Firma_Datos_v2.docx'
+        else:
+            return jsonify({'error': 'Invalid template ID'}), 400
+        
+        # Load and fill DOCX template
+        template_path = os.path.join(STATIC_FOLDER, 'contracts', 'templates', template_filename)
+        if not os.path.exists(template_path):
+            return jsonify({'error': 'Template file not found'}), 404
+        
+        # Load DOCX document
+        doc = Document(template_path)
+        
+        # Get original placeholders from template
+        template_info = extract_placeholders_from_docx(template_filename)
+        if 'error' in template_info:
+            return jsonify({'error': template_info['error']}), 400
+        
+        original_tokens = template_info.get('original_tokens', {})
+        
+        # Mapping from document placeholders to form data keys
+        placeholder_mapping = {
+            # Compraventa template - usar solo las claves principales
+            'Nombre completo del cliente': 'nombre_completo_del_cliente',
+            'DNI DEL CLIENTE': 'numero',
+            'Dirección del cliente': 'direccion',
+            'Teléfono del cliente': 'telefono',
+            'Correo del cliente': 'correo',
+            'Modelo del producto': 'modelo',
+            'Pulgadas del producto': 'pulgadas',
+            'Número de serie del producto': 'numero_serie',
+            'importe total en euros, IVA incluido': 'importe_total_en_euros_iva_incluido',
+            'número de plazos': 'numero_de_plazos',
+            'importe de cada cuota': 'importe_de_cada_cuota',
+            'Tabla de interes': 'tabla_de_interes',
+            
+            # Campos duplicados - mapear a las mismas claves principales
+            'Nombre del comprador': 'nombre_completo_del_cliente',  # = Nombre completo del cliente
+            'Dni del comprador': 'numero',  # = DNI DEL CLIENTE
+            'Modelo': 'modelo',  # = Modelo del producto
+            'Pulgadas': 'pulgadas',  # = Pulgadas del producto
+            'Número de Serie': 'numero_serie',  # = Número de serie del producto
+            
+            # Renting template
+            'Nombre de la empresa o persona': 'nombre_de_la_empresa_o_persona',
+            'Número': 'numero',
+            'Dirección': 'direccion',
+            'Nombre representante': 'nombre_representante',
+            'Cargo': 'cargo',
+            'Teléfono': 'telefono',
+            'Correo': 'correo',
+            'Marca': 'marca',
+            'importe en euros': 'importe_en_euros',
+            'plataforma de pago': 'plataforma_de_pago',
+            'IBAN': 'iban',
+            'importe ajustado': 'importe_ajustado',
+        }
+        
+        # Interest table mapping based on number of installments
+        def get_interest_text(num_plazos):
+            if 0 <= num_plazos <= 3:
+                return "Sin intereses"
+            elif 4 <= num_plazos <= 6:
+                return "5% interés mensual"
+            elif 7 <= num_plazos <= 12:
+                return "10% interés mensual"
+            elif 13 <= num_plazos <= 18:
+                return "20% interés mensual"
+            elif 19 <= num_plazos <= 24:
+                return "25% interés mensual"
+            else:
+                return "30% interés mensual"
+        
+        # Fill placeholders in document
+        for paragraph in doc.paragraphs:
+            for placeholder, form_key in placeholder_mapping.items():
+                if placeholder in original_tokens:
+                    original_token = original_tokens[placeholder]
+                    value = form_data.get(form_key, '')
+                    
+                    # Special handling for interest table
+                    if placeholder == 'Tabla de interes':
+                        num_plazos = form_data.get('numero_de_plazos', 0)
+                        try:
+                            num_plazos = int(num_plazos)
+                            value = get_interest_text(num_plazos)
+                        except (ValueError, TypeError):
+                            value = "Sin intereses"
+                    
+                    # Replace placeholder with value
+                    if original_token in paragraph.text:
+                        paragraph.text = paragraph.text.replace(original_token, str(value))
+        
+        # Fill placeholders in tables
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for placeholder, form_key in placeholder_mapping.items():
+                            if placeholder in original_tokens:
+                                original_token = original_tokens[placeholder]
+                                value = form_data.get(form_key, '')
+                                
+                                # Special handling for interest table
+                                if placeholder == 'Tabla de interes':
+                                    num_plazos = form_data.get('numero_de_plazos', 0)
+                                    try:
+                                        num_plazos = int(num_plazos)
+                                        value = get_interest_text(num_plazos)
+                                    except (ValueError, TypeError):
+                                        value = "Sin intereses"
+                                
+                                # Replace placeholder with value
+                                if original_token in paragraph.text:
+                                    paragraph.text = paragraph.text.replace(original_token, str(value))
+        
+        # Save filled DOCX temporarily
+        temp_docx_path = os.path.join(DOWNLOAD_FOLDER, f"temp_{uuid4().hex}.docx")
+        doc.save(temp_docx_path)
+        
+        # Generate PDF from filled DOCX
+        cfg = _resolve_pdfkit_configuration()
+        if pdfkit and cfg:
+            # Convert DOCX to HTML first
+            contract_html = _docx_to_html(temp_docx_path)
+            
+            # PDF options
+            options = {
+                'page-size': 'A4',
+                'margin-top': '0.75in',
+                'margin-right': '0.75in',
+                'margin-bottom': '0.75in',
+                'margin-left': '0.75in',
+                'encoding': "UTF-8",
+                'no-outline': None,
+                'enable-local-file-access': None
+            }
+            
+            pdf_bytes = pdfkit.from_string(contract_html, False, options=options, configuration=cfg)
+        else:
+            # Fallback to reportlab
+            pdf_bytes = _generate_contract_pdf_fallback(_docx_to_text(temp_docx_path))
+        
+        # Clean up temporary DOCX
+        try:
+            os.remove(temp_docx_path)
+        except:
+            pass
+        
+        # Save PDF to client documents folder
+        safe_filename = secure_filename(filename)
+        base_dir = _client_upload_dir(client_id)
+        documents_dir = os.path.join(base_dir, 'documents')
+        os.makedirs(documents_dir, exist_ok=True)
+        
+        unique_name = f"{uuid4().hex}_{safe_filename}"
+        stored_rel = os.path.join(str(client_id), 'documents', unique_name)
+        stored_abs = os.path.join(UPLOADS_ROOT, stored_rel)
+        
+        with open(stored_abs, 'wb') as f:
+            f.write(pdf_bytes)
+        
+        # Save document record to database
+        doc_record = ClientDocument(
+            client_id=client_id,
+            category='document',
+            filename=safe_filename,
+            stored_path=stored_rel,
+            content_type='application/pdf',
+            size_bytes=len(pdf_bytes),
+        )
+        db.session.add(doc_record)
+        db.session.commit()
+        
+        return jsonify({
+            'id': doc_record.id,
+            'filename': safe_filename,
+            'size_bytes': len(pdf_bytes),
+            'uploaded_at': doc_record.uploaded_at.isoformat()
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error saving contract as document: {e}")
+        return jsonify({'error': 'Error saving contract as document'}), 500
 
 
 @app.get('/static/contracts/images/<filename>')

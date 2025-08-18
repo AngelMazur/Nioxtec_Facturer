@@ -3,7 +3,6 @@
  */
 
 import { apiPost, apiGetBlob, apiGet } from '../../../lib/api'
-import { contractTemplate } from '../templates/contractTemplate'
 
 /**
  * Load contract placeholders from DOCX template
@@ -43,6 +42,31 @@ export async function generateContractPDF(templateId, formData, filename, token)
   } catch (error) {
     console.error('Error generating PDF:', error)
     throw new Error('Error al generar el PDF del contrato')
+  }
+}
+
+/**
+ * Save contract PDF as client document
+ * @param {string} templateId - Template ID
+ * @param {Object} formData - Form data with placeholder values
+ * @param {string} filename - Desired filename
+ * @param {number} clientId - Client ID to save document to
+ * @param {string} token - JWT token
+ * @returns {Promise<Object>} Saved document info
+ */
+export async function saveContractAsClientDocument(templateId, formData, filename, clientId, token) {
+  try {
+    const response = await apiPost('/contracts/save-as-document', {
+      template_id: templateId,
+      form_data: formData,
+      filename: filename,
+      client_id: clientId
+    }, token)
+    
+    return response
+  } catch (error) {
+    console.error('Error saving contract as document:', error)
+    throw new Error('Error al guardar el contrato como documento del cliente')
   }
 }
 
