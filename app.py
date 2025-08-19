@@ -1915,6 +1915,16 @@ def save_contract_as_document():
         
         # Save PDF to client documents folder
         safe_filename = secure_filename(filename)
+        
+        # Check if document with same filename already exists for this client
+        existing_doc = ClientDocument.query.filter_by(
+            client_id=client_id, 
+            filename=safe_filename
+        ).first()
+        
+        if existing_doc:
+            return jsonify({'error': f'Ya existe un documento con el nombre "{safe_filename}" para este cliente'}), 409
+        
         base_dir = _client_upload_dir(client_id)
         documents_dir = os.path.join(base_dir, 'documents')
         os.makedirs(documents_dir, exist_ok=True)
