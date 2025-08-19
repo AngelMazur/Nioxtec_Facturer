@@ -51,12 +51,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     setActiveTab('form')
   }, [])
 
-  // Handle clear form data
-  const handleClearForm = useCallback(() => {
-    setFormData({})
-    setActiveTab('form')
-    toast.success('Formulario limpiado. Completa los campos para crear un nuevo contrato.')
-  }, [])
+
 
   // Handle modal close with reset
   const handleClose = useCallback(() => {
@@ -337,13 +332,6 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
                 className="px-3 lg:px-4 py-2 text-gray-300 hover:text-white transition-colors text-sm lg:text-base"
               >
                 Cancelar
-              </button>
-              <button
-                onClick={handleClearForm}
-                disabled={savingDocument || generatingPDF}
-                className="px-3 lg:px-4 py-2 text-gray-300 hover:text-white transition-colors text-sm lg:text-base border border-gray-600 hover:border-gray-500"
-              >
-                Limpiar
               </button>
               {selectedClient && (
                 <button
