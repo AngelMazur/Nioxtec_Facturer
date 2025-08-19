@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useStore } from '../../../store/store'
 import { generateContractPDF, downloadContractPDF, saveContractAsClientDocument } from '../services/contractService'
 import ContractForm from './ContractForm'
@@ -18,6 +18,19 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
   const [generatingPDF, setGeneratingPDF] = useState(false)
   const [savingDocument, setSavingDocument] = useState(false)
 
+  // Reset modal state when it opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset all state when modal closes
+      setSelectedTemplate(null)
+      setFormData({})
+      setActiveFields([])
+      setActiveTab('form')
+      setGeneratingPDF(false)
+      setSavingDocument(false)
+    }
+  }, [isOpen])
+
   // Handle form data changes
   const handleFormDataChange = useCallback((data) => {
     setFormData(data)
@@ -35,6 +48,17 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     setFormData({})
     setActiveTab('form')
   }, [])
+
+  // Handle modal close with reset
+  const handleClose = useCallback(() => {
+    setSelectedTemplate(null)
+    setFormData({})
+    setActiveFields([])
+    setActiveTab('form')
+    setGeneratingPDF(false)
+    setSavingDocument(false)
+    onClose()
+  }, [onClose])
 
   // Generate filename
   const generateFilename = useCallback(() => {
@@ -143,10 +167,18 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
         onDocumentSaved(selectedClient.id)
       }
       
-      onClose()
+      // Don't close modal when saving - just reset form
+      setFormData({})
+      setActiveTab('form')
+      toast.success('Puedes generar otro contrato o cerrar la ventana')
     } catch (error) {
       console.error('Error saving document:', error)
-      toast.error('Error al guardar el contrato como documento')
+      // Check if it's a duplicate document error
+      if (error.message && error.message.includes('ya existe') || error.message.includes('already exists')) {
+        toast.error('Este documento ya está guardado. Cambia el nombre o genera un PDF diferente.')
+      } else {
+        toast.error('Error al guardar el contrato como documento')
+      }
     } finally {
       setSavingDocument(false)
     }
@@ -177,7 +209,8 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
       downloadContractPDF(pdfBlob, filename)
       
       toast.success('Contrato generado y descargado correctamente')
-      onClose()
+      // Close modal when generating PDF
+      handleClose()
     } catch (error) {
       console.error('Error generating PDF:', error)
       toast.error('Error al generar el PDF del contrato')
@@ -213,7 +246,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-white transition-colors p-1"
           >
             <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -293,7 +326,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
             </div>
             <div className="flex gap-2 lg:gap-3">
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-3 lg:px-4 py-2 text-gray-300 hover:text-white transition-colors text-sm lg:text-base"
               >
                 Cancelar
