@@ -361,11 +361,11 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
 
         {/* Footer */}
         {selectedTemplate && (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 lg:p-4 border-t border-gray-700 bg-gray-900 gap-3">
-            <div className="text-xs lg:text-sm text-gray-400 order-2 sm:order-1">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between p-3 lg:p-4 border-t border-gray-700 bg-gray-900 gap-3">
+            <div className="text-xs lg:text-sm text-gray-400 order-2 lg:order-1">
               {activeTab === 'form' ? 'Completa todos los campos obligatorios' : 'Revisa la vista previa'}
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 lg:gap-3 order-1 sm:order-2">
+            <div className="flex flex-col lg:flex-row gap-2 lg:gap-3 order-1 lg:order-2">
               <button
                 onClick={handleClose}
                 className="px-3 lg:px-4 py-2 text-gray-300 hover:text-white transition-colors text-sm lg:text-base border border-gray-600 hover:border-gray-500 rounded"
