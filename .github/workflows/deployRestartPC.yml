@@ -129,4 +129,18 @@ jobs:
             exit 1
           }
 
+      - name: Reiniciar PC automaticamente
+        shell: powershell
+        run: |
+          Write-Host "=== REINICIO AUTOMATICO DE PC ==="
+          Write-Host "Deploy completado exitosamente, reiniciando PC..."
+          
+          if (Test-Path '.\\DEVELOPER\\scripts\\restart_pc.ps1') {
+            . .\\DEVELOPER\\scripts\\restart_pc.ps1
+          } else {
+            Write-Host "ERROR: No se encontro restart_pc.ps1"
+            Write-Host "Reiniciando PC manualmente..."
+            Restart-Computer -Force
+          }
+
 
