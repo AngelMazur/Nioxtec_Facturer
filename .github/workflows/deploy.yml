@@ -3,13 +3,7 @@
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
-    inputs:
-      restart_pc:
-        description: 'Reiniciar PC después del deploy'
-        required: false
-        default: 'false'
-        type: boolean
+  workflow_dispatch: {}
 
 concurrency:
   group: deploy-production
@@ -135,12 +129,11 @@ jobs:
             exit 1
           }
 
-      - name: Reiniciar PC (opcional)
-        if: ${{ github.event.inputs.restart_pc == 'true' }}
+      - name: Reiniciar PC automaticamente
         shell: powershell
         run: |
-          Write-Host "=== REINICIO DE PC SOLICITADO ==="
-          Write-Host "Ejecutando script de reinicio..."
+          Write-Host "=== REINICIO AUTOMATICO DE PC ==="
+          Write-Host "Deploy completado exitosamente, reiniciando PC..."
           
           if (Test-Path '.\\DEVELOPER\\scripts\\restart_pc.ps1') {
             . .\\DEVELOPER\\scripts\\restart_pc.ps1
