@@ -6,7 +6,7 @@ import { loadContractPlaceholders, loadCompanyConfig } from '../services/contrac
  * Dynamic contract form component
  * Generates form fields based on template placeholders
  */
-export default function ContractForm({ onFormDataChange, onTemplateLoaded, selectedClient, selectedTemplate }) {
+export default function ContractForm({ onFormDataChange, onTemplateLoaded, selectedClient, selectedTemplate, onActiveFieldsChange }) {
   const { token } = useStore()
   const [placeholders, setPlaceholders] = useState([])
   const [formData, setFormData] = useState({})
@@ -92,6 +92,29 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
     }
   }, [formData])
 
+  // Notify parent of active fields for validation
+  useEffect(() => {
+    if (onActiveFieldsChange && placeholders.length > 0) {
+      // Get unique placeholders (filter duplicates)
+      const uniquePlaceholders = []
+      const seenKeys = new Set()
+      
+      placeholders.forEach(placeholder => {
+        if (placeholder && placeholder.trim() !== '') {
+          const finalKey = getFormKeyFromPlaceholder(placeholder)
+          if (!seenKeys.has(finalKey)) {
+            seenKeys.add(finalKey)
+            uniquePlaceholders.push(placeholder)
+          }
+        }
+      })
+      
+      // Map to field keys for validation
+      const activeFields = uniquePlaceholders.map(placeholder => getFormKeyFromPlaceholder(placeholder))
+      onActiveFieldsChange(activeFields)
+    }
+  }, [placeholders, onActiveFieldsChange])
+
   // Function to filter out duplicate fields and show only unique ones
   const getUniquePlaceholders = () => {
     const uniquePlaceholders = []
@@ -167,7 +190,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
     }
   }, [formData.importe_total_en_euros_iva_incluido, formData.numero_de_plazos, selectedTemplate?.id])
 
-  // Mapping from document placeholders to form data keys (inverse of backend mapping)
+  // Mapping from document placeholders to form data keys (static - no need for useCallback)
   const getFormKeyFromPlaceholder = (placeholder) => {
     const mapping = {
       // Compraventa template - usar solo las claves principales

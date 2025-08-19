@@ -13,6 +13,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
   const { token } = useStore()
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [formData, setFormData] = useState({})
+  const [activeFields, setActiveFields] = useState([])
   const [activeTab, setActiveTab] = useState('form') // 'form' | 'preview'
   const [generatingPDF, setGeneratingPDF] = useState(false)
   const [savingDocument, setSavingDocument] = useState(false)
@@ -49,17 +50,23 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     return `${templateName}_${clientName.replace(/\s+/g, '_')}_${date}.pdf`
   }, [formData, selectedTemplate])
 
-  // Validate form data - check all required fields
+  // Validate form data - check only active fields
   const validateFormData = useCallback(() => {
     if (!formData || Object.keys(formData).length === 0) {
       toast.error('No hay datos del formulario para validar')
       return { isValid: false, missingFields: [] }
     }
 
+    if (activeFields.length === 0) {
+      toast.error('No se han cargado los campos del formulario')
+      return { isValid: false, missingFields: [] }
+    }
+
     const missingFields = []
     
-    // Check all form fields - all are required
-    Object.entries(formData).forEach(([key, value]) => {
+    // Only validate the active fields that are actually shown in the form
+    activeFields.forEach(fieldKey => {
+      const value = formData[fieldKey]
       if (!value || value.toString().trim() === '') {
         // Map field keys to user-friendly names
         const fieldNames = {
@@ -90,7 +97,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
           'ciudad_provincia': 'Ciudad/Provincia'
         }
         
-        missingFields.push(fieldNames[key] || key)
+        missingFields.push(fieldNames[fieldKey] || fieldKey)
       }
     })
 
@@ -101,7 +108,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     }
 
     return { isValid: true, missingFields: [] }
-  }, [formData])
+  }, [formData, activeFields])
 
   // Save contract as client document
   const handleSaveDocument = async () => {
@@ -259,6 +266,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
               <div className={`w-full p-2 lg:p-3 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
                 <ContractForm
                   onFormDataChange={handleFormDataChange}
+                  onActiveFieldsChange={setActiveFields}
                   selectedClient={selectedClient}
                   selectedTemplate={selectedTemplate}
                 />
