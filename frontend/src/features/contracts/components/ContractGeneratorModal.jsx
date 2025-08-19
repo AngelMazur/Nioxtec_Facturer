@@ -169,8 +169,6 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
       // Save contract as client document
       await saveContractAsClientDocument(selectedTemplate.id, formData, filename, selectedClient.id, token)
       
-      toast.success('Contrato guardado como documento del cliente')
-      
       // Call callback to refresh client documents if provided
       if (onDocumentSaved && selectedClient) {
         onDocumentSaved(selectedClient.id)
