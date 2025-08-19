@@ -232,9 +232,9 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
 
   if (!isOpen) return null
 
-  return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 z-50">
-        <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-6xl max-h-[85vh] overflow-hidden shadow-2xl">
+    return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 z-50">
+      <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-3 lg:p-4 border-b border-gray-700">
           <div className="flex items-center gap-3">
@@ -307,7 +307,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
 
             {/* Form Panel */}
             {selectedTemplate && (
-              <div className={`w-full p-2 lg:p-3 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
+              <div className={`w-full p-2 lg:p-3 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(90vh - 220px)' }}>
                 {/* Custom Filename Input */}
                 <div className="mb-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -349,7 +349,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
 
             {/* Preview Panel */}
             {selectedTemplate && (
-              <div className={`w-full p-3 lg:p-4 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
+              <div className={`w-full p-3 lg:p-4 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(90vh - 220px)' }}>
                 <ContractPreview
                   formData={formData}
                   loading={!formData || Object.keys(formData).length === 0}
@@ -361,7 +361,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
 
         {/* Footer */}
         {selectedTemplate && (
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between p-3 lg:p-4 border-t border-gray-700 bg-gray-900 gap-3">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between p-3 lg:p-4 border-t border-gray-700 bg-gray-800 gap-3 sticky bottom-0">
             <div className="text-xs lg:text-sm text-gray-400 order-2 lg:order-1">
               {activeTab === 'form' ? 'Completa todos los campos obligatorios' : 'Revisa la vista previa'}
             </div>
