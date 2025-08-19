@@ -376,7 +376,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
                 <button
                   onClick={handleSaveDocument}
                   disabled={savingDocument || generatingPDF}
-                  className={`px-4 py-2 rounded transition-all duration-200 text-sm ${
+                  className={`px-3 lg:px-4 py-2 rounded transition-all duration-200 text-sm lg:text-base ${
                     savingDocument || generatingPDF
                       ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                       : 'bg-secondary text-white hover:scale-105'
@@ -388,7 +388,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
               <button
                 onClick={handleGeneratePDF}
                 disabled={generatingPDF || savingDocument}
-                className={`px-4 lg:px-6 py-2 rounded transition-all duration-200 text-sm lg:text-base ${
+                className={`px-3 lg:px-4 py-2 rounded transition-all duration-200 text-sm lg:text-base ${
                   generatingPDF || savingDocument
                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     : 'bg-primary hover:opacity-90 text-white'
