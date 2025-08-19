@@ -18,6 +18,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
   const [generatingPDF, setGeneratingPDF] = useState(false)
   const [savingDocument, setSavingDocument] = useState(false)
   const [resetKey, setResetKey] = useState(0)
+  const [customFilename, setCustomFilename] = useState('')
 
   // Reset modal state when it opens/closes
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
       setGeneratingPDF(false)
       setSavingDocument(false)
       setResetKey(0)
+      setCustomFilename('')
     }
   }, [isOpen])
 
@@ -66,6 +68,13 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
 
   // Generate filename
   const generateFilename = useCallback(() => {
+    // If custom filename is provided, use it
+    if (customFilename && customFilename.trim()) {
+      const filename = customFilename.trim()
+      return filename.endsWith('.pdf') ? filename : `${filename}.pdf`
+    }
+    
+    // Otherwise generate automatic filename
     const clientName = formData['nombre_completo_del_cliente'] || formData['nombre_de_la_empresa_o_persona'] || 'Cliente'
     const date = new Date().toISOString().slice(0, 10)
     
@@ -76,7 +85,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     }
     
     return `${templateName}_${clientName.replace(/\s+/g, '_')}_${date}.pdf`
-  }, [formData, selectedTemplate])
+  }, [formData, selectedTemplate, customFilename])
 
   // Validate form data - check only active fields
   const validateFormData = useCallback(() => {
@@ -175,8 +184,9 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     } catch (error) {
       console.error('Error saving document:', error)
       // Check if it's a duplicate document error
-      if (error.message && error.message.includes('ya existe') || error.message.includes('already exists')) {
-        toast.error('Este documento ya está guardado. Cambia el nombre o genera un PDF diferente.')
+      if (error.message && (error.message.includes('ya existe') || error.message.includes('already exists'))) {
+        const filename = generateFilename()
+        toast.error(`No se puede guardar este archivo con el mismo nombre: "${filename}". Cambia el nombre del archivo o genera un PDF diferente.`)
       } else {
         toast.error('Error al guardar el contrato como documento')
       }
@@ -298,6 +308,35 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
             {/* Form Panel */}
             {selectedTemplate && (
               <div className={`w-full p-2 lg:p-3 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(85vh - 180px)' }}>
+                {/* Custom Filename Input */}
+                <div className="mb-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Nombre del archivo
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={customFilename}
+                      onChange={(e) => setCustomFilename(e.target.value)}
+                      placeholder={generateFilename()}
+                      className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setCustomFilename('')}
+                      className="px-2 py-2 text-gray-400 hover:text-white transition-colors"
+                      title="Usar nombre automático"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Deja vacío para usar el nombre automático: {generateFilename()}
+                  </p>
+                </div>
+                
                 <ContractForm
                   onFormDataChange={handleFormDataChange}
                   onActiveFieldsChange={setActiveFields}
