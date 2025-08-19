@@ -2042,7 +2042,8 @@ def _docx_to_html(docx_path):
             text = paragraph.text.strip()
             
             # Debug logging
-            app.logger.info(f"Processing paragraph: '{text}'")
+            app.logger.info(f"Processing paragraph: '{text}' (length: {len(text)})")
+            app.logger.info(f"Text in uppercase: '{text.upper()}'")
             
             # Detectar títulos basándose en el contenido y formato
             if text.upper() == "CONTRATO DE COMPRAVENTA A PLAZOS SIN INTERESES":
@@ -2057,7 +2058,7 @@ def _docx_to_html(docx_path):
                 # Sección principal del contrato de compraventa
                 app.logger.info(f"Detected section title: {text}")
                 html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
-            elif text.upper() == "CLAUSULAS":
+            elif text.upper() in ["CLAUSULAS", "CLÁUSULAS"]:
                 # Sección principal del contrato de renting
                 app.logger.info(f"Detected section title: {text}")
                 html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
@@ -2078,15 +2079,8 @@ def _docx_to_html(docx_path):
                     html_parts.append(f'<p>{text}</p>')
             elif text.upper() in ["1. OBJETO DEL CONTRATO", "2. DURACIÓN MÍNIMA DEL RENTING", "3. CUOTA DE RENTING Y FORMA DE PAGO", "4. CESIÓN DE PROPIEDAD", "5. USO, INSTALACIÓN Y CONTENIDOS", "6. SERVICIO TÉCNICO Y SOPORTE", "7. RESPONSABILIDAD Y BUENAS PRÁCTICAS", "8. FORMA DE PAGO Y AUTORIZACIÓN SEPA", "9. CANCELACIÓN ANTICIPADA", "10. JURISDICCIÓN"]:
                 # Subsecciones del contrato de renting
-                # Verificar que sea un título independiente (no parte de una frase)
-                if len(text.split()) <= 5 and not any(char in text for char in ['.', ',', ':', ';']):
-                    app.logger.info(f"Detected subsection title: {text}")
-                    html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.2em;">{text}</h3>')
-                else:
-                    # Es parte de una frase, tratarlo como texto normal
-                    app.logger.info(f"Title word found in sentence, treating as normal text: {text}")
-                    text = text.replace('\n', '<br>')
-                    html_parts.append(f'<p>{text}</p>')
+                app.logger.info(f"Detected subsection title: {text}")
+                html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.2em;">{text}</h3>')
             else:
                 # Texto normal
                 text = text.replace('\n', '<br>')
