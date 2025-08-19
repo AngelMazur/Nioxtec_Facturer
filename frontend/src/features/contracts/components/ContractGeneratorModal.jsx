@@ -17,6 +17,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
   const [activeTab, setActiveTab] = useState('form') // 'form' | 'preview'
   const [generatingPDF, setGeneratingPDF] = useState(false)
   const [savingDocument, setSavingDocument] = useState(false)
+  const [resetKey, setResetKey] = useState(0)
 
   // Reset modal state when it opens/closes
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
       setActiveTab('form')
       setGeneratingPDF(false)
       setSavingDocument(false)
+      setResetKey(0)
     }
   }, [isOpen])
 
@@ -47,6 +49,13 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     setSelectedTemplate(null)
     setFormData({})
     setActiveTab('form')
+  }, [])
+
+  // Handle clear form data
+  const handleClearForm = useCallback(() => {
+    setFormData({})
+    setActiveTab('form')
+    toast.success('Formulario limpiado. Completa los campos para crear un nuevo contrato.')
   }, [])
 
   // Handle modal close with reset
@@ -77,7 +86,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
   // Validate form data - check only active fields
   const validateFormData = useCallback(() => {
     if (!formData || Object.keys(formData).length === 0) {
-      toast.error('No hay datos del formulario para validar')
+      toast.error('Completa el formulario antes de guardar o generar el PDF')
       return { isValid: false, missingFields: [] }
     }
 
@@ -167,10 +176,9 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
         onDocumentSaved(selectedClient.id)
       }
       
-      // Don't close modal when saving - just reset form
-      setFormData({})
+      // Keep form data after saving - user can generate PDF or create another contract
       setActiveTab('form')
-      toast.success('Puedes generar otro contrato o cerrar la ventana')
+      toast.success('Contrato guardado. Puedes generar el PDF o crear otro contrato.')
     } catch (error) {
       console.error('Error saving document:', error)
       // Check if it's a duplicate document error
@@ -302,6 +310,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
                   onActiveFieldsChange={setActiveFields}
                   selectedClient={selectedClient}
                   selectedTemplate={selectedTemplate}
+                  resetKey={resetKey}
                 />
               </div>
             )}
@@ -330,6 +339,13 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
                 className="px-3 lg:px-4 py-2 text-gray-300 hover:text-white transition-colors text-sm lg:text-base"
               >
                 Cancelar
+              </button>
+              <button
+                onClick={handleClearForm}
+                disabled={savingDocument || generatingPDF}
+                className="px-3 lg:px-4 py-2 text-gray-300 hover:text-white transition-colors text-sm lg:text-base border border-gray-600 hover:border-gray-500"
+              >
+                Limpiar
               </button>
               {selectedClient && (
                 <button

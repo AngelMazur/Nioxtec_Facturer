@@ -6,7 +6,7 @@ import { loadContractPlaceholders, loadCompanyConfig } from '../services/contrac
  * Dynamic contract form component
  * Generates form fields based on template placeholders
  */
-export default function ContractForm({ onFormDataChange, onTemplateLoaded, selectedClient, selectedTemplate, onActiveFieldsChange }) {
+export default function ContractForm({ onFormDataChange, onTemplateLoaded, selectedClient, selectedTemplate, onActiveFieldsChange, resetKey = 0 }) {
   const { token } = useStore()
   const [placeholders, setPlaceholders] = useState([])
   const [formData, setFormData] = useState({})
@@ -83,7 +83,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
     }
     
     loadPlaceholders()
-  }, [selectedTemplate, selectedClient, token, onTemplateLoaded])
+  }, [selectedTemplate, selectedClient, token, onTemplateLoaded, resetKey])
 
   // Notify parent of form data changes
   useEffect(() => {
