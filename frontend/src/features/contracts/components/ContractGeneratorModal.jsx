@@ -49,15 +49,75 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     return `${templateName}_${clientName.replace(/\s+/g, '_')}_${date}.pdf`
   }, [formData, selectedTemplate])
 
+  // Validate form data - check all required fields
+  const validateFormData = useCallback(() => {
+    if (!formData || Object.keys(formData).length === 0) {
+      toast.error('No hay datos del formulario para validar')
+      return { isValid: false, missingFields: [] }
+    }
+
+    const missingFields = []
+    
+    // Check all form fields - all are required
+    Object.entries(formData).forEach(([key, value]) => {
+      if (!value || value.toString().trim() === '') {
+        // Map field keys to user-friendly names
+        const fieldNames = {
+          'nombre_completo_del_cliente': 'Nombre completo del cliente',
+          'nombre_de_la_empresa_o_persona': 'Nombre de la empresa o persona',
+          'nombre_representante': 'Nombre del representante',
+          'numero': 'Número/DNI',
+          'direccion': 'Dirección',
+          'telefono': 'Teléfono',
+          'correo': 'Correo electrónico',
+          'modelo': 'Modelo del producto',
+          'pulgadas': 'Pulgadas del producto',
+          'numero_serie': 'Número de serie',
+          'importe_total_en_euros_iva_incluido': 'Importe total en euros (IVA incluido)',
+          'importe_en_euros': 'Importe en euros',
+          'numero_de_plazos': 'Número de plazos',
+          'importe_de_cada_cuota': 'Importe de cada cuota',
+          'tabla_de_interes': 'Tabla de interés',
+          'cargo': 'Cargo',
+          'marca': 'Marca',
+          'plataforma_de_pago': 'Plataforma de pago',
+          'iban': 'IBAN',
+          'importe_ajustado': 'Importe ajustado',
+          'nombre_del_proveedor': 'Nombre del proveedor',
+          'nif_proveedor': 'NIF del proveedor',
+          'domicilio_proveedor': 'Domicilio del proveedor',
+          'ciudad': 'Ciudad',
+          'ciudad_provincia': 'Ciudad/Provincia'
+        }
+        
+        missingFields.push(fieldNames[key] || key)
+      }
+    })
+
+    if (missingFields.length > 0) {
+      const missingFieldsText = missingFields.join(', ')
+      toast.error(`Faltan campos obligatorios: ${missingFieldsText}`)
+      return { isValid: false, missingFields }
+    }
+
+    return { isValid: true, missingFields: [] }
+  }, [formData])
+
   // Save contract as client document
   const handleSaveDocument = async () => {
-    if (!selectedTemplate || !formData) {
-      toast.error('No hay datos suficientes para guardar el contrato')
+    if (!selectedTemplate) {
+      toast.error('No hay plantilla seleccionada')
       return
     }
 
     if (!selectedClient) {
       toast.error('No hay cliente seleccionado para guardar el documento')
+      return
+    }
+
+    // Validate form data
+    const validation = validateFormData()
+    if (!validation.isValid) {
       return
     }
 
@@ -87,8 +147,14 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
 
   // Generate and download PDF
   const handleGeneratePDF = async () => {
-    if (!selectedTemplate || !formData) {
-      toast.error('No hay datos suficientes para generar el contrato')
+    if (!selectedTemplate) {
+      toast.error('No hay plantilla seleccionada')
+      return
+    }
+
+    // Validate form data
+    const validation = validateFormData()
+    if (!validation.isValid) {
       return
     }
 
@@ -215,7 +281,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
         {selectedTemplate && (
           <div className="flex items-center justify-between p-3 lg:p-4 border-t border-gray-700 bg-gray-900">
             <div className="text-xs lg:text-sm text-gray-400">
-              {activeTab === 'form' ? 'Completa el formulario' : 'Revisa la vista previa'}
+              {activeTab === 'form' ? 'Completa todos los campos obligatorios' : 'Revisa la vista previa'}
             </div>
             <div className="flex gap-2 lg:gap-3">
               <button
@@ -227,9 +293,9 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
               {selectedClient && (
                 <button
                   onClick={handleSaveDocument}
-                  disabled={savingDocument || generatingPDF || !formData || Object.keys(formData).length === 0}
+                  disabled={savingDocument || generatingPDF}
                   className={`px-4 py-3 rounded transition-all duration-200 text-sm ${
-                    savingDocument || generatingPDF || !formData || Object.keys(formData).length === 0
+                    savingDocument || generatingPDF
                       ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                       : 'bg-secondary text-white hover:scale-105'
                   }`}
@@ -239,9 +305,9 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
               )}
               <button
                 onClick={handleGeneratePDF}
-                disabled={generatingPDF || savingDocument || !formData || Object.keys(formData).length === 0}
+                disabled={generatingPDF || savingDocument}
                 className={`px-4 lg:px-6 py-2 rounded transition-all duration-200 text-sm lg:text-base ${
-                  generatingPDF || savingDocument || !formData || Object.keys(formData).length === 0
+                  generatingPDF || savingDocument
                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     : 'bg-primary hover:opacity-90 text-white'
                 }`}
