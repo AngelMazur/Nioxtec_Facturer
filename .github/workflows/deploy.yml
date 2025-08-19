@@ -3,7 +3,13 @@
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      restart_pc:
+        description: 'Reiniciar PC después del deploy'
+        required: false
+        default: 'false'
+        type: boolean
 
 concurrency:
   group: deploy-production
@@ -127,6 +133,21 @@ jobs:
           } else {
             Write-Error ("API respondio con codigo: " + $response.StatusCode)
             exit 1
+          }
+
+      - name: Reiniciar PC (opcional)
+        if: ${{ github.event.inputs.restart_pc == 'true' }}
+        shell: powershell
+        run: |
+          Write-Host "=== REINICIO DE PC SOLICITADO ==="
+          Write-Host "Ejecutando script de reinicio..."
+          
+          if (Test-Path '.\\DEVELOPER\\scripts\\restart_pc.ps1') {
+            . .\\DEVELOPER\\scripts\\restart_pc.ps1
+          } else {
+            Write-Host "ERROR: No se encontro restart_pc.ps1"
+            Write-Host "Reiniciando PC manualmente..."
+            Restart-Computer -Force
           }
 
 
