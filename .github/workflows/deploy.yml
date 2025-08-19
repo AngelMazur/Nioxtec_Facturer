@@ -22,6 +22,11 @@ jobs:
     steps:
       - name: Preflight – PowerShell policy
         shell: powershell
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          Write-Host "Deteniendo backend..."
+          . .\DEVELOPER\stop_all.ps1
         run: |
           Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
@@ -129,4 +134,8 @@ jobs:
             exit 1
           }
 
-
+      - name: Reiniciando backend
+        shell: powershell
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: | .\DEVELOPER\deploy_prod.ps1
