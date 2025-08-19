@@ -66,6 +66,10 @@ export async function saveContractAsClientDocument(templateId, formData, filenam
     return response
   } catch (error) {
     console.error('Error saving contract as document:', error)
+    // Preserve the original error message from the backend
+    if (error.message && error.message.includes('Ya existe un documento')) {
+      throw error // Keep the original error message
+    }
     throw new Error('Error al guardar el contrato como documento del cliente')
   }
 }
