@@ -183,13 +183,8 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
       toast.success('Contrato guardado. Puedes generar el PDF o crear otro contrato.')
     } catch (error) {
       console.error('Error saving document:', error)
-      // Check if it's a duplicate document error
-      if (error.message && (error.message.includes('ya existe') || error.message.includes('already exists'))) {
-        const filename = generateFilename()
-        toast.error(`No se puede guardar este archivo con el mismo nombre: "${filename}". Cambia el nombre del archivo o genera un PDF diferente.`)
-      } else {
-        toast.error('Error al guardar el contrato como documento')
-      }
+      // Show the original error message from the backend
+      toast.error(error.message || 'Error al guardar el contrato como documento')
     } finally {
       setSavingDocument(false)
     }
