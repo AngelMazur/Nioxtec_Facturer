@@ -1,8 +1,6 @@
-﻿name: Deploy to Production (Windows Self‑Hosted)
+﻿name: Deploy to Production (Windows Self‑Hosted) - Manual Restart
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch: {}
 
 concurrency:
