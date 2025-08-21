@@ -9,6 +9,7 @@ import Header from './components/Header'
 const Clientes = lazy(() => import('./pages/Clientes'))
 const Facturas = lazy(() => import('./pages/Facturas'))
 const Reportes = lazy(() => import('./pages/Reportes'))
+const Gastos = lazy(() => import('./pages/Gastos'))
 const Login = lazy(() => import('./pages/Login'))
 
 function TopNav({ onLogout }) {
@@ -33,6 +34,7 @@ export default function App() {
           <Header>
             <Link className="text-sm font-medium hover:text-brand" to="/facturas">Facturas</Link>
             <Link className="text-sm font-medium hover:text-brand" to="/clientes">Clientes</Link>
+            <Link className="text-sm font-medium hover:text-brand" to="/gastos">Gastos</Link>
             <Link className="text-sm font-medium hover:text-brand" to="/reportes">Reportes</Link>
             <button className="text-sm text-red-600" onClick={logout}>Salir</button>
           </Header>
@@ -42,6 +44,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           {token && <Route path="/clientes" element={<Clientes />} />}
           {token && <Route path="/facturas" element={<Facturas />} />}
+          {token && <Route path="/gastos" element={<Gastos />} />}
           {token && <Route path="/reportes" element={<Reportes />} />}
           {!token && <Route path="*" element={<Navigate to="/login" />} />}
         </Routes>

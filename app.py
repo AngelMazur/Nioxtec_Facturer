@@ -382,6 +382,20 @@ class DocumentSequence(db.Model):
     last_number = db.Column(db.Integer, nullable=False, default=0)
 
 
+class Expense(db.Model):
+    """Represents an expense record."""
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False, index=True)
+    category = db.Column(db.String(64), nullable=False, index=True)
+    description = db.Column(db.String(256), nullable=False)
+    supplier = db.Column(db.String(128), nullable=False)
+    base_amount = db.Column(db.Float, nullable=False)
+    tax_rate = db.Column(db.Float, default=21.0)
+    total = db.Column(db.Float, nullable=False)
+    paid = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 # -----------------------------------------------------------------------------
 # Helper functions
 
@@ -1268,6 +1282,199 @@ def export_invoices_xlsx():
     wb.save(bio)
     bio.seek(0)
     return send_file(bio, as_attachment=True, download_name='facturas.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
+@app.route('/api/expenses', methods=['POST'])
+@jwt_required()
+def create_expense():
+    """Create a new expense record."""
+    data = request.get_json(force=True)
+    date_str = data.get('date')
+    category = data.get('category')
+    description = data.get('description')
+    supplier = data.get('supplier')
+    base_amount = data.get('base_amount')
+    tax_rate = data.get('tax_rate', 21.0)
+    total = data.get('total')
+    paid = data.get('paid', False)
+    
+    if not (date_str and category and description and supplier and base_amount is not None):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    if base_amount < 0:
+        return jsonify({'error': 'Base amount must be non-negative'}), 400
+    
+    if not (0 <= tax_rate <= 100):
+        return jsonify({'error': 'Tax rate must be between 0 and 100'}), 400
+    
+    # Calculate total if not provided
+    if total is None:
+        total = round(base_amount * (1 + tax_rate / 100), 2)
+    
+    date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+    
+    expense = Expense(
+        date=date_obj,
+        category=category,
+        description=description,
+        supplier=supplier,
+        base_amount=base_amount,
+        tax_rate=tax_rate,
+        total=total,
+        paid=paid
+    )
+    
+    db.session.add(expense)
+    db.session.commit()
+    
+    return jsonify({
+        'id': expense.id,
+        'date': expense.date.isoformat(),
+        'category': expense.category,
+        'description': expense.description,
+        'supplier': expense.supplier,
+        'base_amount': expense.base_amount,
+        'tax_rate': expense.tax_rate,
+        'total': expense.total,
+        'paid': expense.paid,
+        'created_at': expense.created_at.isoformat()
+    }), 201
+
+
+@app.route('/api/expenses', methods=['GET'])
+@jwt_required()
+def list_expenses():
+    """List expenses with pagination, search and sorting."""
+    limit = request.args.get('limit', type=int, default=10)
+    offset = request.args.get('offset', type=int, default=0)
+    q = request.args.get('q', '')
+    sort = request.args.get('sort', 'date')
+    dir = request.args.get('dir', 'desc')
+    
+    # Validate sort field
+    allowed_sort = {'date', 'total', 'created_at', 'category'}
+    if sort not in allowed_sort:
+        sort = 'date'
+    
+    # Validate direction
+    if dir not in {'asc', 'desc'}:
+        dir = 'desc'
+    
+    query = Expense.query
+    
+    # Apply search filter
+    if q:
+        search_term = f'%{q}%'
+        query = query.filter(
+            db.or_(
+                Expense.description.ilike(search_term),
+                Expense.supplier.ilike(search_term),
+                Expense.category.ilike(search_term)
+            )
+        )
+    
+    # Apply sorting
+    sort_field = getattr(Expense, sort)
+    if dir == 'desc':
+        sort_field = sort_field.desc()
+    query = query.order_by(sort_field)
+    
+    total = query.count()
+    expenses = query.offset(offset).limit(limit).all()
+    
+    items = []
+    for exp in expenses:
+        items.append({
+            'id': exp.id,
+            'date': exp.date.isoformat(),
+            'category': exp.category,
+            'description': exp.description,
+            'supplier': exp.supplier,
+            'base_amount': exp.base_amount,
+            'tax_rate': exp.tax_rate,
+            'total': exp.total,
+            'paid': exp.paid,
+            'created_at': exp.created_at.isoformat()
+        })
+    
+    return jsonify({'items': items, 'total': total})
+
+
+@app.route('/api/expenses/<int:expense_id>', methods=['PUT'])
+@jwt_required()
+def update_expense(expense_id):
+    """Update an existing expense record."""
+    expense = Expense.query.get_or_404(expense_id)
+    data = request.get_json(force=True)
+    
+    if 'date' in data:
+        expense.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+    if 'category' in data:
+        expense.category = data['category']
+    if 'description' in data:
+        expense.description = data['description']
+    if 'supplier' in data:
+        expense.supplier = data['supplier']
+    if 'base_amount' in data:
+        base_amount = data['base_amount']
+        if base_amount < 0:
+            return jsonify({'error': 'Base amount must be non-negative'}), 400
+        expense.base_amount = base_amount
+    if 'tax_rate' in data:
+        tax_rate = data['tax_rate']
+        if not (0 <= tax_rate <= 100):
+            return jsonify({'error': 'Tax rate must be between 0 and 100'}), 400
+        expense.tax_rate = tax_rate
+    if 'paid' in data:
+        expense.paid = data['paid']
+    
+    # Recalculate total if base_amount or tax_rate changed
+    if 'base_amount' in data or 'tax_rate' in data:
+        expense.total = round(expense.base_amount * (1 + expense.tax_rate / 100), 2)
+    elif 'total' in data:
+        expense.total = data['total']
+    
+    db.session.commit()
+    
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/expenses/<int:expense_id>', methods=['DELETE'])
+@jwt_required()
+def delete_expense(expense_id):
+    """Delete an expense record."""
+    expense = Expense.query.get_or_404(expense_id)
+    db.session.delete(expense)
+    db.session.commit()
+    return jsonify({'status': 'deleted'})
+
+
+@app.route('/api/expenses/export_xlsx')
+@jwt_required()
+def export_expenses_xlsx():
+    """Export expenses to XLSX file."""
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Gastos'
+    ws.append(['id', 'date', 'category', 'description', 'supplier', 'base_amount', 'tax_rate', 'total', 'paid', 'created_at'])
+    for exp in Expense.query.order_by(Expense.id).all():
+        ws.append([
+            exp.id, 
+            exp.date.isoformat(), 
+            exp.category, 
+            exp.description, 
+            exp.supplier, 
+            exp.base_amount, 
+            exp.tax_rate, 
+            exp.total, 
+            exp.paid, 
+            exp.created_at.isoformat()
+        ])
+    bio = io.BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+    return send_file(bio, as_attachment=True, download_name='gastos.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 
 @app.route('/api/invoices/<int:invoice_id>/pdf', methods=['GET'])
