@@ -53,11 +53,18 @@ export default function Gastos() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      // Convert numeric fields to proper types before sending
+      const submitData = {
+        ...formData,
+        base_amount: parseFloat(formData.base_amount),
+        tax_rate: parseFloat(formData.tax_rate)
+      }
+      
       if (editingExpense) {
-        await apiPut(`/expenses/${editingExpense.id}`, formData, token)
+        await apiPut(`/expenses/${editingExpense.id}`, submitData, token)
         toast.success('Gasto actualizado correctamente')
       } else {
-        await apiPost('/expenses', formData, token)
+        await apiPost('/expenses', submitData, token)
         toast.success('Gasto creado correctamente')
       }
       setShowForm(false)
