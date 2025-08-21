@@ -9,9 +9,8 @@ import {
   // apiPatch,
 } from '../lib/api';
 import toast from 'react-hot-toast';
-import Skeleton from 'react-loading-skeleton';
+import CustomSkeleton from "../components/CustomSkeleton"
 import { motion } from 'framer-motion';
-import 'react-loading-skeleton/dist/skeleton.css';
 
 export default function Facturas() {
   const { 
@@ -504,7 +503,7 @@ export default function Facturas() {
       <section>
         <h3 className="text-xl font-semibold mb-2">Listado</h3>
         {loading ? (
-          <Skeleton count={5} height={30} className="mb-2" />
+          <CustomSkeleton count={5} height={30} className="mb-2" />
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
             {(() => {

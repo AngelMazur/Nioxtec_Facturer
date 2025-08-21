@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { useStore } from './store/store'
 import { Link, useNavigate } from 'react-router-dom'
 import Header from './components/Header'
+import LoadingSpinner from './components/LoadingSpinner'
 
 // Lazy load pages for code splitting
 const Clientes = lazy(() => import('./pages/Clientes'))
@@ -29,7 +30,7 @@ export default function App() {
   return (
     <BrowserRouter>
       {/* Modo oscuro forzado globalmente; sin conmutador */}
-      <Suspense fallback={<div className="container-page py-8">Cargando…</div>}>
+      <Suspense fallback={<LoadingSpinner />}>
         {token && (
           <Header>
             <Link className="text-sm font-medium hover:text-brand" to="/facturas">Facturas</Link>

@@ -23,6 +23,40 @@ module.exports = {
           foreground: '#ffffff',
         },
       },
+      keyframes: {
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        'shimmer-delayed': {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        'shimmer-vertical': {
+          '0%': { backgroundPosition: '0 -200%' },
+          '100%': { backgroundPosition: '0 200%' },
+        },
+        'shimmer-vertical-delayed': {
+          '0%': { backgroundPosition: '0 -200%' },
+          '100%': { backgroundPosition: '0 200%' },
+        },
+        'shimmer-bottom-up': {
+          '0%': { backgroundPosition: '0 200%' },
+          '100%': { backgroundPosition: '0 -200%' },
+        },
+        'shimmer-bottom-up-delayed': {
+          '0%': { backgroundPosition: '0 200%' },
+          '100%': { backgroundPosition: '0 -200%' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 2s infinite',
+        'shimmer-delayed': 'shimmer-delayed 2s infinite',
+        'shimmer-vertical': 'shimmer-vertical 2s infinite',
+        'shimmer-vertical-delayed': 'shimmer-vertical-delayed 2s infinite',
+        'shimmer-bottom-up': 'shimmer-bottom-up 2s infinite',
+        'shimmer-bottom-up-delayed': 'shimmer-bottom-up-delayed 2s infinite',
+      },
     },
   },
   plugins: [],
@@ -56,6 +90,12 @@ module.exports = {
     'transition-colors',
     'transform',
     'duration-200',
-    'duration-300'
+    'duration-300',
+    'animate-shimmer',
+    'animate-shimmer-delayed',
+    'animate-shimmer-vertical',
+    'animate-shimmer-vertical-delayed',
+    'animate-shimmer-bottom-up',
+    'animate-shimmer-bottom-up-delayed'
   ],
 }

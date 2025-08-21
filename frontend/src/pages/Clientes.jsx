@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../store/store'
 import { apiGet, apiPost, apiDelete, apiGetBlob } from '../lib/api'
 import toast from 'react-hot-toast'
-import Skeleton from 'react-loading-skeleton'
-import 'react-loading-skeleton/dist/skeleton.css'
 import ContractGeneratorModal from '../features/contracts/components/ContractGeneratorModal'
+import CustomSkeleton from "../components/CustomSkeleton"
 
 export default function Clientes() {
   const { clients, setClients, token } = useStore()
@@ -175,7 +174,7 @@ export default function Clientes() {
       <section>
          <h3 className="text-xl font-semibold mb-2">Listado</h3>
         {loading ? (
-          <Skeleton count={5} height={30} className="mb-2" />
+          <CustomSkeleton count={5} height={30} className="mb-2" />
         ) : (
           <>
           <div className="hidden sm:grid grid-cols-[minmax(0,2fr)_12rem_minmax(0,1.6fr)_12rem] gap-6 text-xs text-gray-500 px-2 items-center">
@@ -315,7 +314,7 @@ export default function Clientes() {
             </div>
             {tab==='facturas' && (
               <div className="mt-4">
-                {clientInvoices.loading ? <Skeleton count={3} height={24} /> : (
+                {clientInvoices.loading ? <CustomSkeleton count={3} height={24} /> : (
                   clientInvoices.items.length ? (
                     <>
                       <ul className="divide-y divide-gray-800">
@@ -381,7 +380,7 @@ export default function Clientes() {
               <div className="mt-4 space-y-6">
                 <div>
                   <h5 className="font-semibold mb-2">Documentos <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='document').length}</span></h5>
-                  {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
+                  {clientDocs.loading ? <CustomSkeleton count={2} height={20} /> : (
                     <>
                       {(() => {
                         const documents = clientDocs.items.filter(d=>d.category==='document')
@@ -453,7 +452,7 @@ export default function Clientes() {
                 </div>
                 <div>
                   <h5 className="font-semibold mb-2">Imagenes <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='image').length}</span></h5>
-                  {clientDocs.loading ? <Skeleton count={2} height={20} /> : (
+                  {clientDocs.loading ? <CustomSkeleton count={2} height={20} /> : (
                     <>
                       {(() => {
                         const images = clientDocs.items.filter(d=>d.category==='image')

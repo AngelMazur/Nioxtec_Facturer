@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiGet, apiPost, apiPut, apiDelete, apiGetBlob } from '../lib/api'
 import { useStore } from '../store/store'
 import toast from 'react-hot-toast'
+import Skeleton from 'react-loading-skeleton'
+import { motion } from 'framer-motion'
+import CustomSkeleton from "../components/CustomSkeleton"
+import 'react-loading-skeleton/dist/skeleton.css'
 
 export default function Gastos() {
   const { token } = useStore()
@@ -142,248 +146,439 @@ export default function Gastos() {
 
   const totalPages = Math.ceil(total / limit)
 
-  if (loading) {
-    return (
-      <div className="container-page py-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-700 rounded w-1/4 mb-6"></div>
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-700 rounded"></div>
-            ))}
+  return (
+    <main className="mx-auto max-w-6xl p-4 space-y-8">
+      <h2 className="text-2xl font-bold">Gastos</h2>
+      
+      {/* Formulario integrado */}
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 bg-gray-800 p-4 rounded-lg border border-gray-700"
+      >
+        <h3 className="font-semibold">Nuevo Gasto</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-500">Fecha *</span>
+            <input
+              type="date"
+              required
+              value={formData.date}
+              onChange={(e) => setFormData({...formData, date: e.target.value})}
+              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+          </label>
+          
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-500">Categoría *</span>
+            <input
+              type="text"
+              required
+              maxLength={64}
+              value={formData.category}
+              onChange={(e) => setFormData({...formData, category: e.target.value})}
+              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+          </label>
+          
+          <label className="flex flex-col gap-1 sm:col-span-2">
+            <span className="text-sm text-gray-500">Concepto *</span>
+            <input
+              type="text"
+              required
+              maxLength={256}
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+          </label>
+          
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-500">Proveedor *</span>
+            <input
+              type="text"
+              required
+              maxLength={128}
+              value={formData.supplier}
+              onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+          </label>
+          
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-500">Base (€) *</span>
+            <input
+              type="number"
+              required
+              min="0"
+              step="0.01"
+              value={formData.base_amount}
+              onChange={(e) => setFormData({...formData, base_amount: e.target.value})}
+              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+          </label>
+          
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-500">IVA (%)</span>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              value={formData.tax_rate}
+              onChange={(e) => setFormData({...formData, tax_rate: parseFloat(e.target.value) || 0})}
+              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+          </label>
+          
+          <div className="flex items-center sm:col-span-2">
+            <input
+              type="checkbox"
+              id="paid"
+              checked={formData.paid}
+              onChange={(e) => setFormData({...formData, paid: e.target.checked})}
+              className="mr-2"
+            />
+            <label htmlFor="paid" className="text-sm font-medium">Pagado</label>
           </div>
         </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="container-page py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Gastos</h1>
+        
         <div className="flex gap-2">
           <button
-            onClick={handleExport}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+            type="submit"
+            className="bg-primary hover:opacity-90 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-brand focus:ring-opacity-50"
           >
-            Exportar
+            Guardar
           </button>
           <button
-            onClick={() => {
-              setShowForm(true)
-              setEditingExpense(null)
-              resetForm()
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            type="button"
+            onClick={resetForm}
+            className="bg-secondary hover:opacity-90 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-brand focus:ring-opacity-50"
           >
-            Nuevo Gasto
+            Limpiar
           </button>
         </div>
-      </div>
+      </form>
 
-      {/* Search */}
-      <div className="mb-4">
+      {/* Búsqueda */}
+      <div className="flex gap-2 items-center">
         <input
           type="text"
           placeholder="Buscar en descripción, proveedor o categoría..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
         />
+        <button
+          onClick={handleExport}
+          className="bg-green-600 hover:bg-green-700 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+        >
+          Exportar
+        </button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-gray-600">
-          <thead>
-            <tr className="bg-gray-800">
-              <th 
-                className="border border-gray-600 px-4 py-2 text-left cursor-pointer hover:bg-gray-700"
-                onClick={() => handleSort('date')}
-              >
-                Fecha {sort === 'date' && (dir === 'asc' ? '↑' : '↓')}
-              </th>
-              <th className="border border-gray-600 px-4 py-2 text-left">Categoría</th>
-              <th className="border border-gray-600 px-4 py-2 text-left">Concepto</th>
-              <th className="border border-gray-600 px-4 py-2 text-left">Proveedor</th>
-              <th className="border border-gray-600 px-4 py-2 text-right">Base</th>
-              <th className="border border-gray-600 px-4 py-2 text-right">IVA %</th>
-              <th 
-                className="border border-gray-600 px-4 py-2 text-right cursor-pointer hover:bg-gray-700"
-                onClick={() => handleSort('total')}
-              >
-                Total {sort === 'total' && (dir === 'asc' ? '↑' : '↓')}
-              </th>
-              <th className="border border-gray-600 px-4 py-2 text-center">Pagado</th>
-              <th className="border border-gray-600 px-4 py-2 text-center">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {expenses.map((expense) => (
-              <tr key={expense.id} className="hover:bg-gray-800">
-                <td className="border border-gray-600 px-4 py-2">
-                  {new Date(expense.date).toLocaleDateString('es-ES')}
-                </td>
-                <td className="border border-gray-600 px-4 py-2">{expense.category}</td>
-                <td className="border border-gray-600 px-4 py-2">{expense.description}</td>
-                <td className="border border-gray-600 px-4 py-2">{expense.supplier}</td>
-                <td className="border border-gray-600 px-4 py-2 text-right">
-                  {expense.base_amount.toFixed(2)} €
-                </td>
-                <td className="border border-gray-600 px-4 py-2 text-right">
-                  {expense.tax_rate}%
-                </td>
-                <td className="border border-gray-600 px-4 py-2 text-right font-semibold">
-                  {expense.total.toFixed(2)} €
-                </td>
-                <td className="border border-gray-600 px-4 py-2 text-center">
-                  {expense.paid ? (
-                    <span className="text-green-400">✓</span>
-                  ) : (
-                    <span className="text-red-400">✗</span>
-                  )}
-                </td>
-                <td className="border border-gray-600 px-4 py-2 text-center">
-                  <div className="flex gap-2 justify-center">
-                    <button
+      {/* Listado */}
+      <section>
+        <h3 className="text-xl font-semibold mb-2">Listado</h3>
+        {loading ? (
+          <CustomSkeleton count={5} height={30} className="mb-2" />
+        ) : (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <table className="w-full table-fixed border-separate border-spacing-y-2">
+                <thead>
+                  <tr className="text-xs text-gray-400">
+                    <th className="text-left px-2 w-[12%]">
+                      <button 
+                        className="hover:underline" 
+                        onClick={() => handleSort('date')}
+                      >
+                        Fecha {sort === 'date' && (dir === 'asc' ? '↑' : '↓')}
+                      </button>
+                    </th>
+                    <th className="text-left px-2 w-[15%]">Categoría</th>
+                    <th className="text-left px-2 w-[25%]">Concepto</th>
+                    <th className="text-left px-2 w-[20%]">Proveedor</th>
+                    <th className="text-right px-2 w-[10%]">Base</th>
+                    <th className="text-right px-2 w-[8%]">IVA %</th>
+                    <th className="text-right px-2 w-[10%]">
+                      <button 
+                        className="hover:underline" 
+                        onClick={() => handleSort('total')}
+                      >
+                        Total {sort === 'total' && (dir === 'asc' ? '↑' : '↓')}
+                      </button>
+                    </th>
+                    <th className="text-center px-2 w-[8%]">Pagado</th>
+                    <th className="text-right px-2 w-[12%]">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenses.map((expense) => (
+                    <tr key={expense.id} className="cursor-pointer group hover:scale-[1.02] transition-all duration-200">
+                      <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors rounded-l-lg whitespace-nowrap">
+                        {new Date(expense.date).toLocaleDateString('es-ES')}
+                      </td>
+                      <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors truncate">
+                        {expense.category}
+                      </td>
+                      <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors truncate">
+                        {expense.description}
+                      </td>
+                      <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors truncate">
+                        {expense.supplier}
+                      </td>
+                      <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-right font-medium tabular-nums whitespace-nowrap">
+                        {expense.base_amount.toFixed(2)} €
+                      </td>
+                      <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-right text-sm">
+                        {expense.tax_rate}%
+                      </td>
+                      <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-right font-semibold tabular-nums whitespace-nowrap">
+                        {expense.total.toFixed(2)} €
+                      </td>
+                      <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-center">
+                        {expense.paid ? (
+                          <span className="text-green-400">✓</span>
+                        ) : (
+                          <span className="text-red-400">✗</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors rounded-r-lg">
+                        <div className="flex flex-col items-end gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEdit(expense)
+                            }}
+                            className="text-brand underline hover:scale-105 transition-transform duration-200"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDelete(expense.id)
+                            }}
+                            className="text-red-600 underline hover:scale-105 transition-transform duration-200"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-2">
+              {expenses.map((expense) => (
+                <div key={expense.id} className="p-3 bg-gray-800 border border-gray-700 rounded active:scale-95 active:bg-gray-700 transition-all duration-200">
+                  <div className="space-y-1">
+                    <div className="text-xs text-gray-500">Fecha</div>
+                    <div className="font-medium">{new Date(expense.date).toLocaleDateString('es-ES')}</div>
+                    
+                    <div className="text-xs text-gray-500 mt-2">Categoría</div>
+                    <div className="text-gray-300">{expense.category}</div>
+                    
+                    <div className="text-xs text-gray-500 mt-2">Concepto</div>
+                    <div className="text-gray-300">{expense.description}</div>
+                    
+                    <div className="text-xs text-gray-500 mt-2">Proveedor</div>
+                    <div className="text-gray-300">{expense.supplier}</div>
+                    
+                    <div className="text-xs text-gray-500 mt-2">Base</div>
+                    <div className="font-medium tabular-nums">{expense.base_amount.toFixed(2)} €</div>
+                    
+                    <div className="text-xs text-gray-500 mt-2">IVA</div>
+                    <div className="text-gray-300">{expense.tax_rate}%</div>
+                    
+                    <div className="text-xs text-gray-500 mt-2">Total</div>
+                    <div className="font-semibold text-gray-100 tabular-nums">{expense.total.toFixed(2)} €</div>
+                    
+                    <div className="text-xs text-gray-500 mt-2">Pagado</div>
+                    <div className="text-gray-300">
+                      {expense.paid ? (
+                        <span className="text-green-400">✓ Pagado</span>
+                      ) : (
+                        <span className="text-red-400">✗ Pendiente</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
+                    <button 
+                      className="text-brand underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-brand focus:ring-opacity-50 rounded"
                       onClick={() => handleEdit(expense)}
-                      className="px-2 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                     >
                       Editar
                     </button>
-                    <button
+                    <button 
+                      className="text-red-600 underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded"
                       onClick={() => handleDelete(expense.id)}
-                      className="px-2 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
                     >
-                      Borrar
+                      Eliminar
                     </button>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </section>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          <button
-            onClick={() => setPage(Math.max(0, page - 1))}
-            disabled={page === 0}
-            className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
-          >
-            Anterior
-          </button>
-          <span className="px-3 py-1">
-            Página {page + 1} de {totalPages}
-          </span>
-          <button
-            onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-            disabled={page === totalPages - 1}
-            className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
-          >
-            Siguiente
-          </button>
+        <div className="flex items-center justify-between gap-2 mt-3">
+          {page > 0 ? (
+            <button 
+              className="bg-secondary text-white px-3 py-1 rounded hover:scale-105 transition-transform duration-200" 
+              onClick={() => setPage(Math.max(0, page - 1))}
+            >
+              Anterior
+            </button>
+          ) : <span />}
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }).map((_, i) => {
+              const currentPage = i
+              const isActive = currentPage === page
+              return (
+                <button
+                  key={currentPage}
+                  onClick={() => setPage(currentPage)}
+                  className={isActive ? 'bg-primary text-white px-3 py-1 rounded' : 'px-3 py-1 rounded border border-gray-700 text-gray-300 hover:text-brand hover:scale-105 transition-transform duration-200'}
+                >
+                  {currentPage + 1}
+                </button>
+              )
+            })}
+          </div>
+          {page < totalPages - 1 ? (
+            <button 
+              className="bg-primary text-white px-3 py-1 rounded hover:scale-105 transition-transform duration-200" 
+              onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+            >
+              Siguiente
+            </button>
+          ) : <span />}
         </div>
       )}
 
-      {/* Form Modal */}
+      {/* Form Modal para edición */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-900 p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
-              {editingExpense ? 'Editar Gasto' : 'Nuevo Gasto'}
-            </h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => {
+          setShowForm(false)
+          setEditingExpense(null)
+          resetForm()
+        }}>
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <h4 className="text-xl font-semibold">
+                {editingExpense ? 'Editar Gasto' : 'Nuevo Gasto'}
+              </h4>
+              <button 
+                className="text-gray-400 hover:text-white" 
+                onClick={() => {
+                  setShowForm(false)
+                  setEditingExpense(null)
+                  resetForm()
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Fecha *</label>
-                <input
-                  type="date"
-                  required
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-600 rounded bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Categoría *</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={64}
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-600 rounded bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Concepto *</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={256}
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-600 rounded bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Proveedor *</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={128}
-                  value={formData.supplier}
-                  onChange={(e) => setFormData({...formData, supplier: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-600 rounded bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Base (€) *</label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  step="0.01"
-                  value={formData.base_amount}
-                  onChange={(e) => setFormData({...formData, base_amount: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-600 rounded bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">IVA (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={formData.tax_rate}
-                  onChange={(e) => setFormData({...formData, tax_rate: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 border border-gray-600 rounded bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="paid"
-                  checked={formData.paid}
-                  onChange={(e) => setFormData({...formData, paid: e.target.checked})}
-                  className="mr-2"
-                />
-                <label htmlFor="paid" className="text-sm font-medium">Pagado</label>
+              <div className="grid grid-cols-1 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm text-gray-500">Fecha *</span>
+                  <input
+                    type="date"
+                    required
+                    value={formData.date}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                  />
+                </label>
+                
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm text-gray-500">Categoría *</span>
+                  <input
+                    type="text"
+                    required
+                    maxLength={64}
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                  />
+                </label>
+                
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm text-gray-500">Concepto *</span>
+                  <input
+                    type="text"
+                    required
+                    maxLength={256}
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                  />
+                </label>
+                
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm text-gray-500">Proveedor *</span>
+                  <input
+                    type="text"
+                    required
+                    maxLength={128}
+                    value={formData.supplier}
+                    onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+                    className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                  />
+                </label>
+                
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm text-gray-500">Base (€) *</span>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    value={formData.base_amount}
+                    onChange={(e) => setFormData({...formData, base_amount: e.target.value})}
+                    className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                  />
+                </label>
+                
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm text-gray-500">IVA (%)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={formData.tax_rate}
+                    onChange={(e) => setFormData({...formData, tax_rate: parseFloat(e.target.value) || 0})}
+                    className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                  />
+                </label>
+                
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="modal-paid"
+                    checked={formData.paid}
+                    onChange={(e) => setFormData({...formData, paid: e.target.checked})}
+                    className="mr-2"
+                  />
+                  <label htmlFor="modal-paid" className="text-sm font-medium">Pagado</label>
+                </div>
               </div>
               
               <div className="flex gap-2 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="flex-1 bg-primary hover:opacity-90 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-brand focus:ring-opacity-50"
                 >
                   {editingExpense ? 'Actualizar' : 'Crear'}
                 </button>
@@ -394,7 +589,7 @@ export default function Gastos() {
                     setEditingExpense(null)
                     resetForm()
                   }}
-                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                  className="flex-1 bg-gray-600 hover:bg-gray-700 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
                 >
                   Cancelar
                 </button>
@@ -403,6 +598,6 @@ export default function Gastos() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   )
 }
