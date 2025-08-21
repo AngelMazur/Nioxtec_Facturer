@@ -13,7 +13,7 @@ const NeoGradientButton = ({
         :root{ --pcb-stroke:#CFF6FF; }
         .neo-gradient-btn{
           position:relative; display:inline-flex; align-items:center; gap:14px;
-          padding:16px 28px; border-radius:999px; color:white; font-weight:700; letter-spacing:.2px;
+          padding:16px 28px; border-radius:16px; color:white; font-weight:700; letter-spacing:.2px;
           background:linear-gradient(90deg,#195569 0%, #197391 25%, #197D9B 50%, #1987A5 75%, #0F9BC3 100%);
           border:1px solid rgba(255,255,255,.18);
           box-shadow:0 14px 28px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.28);
@@ -31,7 +31,7 @@ const NeoGradientButton = ({
             0 0 8px rgba(255,255,255,0.8),
             0 0 16px rgba(255,255,255,0.4),
             0 0 24px rgba(255,255,255,0.2);
-          transform: scale(1.02);
+          transform: scale(1.08);
         }
         .neo-gradient-btn .text-layer::before {
           content: '';
@@ -97,7 +97,7 @@ const NeoGradientButton = ({
         .neo-gradient-btn:hover .neo-plus svg {
           stroke: #ffffff;
           filter: drop-shadow(0 0 8px rgba(255,255,255,0.8)) drop-shadow(0 0 16px rgba(255,255,255,0.4));
-          transform: scale(1.1);
+          transform: scale(1.15);
         }
         @keyframes rotate {
           from { transform: rotate(0deg); }
