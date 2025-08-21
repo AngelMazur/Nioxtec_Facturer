@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint --ext .js,.jsx frontend_src",
+    "lint": "eslint --ext .js,.jsx src",
     "format": "prettier --write .",
     "prepare": "husky install",
     "preview": "vite preview"
