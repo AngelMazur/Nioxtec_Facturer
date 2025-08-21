@@ -34,3 +34,4 @@ logs/
 # Env/Secrets
 .env
 .env.*
+~/

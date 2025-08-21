@@ -1,304 +1,276 @@
-# NIOXTEC Facturer
+# Nioxtec Facturer
 
-Aplicación de facturación simple: Backend Flask + Frontend React (Vite) sin Docker.
+Sistema de gestión de facturas y contratos con backend Flask y frontend React.
 
-## Entornos soportados
+## 🌍 Entornos del Proyecto
 
-- Producción (Windows Server):
-  - Backend Flask ejecutado como tarea programada (schtasks) con entorno virtual Windows `.venv310` (gunicorn o `python app.py`).
-  - Frontend React servido como estático tras `npm run build` (IIS/Nginx/serve) como tarea programada.
-  - Scripts PowerShell: `DEVELOPER/scripts/start_all.ps1`, `stop_all.ps1`, `deploy_prod.ps1`, `register_deploy_task.ps1`.
-- Desarrollo (macOS):
-  - Backend Flask (debug) en 5001 (puerto 5001 para evitar conflicto con AirPlay en macOS).
-  - Frontend con Vite dev server en 5173 (hot reload). Los scripts automáticos levantan este flujo y abren `http://localhost:5173`.
-  - Alternativa prod-like local: gunicorn en 5000 y `serve` en 8080 (opcional).
+### 🖥️ Desarrollo
+- **Sistema**: macOS (desarrollo remoto)
+- **Backend**: Puerto 5001 (evita conflicto con AirPlay)
+- **Frontend**: Puerto 5173 (Vite dev server)
+- **Base de datos**: SQLite local
 
-## Requisitos
+### 🖥️ Producción
+- **Sistema**: Windows Server (servidor local)
+- **Backend**: Puerto 5000
+- **Frontend**: Puerto 8080 (archivos estáticos)
+- **Base de datos**: PostgreSQL
+- **Acceso**: Túneles Cloudflare (api.nioxtec.es, app.nioxtec.es)
 
-- macOS/Linux
-- Python 3.11+
-- Node.js 20+ (recomendado: usar nvm para gestionar versiones)
+## 🚀 Inicio Rápido
 
-### Configuración de Node.js
-
-El proyecto requiere Node.js 20+ para funcionar correctamente. Si tienes múltiples versiones de Node.js:
+### Desarrollo Local (macOS/Linux)
 
 ```bash
-# Instalar nvm (si no lo tienes)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+# 1. Clonar repositorio
+git clone git@github.com:AngelMazur/Nioxtec_Facturer.git
+cd Nioxtec_Facturer
 
-# Instalar y usar Node.js 20
-nvm install 20
-nvm use 20
-
-# Verificar versión
-node --version  # Debe mostrar v20.x.x
-```
-
-## Backend (Flask)
-
-1. Crear y activar venv
-   ```bash
+# 2. Configurar backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+
+# 3. Configurar frontend
+cd frontend
+npm install
+
+# 4. Iniciar todo (recomendado)
+cd ..
+./start_all.sh
 ```
 
-2. Variables de entorno (crear `.env` si lo deseas)
-```env
-JWT_SECRET_KEY=pon-un-secreto
-CORS_ORIGINS=http://localhost:8080
-# Para producción local sin HTTPS forzado
-FORCE_HTTPS=false
-# Si usas Postgres
-# DATABASE_URL=postgresql+psycopg://usuario:pass@host:5432/basedatos
-```
-
-3. Arranque en producción (local) con gunicorn (macOS)
-   ```bash
-pip install gunicorn
-FORCE_HTTPS=false FLASK_DEBUG=0 gunicorn -w 2 -b 0.0.0.0:5000 app:app
-```
-
-4. Arranque en desarrollo
-   ```bash
-FLASK_DEBUG=1 python app.py
-```
-   
-      **Nota macOS:** El puerto 5000 está ocupado por AirPlay en macOS, por lo que usamos el puerto 5001:
-   ```bash
-   PORT=5001 python app.py
-   ```
-
-## Frontend (React + Vite)
-
-### Desarrollo (macOS)
-
-#### Opción 1: Script automático (recomendado)
+**O iniciar por separado:**
 ```bash
-# Inicia automáticamente con la versión correcta de Node.js
+# Backend (puerto 5001)
+./start_backend.sh
+
+# Frontend (puerto 5173)
 ./start_frontend.sh
 ```
 
-#### Opción 2: Manual
-```bash
-cd frontend
-# Configurar Node.js 20+ (si usas nvm)
-nvm use
+### Producción (Windows Server)
 
-npm install
-npm run dev
-# Vite escuchará en http://localhost:5173
+```powershell
+# Despliegue automático
+.\DEVELOPER\scripts\deploy_prod.ps1
 ```
 
-### Producción (estático)
+## 📋 Requisitos
+
+- **Python**: 3.11+
+- **Node.js**: 20+ (recomendado usar nvm)
+- **Sistema**: macOS/Linux (desarrollo), Windows Server (producción)
+
+## 🏗️ Arquitectura
+
+### Desarrollo (macOS)
+```
+┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │    Backend      │
+│   React + Vite  │◄──►│   Flask         │
+│   Puerto 5173   │    │   Puerto 5001   │
+│   (Vite dev)    │    │   (SQLite)      │
+└─────────────────┘    └─────────────────┘
+```
+
+### Producción (Windows Server)
+```
+┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │    Backend      │
+│   Archivos      │◄──►│   Flask         │
+│   Estáticos     │    │   Gunicorn      │
+│   Puerto 8080   │    │   Puerto 5000   │
+└─────────────────┘    └─────────────────┘
+         │                       │
+         └─── Cloudflare ────────┘
+         │                       │
+    https://app.nioxtec.es  https://api.nioxtec.es
+```
+
+### Tecnologías
+
+- **Backend**: Flask, SQLAlchemy, Flask-Talisman, Flask-Limiter
+- **Frontend**: React 18, Vite, Tailwind CSS, Zustand
+- **Base de datos**: SQLite (dev) / PostgreSQL (prod)
+- **Generación PDF**: wkhtmltopdf
+
+## 🔧 Configuración
+
+### Variables de Entorno
+
+Crear archivo `.env` en la raíz:
+
+```env
+# Desarrollo
+FLASK_ENV=development
+JWT_SECRET_KEY=tu_clave_secreta_aqui
+CORS_ORIGINS=http://localhost:5173,http://localhost:8080
+PORT=5001
+
+# Producción
+FORCE_HTTPS=true
+DATABASE_URL=postgresql+psycopg://usuario:pass@host:5432/basedatos
+```
+
+### Puertos
+
+- **Desarrollo**: Backend 5001, Frontend 5173
+- **Producción**: Backend 5000, Frontend 8080
+
+## 📁 Estructura del Proyecto
+
+```
+Nioxtec_Facturer/
+├── app.py                    # Backend Flask
+├── requirements.txt          # Dependencias Python
+├── frontend/                # Frontend React
+│   ├── src/
+│   │   ├── components/      # Componentes reutilizables
+│   │   ├── features/        # Módulos de funcionalidad
+│   │   ├── pages/           # Páginas principales
+│   │   ├── store/           # Estado global (Zustand)
+│   │   └── lib/             # Utilidades y API
+│   ├── package.json
+│   └── vite.config.js
+├── templates/               # Plantillas HTML (facturas)
+├── static/                  # Archivos estáticos
+└── DEVELOPER/scripts/       # Scripts de despliegue
+```
+
+## 🎯 Funcionalidades
+
+### ✅ Gestión de Facturas
+- Generación automática de PDFs
+- Numeración automática (FAAMM###)
+- Plantillas HTML personalizables
+- Conversión de proformas a facturas
+
+### ✅ Gestión de Contratos
+- Plantillas Word (compraventa, renting)
+- Preview en tiempo real
+- Descarga en formato Word
+- Múltiples tipos de contratos
+
+### ✅ Gestión de Clientes
+- CRUD completo
+- Información de contacto
+- Datos fiscales
+
+### ✅ Reportes
+- Análisis de ventas
+- Estadísticas de facturación
+- Heatmaps de actividad
+
+## 🛠️ Scripts Útiles
+
+### Desarrollo
 ```bash
+./start_all.sh              # Iniciar backend + frontend
+./start_backend.sh          # Solo backend
+./start_frontend.sh         # Solo frontend
+```
+
+### Producción (Windows)
+```powershell
+.\DEVELOPER\scripts\deploy_prod.ps1      # Despliegue completo
+.\DEVELOPER\scripts\start_all.ps1        # Iniciar servicios
+.\DEVELOPER\scripts\stop_all.ps1         # Detener servicios
+```
+
+## 🔒 Seguridad
+
+- **Autenticación**: JWT con secretos por variables de entorno
+- **CORS**: Lista blanca configurada por entorno
+- **Rate Limiting**: Flask-Limiter por IP/clave
+- **HTTPS**: Flask-Talisman con HSTS y CSP
+- **Secretos**: Solo variables de entorno, nunca hardcodeados
+
+## 🚀 Despliegue
+
+### Desarrollo Local (macOS)
+```bash
+# Backend con gunicorn (producción local)
+gunicorn -w 2 -b 0.0.0.0:5000 app:app
+
+# Frontend estático
 cd frontend
-npm install
 npm run build
 npx serve -s dist -l 8080
 ```
 
-El frontend se conectará al backend en `http://127.0.0.1:5000` (auto-config en `frontend/src/lib/api.js`).
-
-## Numeración automática
-
-- Facturas: `FAAMM###` (ej.: `F2508001`).
-- Proformas: `PAAMM###`.
-- El contador se reinicia por año/mes y se basa en la fecha del documento.
-
-## Scripts útiles
-
-- macOS/Linux
-  - `./start_all.sh`: inicia automáticamente backend y frontend con la configuración correcta
-  - `./start_backend.sh`: inicia solo el backend Flask
-  - `./start_frontend.sh`: inicia solo el frontend React con Node.js 20+
-  - Semilla local (opcional): `python DEVELOPER/scripts/dev_seed.py` (crea usuario `dev/devpass`, cliente demo y una factura de ejemplo).
-- Windows (producción)
-  - `DEVELOPER/scripts/register_deploy_task.ps1`: registra la tarea "Nioxtec Deploy".
-  - `DEVELOPER/scripts/deploy_prod.ps1`: para servicios, backup de `instance/app.db`, `git pull`, instala dependencias, build frontend y arranca tareas Backend/Frontend.
-  - `DEVELOPER/scripts/start_all.ps1` y `stop_all.ps1`: inician/detienen tareas programadas "Nioxtec Backend" y "Nioxtec Frontend".
-
-## Checklist antes de subir a producción
-
-1. Tests manuales rápidos
-   - Login OK (`/api/auth/login`).
-   - Crear factura y proforma: número asignado automáticamente y formato correcto.
-   - Cambio de fecha en formulario: número se recalcula (`next_number`).
-   - Conversión proforma→factura: número de factura asignado.
-   - Reportes (`/api/reports/summary`, `/api/reports/heatmap`): datos correctos.
-   - PDF: generar y previsualizar.
-2. Seguridad
-   - `JWT_SECRET_KEY` definido en entorno de prod.
-   - `CORS_ORIGINS` con dominios correctos.
-   - `FORCE_HTTPS=true` detrás de proxy HTTPS.
-3. Base de datos
-   - Si usas SQLite, verifica permisos de `instance/app.db`.
-   - Si usas Postgres, revisa `DATABASE_URL`.
-
-## Despliegue (sin Docker)
-
-- macOS/staging local:
-  - Backend: `gunicorn -w 2 -b 0.0.0.0:5000 app:app` con variables de entorno adecuadas.
-  - Frontend: servir `frontend/dist/` con tu server (Nginx/Apache) o con `npx serve -s dist -l 8080`.
-- Windows producción:
-  - Ejecutar `DEVELOPER/scripts/deploy_prod.ps1` (parada, backup, pull, build, arranque, health-check).
-  - O bien usar la tarea registrada "Nioxtec Deploy" (`schtasks /Run /TN "Nioxtec Deploy"`).
-
-## Procedimiento de Troubleshooting y Reinicio de Producción
-
-### 🔧 Diagnóstico Completo del Sistema
-
-Cuando los servicios de producción no respondan, seguir este proceso paso a paso:
-
-#### 1. **Análisis de la Arquitectura**
+### Producción (Windows Server)
 ```powershell
-# Verificar configuración SSH para Git
-git remote -v
-# Asegurar que usa SSH: git@github.com:AngelMazur/Nioxtec_Facturer.git
+# Despliegue automático con backup y tareas programadas
+.\DEVELOPER\scripts\deploy_prod.ps1
 
-# Verificar estado del repositorio
-git status
-git fetch origin -v
+# Scripts de gestión de servicios
+.\DEVELOPER\scripts\start_all.ps1    # Iniciar servicios
+.\DEVELOPER\scripts\stop_all.ps1     # Detener servicios
 ```
 
-#### 2. **Diagnóstico de Servicios Locales**
-```powershell
-# Verificar puertos ocupados
-netstat -ano | findstr ":5000\|:8080"
+**Nota**: El servidor de producción es Windows Server local con túneles Cloudflare para acceso externo.
 
-# Verificar procesos activos
-Get-Process | Where-Object {$_.ProcessName -eq 'python' -or $_.ProcessName -eq 'node'}
+## 🔧 Troubleshooting
 
-# Probar endpoints locales
-Invoke-WebRequest -Uri "http://localhost:5000/health" -UseBasicParsing
-Invoke-WebRequest -Uri "http://localhost:8080" -UseBasicParsing
+### Problemas Comunes
+
+**Backend no inicia en macOS:**
+```bash
+# Puerto 5000 ocupado por AirPlay
+PORT=5001 python app.py
 ```
 
-#### 3. **Verificación de Scripts de Inicio**
-```powershell
-# Verificar que el entorno virtual existe
-Test-Path "C:\Nioxtec\Nioxtec_Facturer\.venv310\Scripts\python.exe"
-
-# Verificar que el build del frontend existe  
-Test-Path "C:\Nioxtec\Nioxtec_Facturer\frontend\dist"
-
-# Probar scripts manualmente
-powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\start_backend.ps1"
-powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\start_frontend.ps1"
+**Frontend no se conecta:**
+```bash
+# Verificar configuración API
+cat frontend/src/lib/api.js
 ```
 
-#### 4. **Corrección de Scripts si es Necesario**
+**Errores de dependencias:**
+```bash
+# Actualizar Node.js
+nvm install 20
+nvm use 20
 
-**Script Backend (`scripts/start_backend.ps1`):**
-```powershell
-# Script para iniciar backend Flask en producción
-Set-Location "C:\Nioxtec\Nioxtec_Facturer"
-
-# Configuración de producción
-$env:FLASK_DEBUG = "false"
-$env:ENABLE_TALISMAN = "true"
-$env:FORCE_HTTPS = "true"
-$env:JWT_SECRET_KEY = "Rbd4?P5Axi@aS0bhNwN07sptS4&S?R"
-$env:CORS_ORIGINS = "https://app.nioxtec.es,http://localhost:5173,http://localhost:8080,http://127.0.0.1:8080"
-$env:APP_ORIGIN = "https://app.nioxtec.es"
-
-# Ejecutar Flask
-try {
-    & "C:\Nioxtec\Nioxtec_Facturer\.venv310\Scripts\python.exe" "C:\Nioxtec\Nioxtec_Facturer\app.py"
-} catch {
-    Write-Host "Error iniciando backend: $($_.Exception.Message)"
-    exit 1
-}
+# Reinstalar dependencias
+rm -rf node_modules package-lock.json
+npm install
 ```
 
-**Script Frontend (`scripts/start_frontend.ps1`):**
-```powershell
-Set-Location "C:\Nioxtec\Nioxtec_Facturer\frontend"
+### Verificación de Servicios
 
-# Asegura que Node.js y npm están en PATH
-$env:PATH = "C:\Program Files\nodejs\;C:\Users\angel\AppData\Roaming\npm;$env:PATH"
+```bash
+# Verificar puertos
+netstat -ano | findstr ":5000\|:8080"  # Windows
+lsof -i :5001                          # macOS/Linux
 
-# Servir archivos estáticos del build en puerto 8080
-& "C:\Users\angel\AppData\Roaming\npm\npx.cmd" --yes serve -s dist -l 8080
+# Health check
+curl http://localhost:5001/health
+curl http://localhost:5173
 ```
 
-#### 5. **Proceso de Reinicio Completo**
+## 📝 Convenciones
 
-**Paso 1: Detener servicios existentes**
-```powershell
-taskkill /F /IM python.exe
-taskkill /F /IM node.exe
-```
+- **Commits**: Conventional Commits (`feat:`, `fix:`, `chore:`)
+- **Código**: Comentado y con docstrings
+- **Estilos**: Exclusivamente Tailwind CSS
+- **Precisión**: Máximo 2 decimales
+- **Idioma**: Respuestas en español
 
-**Paso 2: Sincronizar Git**
-```powershell
-# Fetch y pull de cambios remotos
-git fetch origin -v
-git status
+## 🤝 Contribución
 
-# Si hay cambios locales, commitear primero
-git add -A
-git commit -m "fix: correcciones de producción"
-git pull origin main
-git push origin main
-```
+1. Crear rama feature: `git checkout -b feat/nueva-funcionalidad`
+2. Hacer cambios y commitear: `git commit -m "feat: nueva funcionalidad"`
+3. Ejecutar linter: `npm run lint` (frontend)
+4. Push y crear PR
 
-**Paso 3: Ejecutar despliegue automatizado**
-```powershell
-& ".\DEVELOPER\scripts\deploy_prod.ps1"
-```
+## 📞 Soporte
 
-#### 6. **Inicio Manual de Servicios (si deploy_prod.ps1 falla)**
-```powershell
-# Iniciar servicios usando Start-Process
-Start-Process powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'scripts\start_backend.ps1' -WindowStyle Hidden
-Start-Sleep -Seconds 3
-Start-Process powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'scripts\start_frontend.ps1' -WindowStyle Hidden
-```
+- **Issues**: GitHub Issues
+- **Documentación**: Ver `DEVELOPER/README_DEVELOPER.md`
+- **Scripts**: Ver `DEVELOPER/scripts/`
 
-#### 7. **Verificación Final**
-```powershell
-# Esperar que los servicios se inicien
-Start-Sleep -Seconds 15
+---
 
-# Verificar puertos locales
-netstat -ano | findstr ":5000\|:8080"
-
-# Verificar servicios de producción
-Invoke-WebRequest -Uri "https://api.nioxtec.es/health" -UseBasicParsing -TimeoutSec 30
-Invoke-WebRequest -Uri "https://app.nioxtec.es" -UseBasicParsing -TimeoutSec 30
-```
-
-### 🎯 **Arquitectura de Producción**
-
-- **Backend Local**: Puerto 5000 ← **Túnel Cloudflare** ← `https://api.nioxtec.es`  
-- **Frontend Local**: Puerto 8080 ← **Túnel Cloudflare** ← `https://app.nioxtec.es`
-- **Git**: SSH `git@github.com:AngelMazur/Nioxtec_Facturer.git`
-- **Scripts**: PowerShell optimizados para tareas programadas
-
-### ⚠️ **Puntos Críticos**
-
-1. **Scripts deben funcionar en tareas programadas** (sin dependencias de PATH del usuario)
-2. **Túneles Cloudflare necesitan tiempo** para reconectar (~30 segundos)
-3. **Variables de entorno** deben configurarse en cada script
-4. **Git debe usar SSH** para evitar problemas de autenticación
-5. **Frontend requiere build actualizado** antes del despliegue
-
-### 🔄 **Comando de Emergencia**
-```powershell
-# Reinicio rápido completo
-taskkill /F /IM python.exe; taskkill /F /IM node.exe; & ".\DEVELOPER\scripts\deploy_prod.ps1"
-```
-
-## Notas
-
-- Eliminado soporte Docker del README para evitar confusión. Los archivos de Docker pueden mantenerse fuera del flujo de despliegue si no se usan.
-# Deploy automático test
-# ✅ Deploy automático FUNCIONANDO - Thu Aug 14 18:14:07 CEST 2025
-# ✅ Deploy automático FUNCIONANDO - Thu Aug 14 18:15:35 CEST 2025
-# 🔧 Workflow corregido - Thu Aug 14 18:22:21 CEST 2025
-# 🐍 Python automático - Thu Aug 14 18:25:46 CEST 2025
-# 🎯 Python definitivo - Thu Aug 14 18:30:31 CEST 2025
-# 🛡️ Workflow bulletproof - Thu Aug 14 18:32:54 CEST 2025
-# ✅ Automatización funcionando - Thu Aug 14 18:56:20 CEST 2025
+**Nioxtec Facturer** - Sistema de gestión empresarial completo y moderno.
