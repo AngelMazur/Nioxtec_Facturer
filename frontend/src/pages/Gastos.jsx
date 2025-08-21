@@ -3,8 +3,9 @@ import { apiGet, apiPost, apiPut, apiDelete, apiGetBlob } from '../lib/api'
 import { useStore } from '../store/store'
 import toast from 'react-hot-toast'
 import Skeleton from 'react-loading-skeleton'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import CustomSkeleton from "../components/CustomSkeleton"
+import CreateExpenseModal from "../components/CreateExpenseModal"
 import 'react-loading-skeleton/dist/skeleton.css'
 
 export default function Gastos() {
@@ -18,6 +19,7 @@ export default function Gastos() {
   const [page, setPage] = useState(0)
   const [limit] = useState(10)
   const [showForm, setShowForm] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingExpense, setEditingExpense] = useState(null)
   const [formData, setFormData] = useState({
     date: '',
@@ -72,6 +74,7 @@ export default function Gastos() {
         toast.success('Gasto creado correctamente')
       }
       setShowForm(false)
+      setShowCreateModal(false)
       setEditingExpense(null)
       resetForm()
       loadExpenses()
@@ -150,114 +153,45 @@ export default function Gastos() {
     <main className="mx-auto max-w-6xl p-4 space-y-8">
       <h2 className="text-2xl font-bold">Gastos</h2>
       
-      {/* Formulario integrado */}
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-4 bg-gray-800 p-4 rounded-lg border border-gray-700"
-      >
-        <h3 className="font-semibold">Nuevo Gasto</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-500">Fecha *</span>
-            <input
-              type="date"
-              required
-              value={formData.date}
-              onChange={(e) => setFormData({...formData, date: e.target.value})}
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-            />
-          </label>
+      {/* Botón Crear Gasto */}
+      <div className="flex justify-center">
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="relative overflow-hidden active:scale-95 focus:scale-105 transition-all duration-300 text-white px-10 py-5 rounded-3xl font-bold focus:ring-4 focus:ring-[#0F9BC3]/50 shadow-2xl hover:shadow-[#0F9BC3]/40 flex items-center gap-4 group transform hover:scale-95 hover:px-8 hover:py-4"
+          style={{
+            background: 'linear-gradient(135deg, #195569 0%, #197391 25%, #197D9B 50%, #1987A5 75%, #0F9BC3 100%)',
+            boxShadow: '0 25px 50px -12px rgba(15, 155, 195, 0.3)'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = 'linear-gradient(135deg, #1E6B7F 0%, #1E8AA7 25%, #1E94B1 50%, #1E9EBB 75%, #15B2D9 100%)'
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = 'linear-gradient(135deg, #195569 0%, #197391 25%, #197D9B 50%, #1987A5 75%, #0F9BC3 100%)'
+          }}
+        >
+          {/* Efecto de brillo animado */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
           
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-500">Categoría *</span>
-            <input
-              type="text"
-              required
-              maxLength={64}
-              value={formData.category}
-              onChange={(e) => setFormData({...formData, category: e.target.value})}
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-            />
-          </label>
+          {/* Burbujitas decorativas */}
+          <div className="absolute top-2 right-4 w-3 h-3 bg-white/20 rounded-full animate-pulse"></div>
+          <div className="absolute bottom-3 left-3 w-2 h-2 bg-white/15 rounded-full animate-pulse delay-300"></div>
+          <div className="absolute top-4 left-4 w-1.5 h-1.5 bg-white/25 rounded-full animate-ping"></div>
+          <div className="absolute bottom-2 right-2 w-1 h-1 bg-white/30 rounded-full animate-ping delay-500"></div>
           
-          <label className="flex flex-col gap-1 sm:col-span-2">
-            <span className="text-sm text-gray-500">Concepto *</span>
-            <input
-              type="text"
-              required
-              maxLength={256}
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-            />
-          </label>
-          
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-500">Proveedor *</span>
-            <input
-              type="text"
-              required
-              maxLength={128}
-              value={formData.supplier}
-              onChange={(e) => setFormData({...formData, supplier: e.target.value})}
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-            />
-          </label>
-          
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-500">Base (€) *</span>
-            <input
-              type="number"
-              required
-              min="0"
-              step="0.01"
-              value={formData.base_amount}
-              onChange={(e) => setFormData({...formData, base_amount: e.target.value})}
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-            />
-          </label>
-          
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-500">IVA (%)</span>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="0.1"
-              value={formData.tax_rate}
-              onChange={(e) => setFormData({...formData, tax_rate: parseFloat(e.target.value) || 0})}
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-            />
-          </label>
-          
-          <div className="flex items-center sm:col-span-2">
-            <input
-              type="checkbox"
-              id="paid"
-              checked={formData.paid}
-              onChange={(e) => setFormData({...formData, paid: e.target.checked})}
-              className="mr-2"
-            />
-            <label htmlFor="paid" className="text-sm font-medium">Pagado</label>
+          {/* Icono espectacular */}
+          <div className="relative z-10 w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 group-hover:rotate-180 transition-transform duration-500">
+            <svg className="w-5 h-5 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
           </div>
-        </div>
-        
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            className="bg-primary hover:opacity-90 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-brand focus:ring-opacity-50"
-          >
-            Guardar
-          </button>
-          <button
-            type="button"
-            onClick={resetForm}
-            className="bg-secondary hover:opacity-90 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-brand focus:ring-opacity-50"
-          >
-            Limpiar
-          </button>
-        </div>
-      </form>
+          
+          {/* Texto con efecto */}
+          <span className="relative z-10 tracking-wide drop-shadow-lg">Crear Gasto</span>
+          
+          {/* Borde interno brillante */}
+          <div className="absolute inset-1 rounded-3xl border border-white/20 pointer-events-none"></div>
+        </button>
+      </div>
 
       {/* Búsqueda */}
       <div className="flex gap-2 items-center">
@@ -598,6 +532,15 @@ export default function Gastos() {
           </div>
         </div>
       )}
+
+      {/* Modal para crear gasto */}
+      <CreateExpenseModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleSubmit}
+        form={formData}
+        setForm={setFormData}
+      />
     </main>
   )
 }
