@@ -1301,8 +1301,20 @@ def create_expense():
     if not (date_str and category and description and supplier and base_amount is not None):
         return jsonify({'error': 'Missing required fields'}), 400
     
+    # Convert base_amount to float for validation
+    try:
+        base_amount = float(base_amount)
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Base amount must be a valid number'}), 400
+    
     if base_amount < 0:
         return jsonify({'error': 'Base amount must be non-negative'}), 400
+    
+    # Convert tax_rate to float for validation
+    try:
+        tax_rate = float(tax_rate)
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Tax rate must be a valid number'}), 400
     
     if not (0 <= tax_rate <= 100):
         return jsonify({'error': 'Tax rate must be between 0 and 100'}), 400
@@ -1416,12 +1428,18 @@ def update_expense(expense_id):
     if 'supplier' in data:
         expense.supplier = data['supplier']
     if 'base_amount' in data:
-        base_amount = data['base_amount']
+        try:
+            base_amount = float(data['base_amount'])
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Base amount must be a valid number'}), 400
         if base_amount < 0:
             return jsonify({'error': 'Base amount must be non-negative'}), 400
         expense.base_amount = base_amount
     if 'tax_rate' in data:
-        tax_rate = data['tax_rate']
+        try:
+            tax_rate = float(data['tax_rate'])
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Tax rate must be a valid number'}), 400
         if not (0 <= tax_rate <= 100):
             return jsonify({'error': 'Tax rate must be between 0 and 100'}), 400
         expense.tax_rate = tax_rate
