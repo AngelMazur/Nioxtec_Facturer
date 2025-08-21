@@ -2,12 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiGet, apiPost, apiPut, apiDelete, apiGetBlob } from '../lib/api'
 import { useStore } from '../store/store'
 import toast from 'react-hot-toast'
-import Skeleton from 'react-loading-skeleton'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import CustomSkeleton from "../components/CustomSkeleton"
 import CreateExpenseModal from "../components/CreateExpenseModal"
 import NeoGradientButton from "../components/NeoGradientButton"
-import 'react-loading-skeleton/dist/skeleton.css'
 
 export default function Gastos() {
   const { token } = useStore()
@@ -322,6 +320,12 @@ export default function Gastos() {
                       onClick={() => handleEdit(expense)}
                     >
                       Editar
+                    </button>
+                    <button 
+                      className="underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 rounded"
+                      onClick={() => handleEdit(expense)}
+                    >
+                      Duplicar
                     </button>
                     <button 
                       className="text-red-600 underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded"

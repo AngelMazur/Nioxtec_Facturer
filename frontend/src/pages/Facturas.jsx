@@ -5,12 +5,10 @@ import {
   apiPost,
   apiGetBlob,
   apiDelete,
-  // apiPut,
-  // apiPatch,
 } from '../lib/api';
 import toast from 'react-hot-toast';
 import CustomSkeleton from "../components/CustomSkeleton"
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import CreateInvoiceModal from "../components/CreateInvoiceModal";
 import NeoGradientButton from "../components/NeoGradientButton";
 
@@ -90,39 +88,6 @@ export default function Facturas() {
     items: [],
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [deleteMode, setDeleteMode] = useState(false);
-
-  // Auto-resize textareas when form items change (ej: al duplicar factura)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const textareas = document.querySelectorAll('textarea[data-description-field="true"]');
-      textareas.forEach(textarea => {
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.max(40, textarea.scrollHeight) + 'px';
-      });
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [form.items]);
-
-  // Salir de modo eliminar con ESC
-  useEffect(() => {
-    if (!deleteMode) return;
-    const onKey = (e) => { if (e.key === 'Escape') setDeleteMode(false) };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [deleteMode]);
-
-  // Auto-resize textareas when form items change (ej: al duplicar factura)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const textareas = document.querySelectorAll('textarea[data-description-field="true"]');
-      textareas.forEach(textarea => {
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.max(40, textarea.scrollHeight) + 'px';
-      });
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [form.items]);
 
   const fetchNextNumber = useCallback(async (docType, atDate) => {
     try {
@@ -151,54 +116,6 @@ export default function Facturas() {
     if (token) load();
   }, [setClients, setInvoices, token, fetchNextNumber]);
 
-  const addItem = () => {
-    setForm({
-      ...form,
-      items: [
-        ...form.items,
-        { description: '', units: 1, unit_price: '', tax_rate: 21 },
-      ],
-    });
-  };
-  const removeItem = (idx) => {
-    setForm((prev) => {
-      const current = prev.items || [];
-      if (current.length <= 1) {
-        toast.error('Debe existir al menos una línea');
-        return prev;
-      }
-      const nextItems = current.filter((_, i) => i !== idx);
-      return { ...prev, items: nextItems };
-    });
-  };
-  const toggleDeleteMode = () => {
-    if ((form.items?.length || 0) <= 1) {
-      toast('No puedes eliminar la última línea', { icon: '⚠️' });
-      return;
-    }
-    setDeleteMode((d) => !d);
-  };
-  const handleItemChange = (idx, field, value) => {
-    const items = form.items.map((it, i) =>
-      i === idx
-        ? { ...it, [field]: field === 'description' ? value : Number(value) }
-        : it,
-    );
-    setForm({ ...form, items });
-  };
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setForm((prev) => {
-      const next = { ...prev, [name]: value }
-      return next
-    })
-    if (e.target.name === 'type') {
-      fetchNextNumber(value, form.date)
-    }
-    if (e.target.name === 'date') {
-      fetchNextNumber(form.type, value)
-    }
-  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = { ...form, client_id: Number(form.client_id) };
@@ -315,211 +232,7 @@ export default function Facturas() {
           Crear Factura
         </NeoGradientButton>
       </div>
-      
-      {/* Formulario original oculto - ahora está en el modal */}
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-4 bg-gray-800 p-4 rounded-lg border border-gray-700 hidden"
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-500">Número</span>
-            <input
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-              name="number"
-              value={form.number}
-              readOnly
-              required
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-500">Fecha</span>
-            <input
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              required
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-500">Tipo</span>
-            <select
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-              name="type"
-              value={form.type}
-              onChange={handleChange}
-            >
-              <option value="factura">Factura</option>
-              <option value="proforma">Proforma</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-500">Cliente</span>
-            <select
-              className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-              name="client_id"
-              value={form.client_id}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Selecciona un cliente</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          {form.type === 'factura' && (
-            <label className="flex flex-col gap-1 sm:col-start-1">
-              <span className="text-sm text-gray-500">Condiciones de pago</span>
-              <select
-                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-                name="payment_method"
-                value={form.payment_method}
-                onChange={handleChange}
-              >
-                <option value="efectivo">Efectivo</option>
-                <option value="bizum">Bizum</option>
-                <option value="transferencia">Transferencia</option>
-              </select>
-            </label>
-          )}
-        </div>
-        <h3 className="font-semibold">Líneas</h3>
-        {form.items.map((item, idx) => (
-          <div
-            key={idx}
-            className={
-              "grid grid-cols-1 sm:grid-cols-4 gap-2 border p-2 rounded " +
-              (deleteMode
-                ? "relative border-red-500 ring-1 ring-red-500 cursor-pointer hover:bg-red-500/10"
-                : "border-gray-700")
-            }
-            onClick={deleteMode ? () => removeItem(idx) : undefined}
-            title={deleteMode ? 'Haz clic para eliminar esta línea' : undefined}
-          >
-            {deleteMode && (
-              <span className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded">Eliminar</span>
-            )}
-            <label className="flex flex-col gap-1">
-              <span className="text-sm text-gray-500">Descripción</span>
-              <textarea
-                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand resize-none overflow-hidden min-h-[40px] transition-all duration-200"
-                value={item.description}
-                data-description-field="true"
-                onChange={(e) => {
-                  handleItemChange(idx, 'description', e.target.value);
-                  // Auto-resize textarea
-                  e.target.style.height = 'auto';
-                  e.target.style.height = Math.max(40, e.target.scrollHeight) + 'px';
-                }}
-                onKeyDown={(e) => {
-                  // Permitir Enter para saltos de línea
-                  if (e.key === 'Enter') {
-                    e.stopPropagation();
-                  }
-                  // Permitir explícitamente Ctrl+V/Cmd+V, Ctrl+C/Cmd+C, Ctrl+X/Cmd+X para copy/paste
-                  if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'c' || e.key === 'x')) {
-                    // No interferir con las acciones de clipboard
-                    return;
-                  }
-                }}
-                onInput={(e) => {
-                  // Auto-resize en tiempo real
-                  e.target.style.height = 'auto';
-                  e.target.style.height = Math.max(40, e.target.scrollHeight) + 'px';
-                }}
-                onPaste={(e) => {
-                  // Permitir pegar y auto-resize después
-                  setTimeout(() => {
-                    e.target.style.height = 'auto';
-                    e.target.style.height = Math.max(40, e.target.scrollHeight) + 'px';
-                  }, 0);
-                }}
-                placeholder="Describe el producto o servicio&#10;Puedes usar Enter para saltos de línea"
-                required
-                rows="1"
-                style={{ wordBreak: 'break-word' }}
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-sm text-gray-500">Unidades</span>
-              <input
-                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-                type="number"
-                min="1"
-                value={item.units}
-                onChange={(e) => handleItemChange(idx, 'units', e.target.value)}
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-sm text-gray-500">Precio unitario (IVA incl.)</span>
-              <input
-                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                type="number"
-                step="0.01"
-                value={item.unit_price}
-                onChange={(e) =>
-                  handleItemChange(idx, 'unit_price', e.target.value)
-                }
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-sm text-gray-500">IVA (%)</span>
-              <input
-                className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-                type="number"
-                step="0.01"
-                value={item.tax_rate}
-                onChange={(e) =>
-                  handleItemChange(idx, 'tax_rate', e.target.value)
-                }
-                required
-              />
-            </label>
-          </div>
-        ))}
-        <div className="flex items-center gap-3 flex-wrap mt-2">
-          <button
-            type="button"
-            onClick={addItem}
-            className="bg-secondary hover:opacity-90 hover:scale-105 transition-all duration-200 px-2 py-1.5 rounded text-white min-w-[8rem] text-center"
-          >
-            Añadir línea
-          </button>
-          <button
-            type="button"
-            onClick={toggleDeleteMode}
-            disabled={(form.items?.length || 0) <= 1}
-            className={
-              (deleteMode
-                ? "bg-red-700"
-                : "bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed") +
-              " hover:opacity-90 hover:scale-105 transition-all duration-200 px-2 py-1.5 rounded text-white min-w-[8rem] text-center"
-            }
-            title={deleteMode ? 'Cancelar modo eliminar (ESC para salir)' : 'Entrar en modo eliminar'}
-          >
-            {deleteMode ? 'Cancelar eliminar' : 'Eliminar línea'}
-          </button>
-          <button
-            type="submit"
-            disabled={(form.items?.length || 0) === 0}
-            className={
-              ((form.items?.length || 0) === 0
-                ? "opacity-50 cursor-not-allowed "
-                : "hover:opacity-90 hover:scale-105 ") +
-              "bg-primary transition-all duration-200 text-white px-3 py-1.5 rounded min-w-[8rem] text-center"
-            }
-          >
-            Guardar
-          </button>
-        </div>
-      </form>
+
       <section>
         <h3 className="text-xl font-semibold mb-2">Listado</h3>
         {loading ? (

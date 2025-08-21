@@ -12,13 +12,36 @@ const NeoGradientButton = ({
       <style>{`
         :root{ --pcb-stroke:#CFF6FF; }
         .neo-gradient-btn{
-          position:relative; display:inline-flex; align-items:center; gap:14px;
-          padding:16px 28px; border-radius:16px; color:white; font-weight:700; letter-spacing:.2px;
+          position:relative; display:inline-flex; align-items:center; gap:8px;
+          padding:12px 20px; border-radius:12px; color:white; font-weight:700; letter-spacing:.2px;
           background:linear-gradient(90deg,#195569 0%, #197391 25%, #197D9B 50%, #1987A5 75%, #0F9BC3 100%);
           border:1px solid rgba(255,255,255,.18);
-          box-shadow:0 14px 28px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.28);
+          box-shadow:0 10px 20px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.28);
           transition:transform .15s ease, box-shadow .25s ease, filter .25s ease;
           isolation:isolate; overflow:hidden;
+          font-size: 14px;
+        }
+        
+        /* Tablet */
+        @media (min-width: 768px) {
+          .neo-gradient-btn {
+            gap: 12px;
+            padding: 14px 24px;
+            border-radius: 14px;
+            font-size: 16px;
+            box-shadow:0 12px 24px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.28);
+          }
+        }
+        
+        /* Desktop */
+        @media (min-width: 1024px) {
+          .neo-gradient-btn {
+            gap: 14px;
+            padding: 16px 28px;
+            border-radius: 16px;
+            font-size: 18px;
+            box-shadow:0 14px 28px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.28);
+          }
         }
         .neo-gradient-btn > .layer{ position:relative; z-index:3; }
         .neo-gradient-btn .text-layer{ 
@@ -54,13 +77,31 @@ const NeoGradientButton = ({
         .neo-gradient-btn:focus-visible{ outline:none; box-shadow:0 0 0 4px rgba(255,255,255,.28), 0 12px 28px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.30); }
         .neo-gradient-btn:disabled{ opacity:0.5; cursor:not-allowed; transform:none !important; }
         .neo-plus{ 
-          width:44px; height:44px; border-radius:999px; display:grid; place-items:center; 
+          width:32px; height:32px; border-radius:999px; display:grid; place-items:center; 
           background:rgba(255,255,255,.14); backdrop-filter:blur(6px); 
           border:1px solid rgba(255,255,255,.45); 
-          box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -10px 18px rgba(0,0,0,.25), 0 2px 8px rgba(0,0,0,.32);
+          box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -8px 14px rgba(0,0,0,.25), 0 2px 6px rgba(0,0,0,.32);
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
+        }
+        
+        /* Tablet */
+        @media (min-width: 768px) {
+          .neo-plus {
+            width: 38px;
+            height: 38px;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -9px 16px rgba(0,0,0,.25), 0 2px 7px rgba(0,0,0,.32);
+          }
+        }
+        
+        /* Desktop */
+        @media (min-width: 1024px) {
+          .neo-plus {
+            width: 44px;
+            height: 44px;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -10px 18px rgba(0,0,0,.25), 0 2px 8px rgba(0,0,0,.32);
+          }
         }
         .neo-plus::before {
           content: '';
@@ -121,19 +162,41 @@ const NeoGradientButton = ({
         /* ======= PARTÍCULAS BRILLANTES ======= */
         .neo-gradient-btn .particles {
           position: absolute;
-          inset: -20px;
+          inset: -15px;
           pointer-events: none;
           z-index: 4;
         }
         .neo-gradient-btn .particle {
           position: absolute;
-          width: 4px;
-          height: 4px;
+          width: 3px;
+          height: 3px;
           background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
           border-radius: 50%;
           opacity: 0;
           animation: particleFloat 2s ease-in-out infinite;
           animation-play-state: paused;
+        }
+        
+        /* Tablet */
+        @media (min-width: 768px) {
+          .neo-gradient-btn .particles {
+            inset: -18px;
+          }
+          .neo-gradient-btn .particle {
+            width: 3.5px;
+            height: 3.5px;
+          }
+        }
+        
+        /* Desktop */
+        @media (min-width: 1024px) {
+          .neo-gradient-btn .particles {
+            inset: -20px;
+          }
+          .neo-gradient-btn .particle {
+            width: 4px;
+            height: 4px;
+          }
         }
         .neo-gradient-btn:hover .particle {
           animation-play-state: running;
@@ -145,14 +208,31 @@ const NeoGradientButton = ({
         .neo-gradient-btn .particle:nth-child(5) { top: 70%; left: 15%; animation-delay: 1.2s; }
         .neo-gradient-btn .particle:nth-child(6) { top: 10%; left: 60%; animation-delay: 1.5s; }
         
-        @keyframes particleFloat {
-          0%, 100% { 
-            opacity: 0; 
-            transform: translateY(0) scale(0.5); 
+        /* Ajustar animación de partículas para móviles */
+        @media (max-width: 767px) {
+          @keyframes particleFloat {
+            0%, 100% { 
+              opacity: 0; 
+              transform: translateY(0) scale(0.5); 
+            }
+            50% { 
+              opacity: 1; 
+              transform: translateY(-15px) scale(1); 
+            }
           }
-          50% { 
-            opacity: 1; 
-            transform: translateY(-20px) scale(1); 
+        }
+        
+        /* Animación normal para tablets y desktop */
+        @media (min-width: 768px) {
+          @keyframes particleFloat {
+            0%, 100% { 
+              opacity: 0; 
+              transform: translateY(0) scale(0.5); 
+            }
+            50% { 
+              opacity: 1; 
+              transform: translateY(-20px) scale(1); 
+            }
           }
         }
       `}</style>
@@ -209,7 +289,7 @@ const NeoGradientButton = ({
           </span>
         )}
         
-        <span className="text-[18px] layer text-layer">{children}</span>
+        <span className="layer text-layer">{children}</span>
       </button>
     </>
   )

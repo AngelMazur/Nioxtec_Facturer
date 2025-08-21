@@ -248,6 +248,8 @@ export default function Clientes() {
                           <div className="text-gray-300">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
                         </div>
                          <div className="mt-3 flex items-center gap-4" onClick={(e)=>e.stopPropagation()}>
+                           <button className="text-brand underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-brand focus:ring-opacity-50 rounded" onClick={()=>openClientModal(client)}>Ver</button>
+                           <button className="underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 rounded" onClick={()=>openContractModal(client)}>Contrato</button>
                            <button className="text-red-600 underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded" onClick={()=>deleteClient(client)}>Eliminar</button>
                         </div>
                       </div>
