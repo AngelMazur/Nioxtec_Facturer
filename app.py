@@ -707,44 +707,53 @@ def create_invoice():
     Número se asigna automáticamente según el tipo.
     """
     data = request.get_json(force=True)
-    date_str = data.get('date')
-    invoice_type = data.get('type', 'factura')
-    client_id = data.get('client_id')
-    notes = data.get('notes', '')
-    payment_method = data.get('payment_method')
-    items_data = data.get('items', [])
-    if not (date_str and client_id and items_data):
-        return jsonify({'error': 'Missing required fields'}), 400
+    
+    # Validate and convert data
+    validated_data, errors = validate_invoice_data(data, is_update=False)
+    if errors:
+        return jsonify({'error': '; '.join(errors)}), 400
+    
     # Convert date string to date object
-    date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+    try:
+        date_obj = datetime.strptime(validated_data['date'], '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+    
     # Normalize payment method
+    invoice_type = validated_data.get('type', 'factura')
+    payment_method = validated_data.get('payment_method')
     allowed_pm = {'efectivo','bizum','transferencia'}
     if invoice_type != 'factura':
         payment_method = None
     else:
         pm = (payment_method or '').strip().lower()
         payment_method = pm if pm in allowed_pm else 'efectivo'
+    
     # Compute totals
-    subtotal, tax_amount, total = calculate_totals(items_data)
+    subtotal, tax_amount, total = calculate_totals(validated_data['items'])
+    
     # Asignar número automáticamente según fecha indicada (reinicia por año/mes)
-    number = _next_sequence_atomic(invoice_type, datetime.strptime(date_str, '%Y-%m-%d'))
+    number = _next_sequence_atomic(invoice_type, datetime.strptime(validated_data['date'], '%Y-%m-%d'))
+    
     invoice = Invoice(
         number=number,
         date=date_obj,
         type=invoice_type,
-        client_id=client_id,
-        notes=notes,
+        client_id=validated_data['client_id'],
+        notes=validated_data.get('notes', ''),
         payment_method=payment_method,
         total=total,
         tax_total=tax_amount
     )
+    
     db.session.add(invoice)
     try:
         db.session.flush()  # flush to obtain invoice.id
     except IntegrityError:
         db.session.rollback()
         return jsonify({'error': 'El número de factura ya existe'}), 409
-    for item in items_data:
+    
+    for item in validated_data['items']:
         line = InvoiceItem(
             invoice_id=invoice.id,
             description=item['description'],
@@ -755,7 +764,9 @@ def create_invoice():
             total=item['units'] * item['unit_price'] * (1 + item['tax_rate'] / 100)
         )
         db.session.add(line)
+    
     db.session.commit()
+    
     return jsonify({
         'id': invoice.id,
         'number': invoice.number,
@@ -1097,28 +1108,41 @@ def get_company_config():
 def update_invoice(invoice_id):
     inv = Invoice.query.get_or_404(invoice_id)
     data = request.get_json(force=True)
-    # Basic fields
-    # Ya no permitimos cambiar el número arbitrariamente para mantener la secuencia
-    if 'date' in data:
-        inv.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
-    if 'type' in data:
-        inv.type = data['type']
-    if 'client_id' in data:
-        inv.client_id = int(data['client_id'])
-    if 'payment_method' in data:
-        pm = (data.get('payment_method') or '').strip().lower()
+    
+    # Validate and convert data
+    validated_data, errors = validate_invoice_data(data, is_update=True)
+    if errors:
+        return jsonify({'error': '; '.join(errors)}), 400
+    
+    # Update basic fields
+    if 'date' in validated_data:
+        try:
+            inv.date = datetime.strptime(validated_data['date'], '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+    
+    if 'type' in validated_data:
+        inv.type = validated_data['type']
+    
+    if 'client_id' in validated_data:
+        inv.client_id = validated_data['client_id']
+    
+    if 'payment_method' in validated_data:
+        pm = (validated_data.get('payment_method') or '').strip().lower()
         inv.payment_method = pm if inv.type == 'factura' and pm in {'efectivo','bizum','transferencia'} else (None if inv.type!='factura' else 'efectivo')
-    inv.notes = data.get('notes', inv.notes)
+    
+    if 'notes' in validated_data:
+        inv.notes = validated_data['notes']
+    
     # Replace items if provided
-    items_data = data.get('items')
-    if items_data is not None:
+    if 'items' in validated_data:
         for it in list(inv.items):
             db.session.delete(it)
-        subtotal, tax_amount, total = calculate_totals(items_data)
+        subtotal, tax_amount, total = calculate_totals(validated_data['items'])
         inv.total = total
         inv.tax_total = tax_amount
         db.session.flush()
-        for item in items_data:
+        for item in validated_data['items']:
             line = InvoiceItem(
                 invoice_id=inv.id,
                 description=item['description'],
@@ -1129,11 +1153,13 @@ def update_invoice(invoice_id):
                 total=item['units'] * item['unit_price'] * (1 + item['tax_rate'] / 100)
             )
             db.session.add(line)
+    
     try:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
         return jsonify({'error': 'El número de factura ya existe'}), 409
+    
     return jsonify({'status': 'ok'})
 
 
@@ -2421,6 +2447,86 @@ def validate_expense_data(data, is_update=False):
     
     # Copy other fields
     for field in ['date', 'category', 'description', 'supplier', 'paid']:
+        if field in data:
+            validated_data[field] = data[field]
+    
+    return validated_data, errors
+
+
+def validate_invoice_data(data, is_update=False):
+    """Validate invoice data and convert numeric fields."""
+    errors = []
+    validated_data = {}
+    
+    # Required fields for creation
+    required_fields = ['date', 'client_id', 'items']
+    if not is_update:
+        for field in required_fields:
+            if not data.get(field):
+                errors.append(f'{field} is required')
+    
+    # Validate client_id
+    if 'client_id' in data:
+        try:
+            validated_data['client_id'] = int(data['client_id'])
+        except (ValueError, TypeError):
+            errors.append('client_id must be a valid integer')
+    
+    # Validate items
+    if 'items' in data:
+        validated_items = []
+        for i, item in enumerate(data['items']):
+            item_errors = []
+            validated_item = {}
+            
+            # Required item fields
+            if not item.get('description'):
+                item_errors.append('description is required')
+            else:
+                validated_item['description'] = item['description']
+            
+            # Convert and validate units
+            if 'units' in item:
+                try:
+                    validated_item['units'] = int(validate_and_convert_float(
+                        item['units'], 'units', min_value=1
+                    ))
+                except ValueError as e:
+                    item_errors.append(f'Item {i+1}: {str(e)}')
+            else:
+                item_errors.append('units is required')
+            
+            # Convert and validate unit_price
+            if 'unit_price' in item:
+                try:
+                    validated_item['unit_price'] = validate_and_convert_float(
+                        item['unit_price'], 'unit_price', min_value=0
+                    )
+                except ValueError as e:
+                    item_errors.append(f'Item {i+1}: {str(e)}')
+            else:
+                item_errors.append('unit_price is required')
+            
+            # Convert and validate tax_rate
+            if 'tax_rate' in item:
+                try:
+                    validated_item['tax_rate'] = validate_and_convert_float(
+                        item['tax_rate'], 'tax_rate', min_value=0, max_value=100
+                    )
+                except ValueError as e:
+                    item_errors.append(f'Item {i+1}: {str(e)}')
+            else:
+                validated_item['tax_rate'] = 21.0  # Default tax rate
+            
+            if item_errors:
+                errors.extend(item_errors)
+            else:
+                validated_items.append(validated_item)
+        
+        validated_data['items'] = validated_items
+    
+    # Copy other fields
+    for field in ['date', 'type', 'notes', 'payment_method']:
         if field in data:
             validated_data[field] = data[field]
     
