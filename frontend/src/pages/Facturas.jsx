@@ -10,7 +10,9 @@ import {
 } from '../lib/api';
 import toast from 'react-hot-toast';
 import CustomSkeleton from "../components/CustomSkeleton"
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import CreateInvoiceModal from "../components/CreateInvoiceModal";
+import NeoGradientButton from "../components/NeoGradientButton";
 
 export default function Facturas() {
   const { 
@@ -87,6 +89,7 @@ export default function Facturas() {
     payment_method: 'efectivo',
     items: [],
   });
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
 
   // Auto-resize textareas when form items change (ej: al duplicar factura)
@@ -225,7 +228,8 @@ export default function Facturas() {
       fetchNextNumber('factura', new Date().toISOString().slice(0, 10))
       // Usar el nuevo método del store para añadir al principio manteniendo orden personalizado
       addInvoiceToTop(data);
-      setCurrentPage(1);
+              setCurrentPage(1);
+        setShowCreateModal(false);
     } catch {
       toast.error('Error al crear');
     }
@@ -297,6 +301,21 @@ export default function Facturas() {
   return (
     <main className="mx-auto max-w-6xl p-4 space-y-8">
       <h2 className="text-2xl font-bold">Facturas / Proformas</h2>
+      
+      {/* Botón Crear Factura */}
+      <div className="flex justify-center">
+        <NeoGradientButton
+          onClick={() => setShowCreateModal(true)}
+          icon={
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          }
+        >
+          Crear Factura
+        </NeoGradientButton>
+      </div>
+      
       <form
         onSubmit={handleSubmit}
         className="space-y-4 bg-gray-800 p-4 rounded-lg border border-gray-700"
@@ -663,6 +682,16 @@ export default function Facturas() {
           </div>
         );
       })()}
+
+      {/* Modal para crear factura */}
+      <CreateInvoiceModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleSubmit}
+        form={form}
+        setForm={setForm}
+        clients={clients}
+      />
     </main>
   );
 }
