@@ -316,11 +316,11 @@ export default function Facturas() {
         </NeoGradientButton>
       </div>
       
-      {/* Formulario original comentado - ahora está en el modal */}
-      {/* <form
+      {/* Formulario original oculto - ahora está en el modal */}
+      <form
         onSubmit={handleSubmit}
-        className="space-y-4 bg-gray-800 p-4 rounded-lg border border-gray-700"
-      > */}
+        className="space-y-4 bg-gray-800 p-4 rounded-lg border border-gray-700 hidden"
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
           <label className="flex flex-col gap-1">
             <span className="text-sm text-gray-500">Número</span>
@@ -519,7 +519,7 @@ export default function Facturas() {
             Guardar
           </button>
         </div>
-      {/* </form> */}
+      </form>
       <section>
         <h3 className="text-xl font-semibold mb-2">Listado</h3>
         {loading ? (
