@@ -1289,51 +1289,27 @@ def export_invoices_xlsx():
 def create_expense():
     """Create a new expense record."""
     data = request.get_json(force=True)
-    date_str = data.get('date')
-    category = data.get('category')
-    description = data.get('description')
-    supplier = data.get('supplier')
-    base_amount = data.get('base_amount')
-    tax_rate = data.get('tax_rate', 21.0)
-    total = data.get('total')
-    paid = data.get('paid', False)
     
-    if not (date_str and category and description and supplier and base_amount is not None):
-        return jsonify({'error': 'Missing required fields'}), 400
+    # Validate and convert data
+    validated_data, errors = validate_expense_data(data, is_update=False)
+    if errors:
+        return jsonify({'error': '; '.join(errors)}), 400
     
-    # Convert base_amount to float for validation
+    # Convert date string to date object
     try:
-        base_amount = float(base_amount)
-    except (ValueError, TypeError):
-        return jsonify({'error': 'Base amount must be a valid number'}), 400
-    
-    if base_amount < 0:
-        return jsonify({'error': 'Base amount must be non-negative'}), 400
-    
-    # Convert tax_rate to float for validation
-    try:
-        tax_rate = float(tax_rate)
-    except (ValueError, TypeError):
-        return jsonify({'error': 'Tax rate must be a valid number'}), 400
-    
-    if not (0 <= tax_rate <= 100):
-        return jsonify({'error': 'Tax rate must be between 0 and 100'}), 400
-    
-    # Calculate total if not provided
-    if total is None:
-        total = round(base_amount * (1 + tax_rate / 100), 2)
-    
-    date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        date_obj = datetime.strptime(validated_data['date'], '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
     
     expense = Expense(
         date=date_obj,
-        category=category,
-        description=description,
-        supplier=supplier,
-        base_amount=base_amount,
-        tax_rate=tax_rate,
-        total=total,
-        paid=paid
+        category=validated_data['category'],
+        description=validated_data['description'],
+        supplier=validated_data['supplier'],
+        base_amount=validated_data['base_amount'],
+        tax_rate=validated_data['tax_rate'],
+        total=validated_data['total'],
+        paid=validated_data.get('paid', False)
     )
     
     db.session.add(expense)
@@ -1419,38 +1395,36 @@ def update_expense(expense_id):
     expense = Expense.query.get_or_404(expense_id)
     data = request.get_json(force=True)
     
-    if 'date' in data:
-        expense.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
-    if 'category' in data:
-        expense.category = data['category']
-    if 'description' in data:
-        expense.description = data['description']
-    if 'supplier' in data:
-        expense.supplier = data['supplier']
-    if 'base_amount' in data:
+    # Validate and convert data
+    validated_data, errors = validate_expense_data(data, is_update=True)
+    if errors:
+        return jsonify({'error': '; '.join(errors)}), 400
+    
+    # Update fields
+    if 'date' in validated_data:
         try:
-            base_amount = float(data['base_amount'])
-        except (ValueError, TypeError):
-            return jsonify({'error': 'Base amount must be a valid number'}), 400
-        if base_amount < 0:
-            return jsonify({'error': 'Base amount must be non-negative'}), 400
-        expense.base_amount = base_amount
-    if 'tax_rate' in data:
-        try:
-            tax_rate = float(data['tax_rate'])
-        except (ValueError, TypeError):
-            return jsonify({'error': 'Tax rate must be a valid number'}), 400
-        if not (0 <= tax_rate <= 100):
-            return jsonify({'error': 'Tax rate must be between 0 and 100'}), 400
-        expense.tax_rate = tax_rate
-    if 'paid' in data:
-        expense.paid = data['paid']
+            expense.date = datetime.strptime(validated_data['date'], '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+    
+    if 'category' in validated_data:
+        expense.category = validated_data['category']
+    if 'description' in validated_data:
+        expense.description = validated_data['description']
+    if 'supplier' in validated_data:
+        expense.supplier = validated_data['supplier']
+    if 'base_amount' in validated_data:
+        expense.base_amount = validated_data['base_amount']
+    if 'tax_rate' in validated_data:
+        expense.tax_rate = validated_data['tax_rate']
+    if 'paid' in validated_data:
+        expense.paid = validated_data['paid']
     
     # Recalculate total if base_amount or tax_rate changed
-    if 'base_amount' in data or 'tax_rate' in data:
+    if 'base_amount' in validated_data or 'tax_rate' in validated_data:
         expense.total = round(expense.base_amount * (1 + expense.tax_rate / 100), 2)
-    elif 'total' in data:
-        expense.total = data['total']
+    elif 'total' in validated_data:
+        expense.total = validated_data['total']
     
     db.session.commit()
     
@@ -2379,6 +2353,78 @@ def _generate_contract_pdf_fallback(content):
     doc.save()
     buffer.seek(0)
     return buffer.getvalue()
+
+def validate_and_convert_float(value, field_name, min_value=None, max_value=None):
+    """Validate and convert a value to float with optional range validation."""
+    if value is None:
+        return None
+    
+    try:
+        converted = float(value)
+    except (ValueError, TypeError):
+        raise ValueError(f'{field_name} must be a valid number')
+    
+    if min_value is not None and converted < min_value:
+        raise ValueError(f'{field_name} must be at least {min_value}')
+    
+    if max_value is not None and converted > max_value:
+        raise ValueError(f'{field_name} must be at most {max_value}')
+    
+    return converted
+
+def validate_expense_data(data, is_update=False):
+    """Validate expense data and convert numeric fields."""
+    errors = []
+    validated_data = {}
+    
+    # Required fields for creation
+    required_fields = ['date', 'category', 'description', 'supplier', 'base_amount']
+    if not is_update:
+        for field in required_fields:
+            if not data.get(field):
+                errors.append(f'{field} is required')
+    
+    # Convert and validate base_amount
+    if 'base_amount' in data:
+        try:
+            validated_data['base_amount'] = validate_and_convert_float(
+                data['base_amount'], 'Base amount', min_value=0
+            )
+        except ValueError as e:
+            errors.append(str(e))
+    
+    # Convert and validate tax_rate
+    if 'tax_rate' in data:
+        try:
+            validated_data['tax_rate'] = validate_and_convert_float(
+                data['tax_rate'], 'Tax rate', min_value=0, max_value=100
+            )
+        except ValueError as e:
+            errors.append(str(e))
+    elif not is_update:
+        # Default tax rate for new expenses
+        validated_data['tax_rate'] = 21.0
+    
+    # Handle total calculation
+    if 'total' in data:
+        try:
+            validated_data['total'] = validate_and_convert_float(
+                data['total'], 'Total', min_value=0
+            )
+        except ValueError as e:
+            errors.append(str(e))
+    elif 'base_amount' in validated_data and 'tax_rate' in validated_data:
+        # Auto-calculate total if not provided
+        validated_data['total'] = round(
+            validated_data['base_amount'] * (1 + validated_data['tax_rate'] / 100), 2
+        )
+    
+    # Copy other fields
+    for field in ['date', 'category', 'description', 'supplier', 'paid']:
+        if field in data:
+            validated_data[field] = data[field]
+    
+    return validated_data, errors
 
 
 if __name__ == '__main__':
