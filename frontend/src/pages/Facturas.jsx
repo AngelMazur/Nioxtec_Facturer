@@ -317,7 +317,7 @@ export default function Facturas() {
                     {pageItems.map(inv=>{
                       const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
                       return (
-                        <DataCard
+                                                <DataCard
                           key={inv.id}
                           onClick={()=>openPreview(inv.id)}
                           actions={[
@@ -337,29 +337,30 @@ export default function Facturas() {
                               onClick: () => deleteInvoice(inv)
                             }
                           ]}
-                        columns={5}
-                        >
-                          <div>
-                            <div className="text-xs text-gray-500">Número</div>
-                            <div className="font-medium">{inv.number}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500">Cliente</div>
-                            <div className="text-gray-300">{clientName}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500">Fecha</div>
-                            <div className="text-gray-300">{inv.date?.slice(0,10)}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500">Tipo</div>
-                            <div className="text-gray-300 uppercase text-xs">{inv.type}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500">Total</div>
-                            <div className="font-semibold text-gray-100">{(inv.total ?? 0).toFixed(2)} €</div>
-                          </div>
-                        </DataCard>
+                          columns={5}
+                          labels={['Número', 'Cliente', 'Fecha', 'Tipo', 'Total']}
+                          >
+                            <div>
+                              <div className="text-xs text-gray-500 sm:hidden">Número</div>
+                              <div className="font-medium">{inv.number}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500 sm:hidden">Cliente</div>
+                              <div className="text-gray-300">{clientName}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500 sm:hidden">Fecha</div>
+                              <div className="text-gray-300">{inv.date?.slice(0,10)}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500 sm:hidden">Tipo</div>
+                              <div className="text-gray-300 uppercase text-xs">{inv.type}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500 sm:hidden">Total</div>
+                              <div className="font-semibold text-gray-100">{(inv.total ?? 0).toFixed(2)} €</div>
+                            </div>
+                          </DataCard>
                       )
                     })}
                   </div>

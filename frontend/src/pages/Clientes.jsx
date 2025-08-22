@@ -234,7 +234,7 @@ export default function Clientes() {
                   {/* Cards responsive */}
                   <div className="space-y-2">
                      {pageItems.map((client) => (
-                       <DataCard
+                                              <DataCard
                          key={client.id}
                          onClick={()=>openClientModal(client)}
                          actions={[
@@ -249,28 +249,29 @@ export default function Clientes() {
                              onClick: () => deleteClient(client)
                            }
                          ]}
-                       columns={4}
-                       >
-                         <div>
-                           <div className="text-xs text-gray-500">Nombre</div>
-                           <div className="font-medium text-left">{client.name}</div>
-                         </div>
-                         <div>
-                           <div className="text-xs text-gray-500">CIF/NIF</div>
-                           <div className="text-gray-300">{client.cif}</div>
-                         </div>
-                         <div>
-                           <div className="text-xs text-gray-500">Contacto</div>
-                           <div className="text-sm text-gray-400 break-words">
-                             <div>{client.email}</div>
-                             <div>{client.phone}</div>
-                           </div>
-                         </div>
-                         <div>
-                           <div className="text-xs text-gray-500">Creado</div>
-                           <div className="text-gray-300">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
-                         </div>
-                       </DataCard>
+                        columns={4}
+                        labels={['Nombre', 'CIF/NIF', 'Contacto', 'Creado']}
+                        >
+                          <div>
+                            <div className="text-xs text-gray-500 sm:hidden">Nombre</div>
+                            <div className="font-medium text-left">{client.name}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500 sm:hidden">CIF/NIF</div>
+                            <div className="text-gray-300">{client.cif}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500 sm:hidden">Contacto</div>
+                            <div className="text-sm text-gray-400 break-words">
+                              <div>{client.email}</div>
+                              <div>{client.phone}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500 sm:hidden">Creado</div>
+                            <div className="text-gray-300">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
+                          </div>
+                        </DataCard>
                      ))}
                   </div>
 

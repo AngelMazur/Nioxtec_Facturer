@@ -6,7 +6,8 @@ const DataCard = ({
   className = "",
   actions = [],
   isClickable = true,
-  columns = 5 // Número de columnas para desktop (por defecto 5)
+  columns = 5, // Número de columnas para desktop
+  labels = [] // Array de labels para mostrar fuera en tablet/desktop
 }) => {
   // Mapear número de columnas a clases de Tailwind
   const getGridCols = (cols) => {
@@ -36,6 +37,20 @@ const DataCard = ({
       `}
       onClick={isClickable ? onClick : undefined}
     >
+      {/* Labels externos solo en tablet/desktop */}
+      {labels.length > 0 && (
+        <div className={`
+          hidden sm:grid sm:grid-cols-2 ${getGridCols(columns)}
+          gap-2 sm:gap-3 md:gap-4
+          mb-2 sm:mb-2.5 md:mb-3
+          text-xs text-gray-500 font-medium
+        `}>
+          {labels.map((label, index) => (
+            <div key={index}>{label}</div>
+          ))}
+        </div>
+      )}
+
       {/* Contenido principal con layout responsive */}
       <div className={`
         /* Grid responsive: móvil 1 col, tablet 2 cols, desktop dinámico */
@@ -52,7 +67,7 @@ const DataCard = ({
         <div 
           className="
             mt-2 sm:mt-2.5 md:mt-0 
-            flex items-center gap-2 sm:gap-3 md:gap-4
+            flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 md:gap-4
             md:justify-end
           " 
           onClick={(e) => e.stopPropagation()}
@@ -61,9 +76,10 @@ const DataCard = ({
             <button
               key={index}
               className={`
-                underline active:scale-95 transition-transform duration-200
+                underline active:scale-95 transition-all duration-200
                 inline-block focus:ring-2 focus:ring-opacity-50 rounded
                 text-xs sm:text-sm md:text-base
+                hover:opacity-80 hover:scale-105
                 ${action.className || ''}
               `}
               onClick={action.onClick}
