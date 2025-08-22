@@ -275,8 +275,8 @@ export default function Facturas() {
 
               return (
                 <>
-                  {/* Desktop table */}
-                  <div className="hidden md:block">
+                  {/* Desktop table - hidden, using responsive cards instead */}
+                  <div className="hidden">
                     <table className="w-full table-fixed border-separate border-spacing-y-2">
                       <thead>
                         <tr className="text-xs text-gray-400">
@@ -312,8 +312,8 @@ export default function Facturas() {
                     </table>
                   </div>
 
-                  {/* Mobile cards */}
-                  <div className="md:hidden space-y-2">
+                  {/* Cards responsive */}
+                  <div className="space-y-2">
                     {pageItems.map(inv=>{
                       const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
                       return (

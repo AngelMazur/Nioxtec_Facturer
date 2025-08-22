@@ -191,8 +191,8 @@ export default function Gastos() {
           <CustomSkeleton count={5} height={30} className="mb-2" />
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
-            {/* Desktop table */}
-            <div className="hidden md:block">
+            {/* Desktop table - hidden, using responsive cards instead */}
+            <div className="hidden">
               <table className="w-full table-fixed border-separate border-spacing-y-2">
                 <thead>
                   <tr className="text-xs text-gray-400">
@@ -280,8 +280,8 @@ export default function Gastos() {
               </table>
             </div>
 
-            {/* Mobile cards */}
-            <div className="md:hidden space-y-2">
+            {/* Cards responsive */}
+            <div className="space-y-2">
               {expenses.map((expense) => (
                 <DataCard
                   key={expense.id}
@@ -290,11 +290,6 @@ export default function Gastos() {
                     {
                       label: 'Editar',
                       className: 'text-brand focus:ring-brand',
-                      onClick: () => handleEdit(expense)
-                    },
-                    {
-                      label: 'Duplicar',
-                      className: 'focus:ring-gray-500',
                       onClick: () => handleEdit(expense)
                     },
                     {

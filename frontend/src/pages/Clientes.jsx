@@ -209,8 +209,8 @@ export default function Clientes() {
              const pageItems = sorted.slice(start, start + pageSize)
               return (
                 <>
-                  {/* Desktop list */}
-                  <div className="hidden md:block">
+                  {/* Desktop list - hidden, using responsive cards instead */}
+                  <div className="hidden">
                     <ul className="space-y-2">
                        {pageItems.map((client) => (
                          <li key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer hover:scale-[1.02] hover:bg-gray-800/80 active:scale-95 active:bg-gray-700 transition-all duration-200" onClick={()=>openClientModal(client)}>
@@ -231,8 +231,8 @@ export default function Clientes() {
                     </ul>
                   </div>
 
-                  {/* Mobile cards */}
-                  <div className="md:hidden space-y-2">
+                  {/* Cards responsive */}
+                  <div className="space-y-2">
                      {pageItems.map((client) => (
                        <DataCard
                          key={client.id}
@@ -242,11 +242,6 @@ export default function Clientes() {
                              label: 'Ver',
                              className: 'text-brand focus:ring-brand',
                              onClick: () => openClientModal(client)
-                           },
-                           {
-                             label: 'Contrato',
-                             className: 'focus:ring-gray-500',
-                             onClick: () => openContractModal(client)
                            },
                            {
                              label: 'Eliminar',
