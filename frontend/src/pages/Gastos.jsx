@@ -298,35 +298,45 @@ export default function Gastos() {
                       onClick: () => handleDelete(expense.id)
                     }
                   ]}
+                columns={8}
                 >
-                  <div className="text-xs text-gray-500">Fecha</div>
-                  <div className="font-medium">{new Date(expense.date).toLocaleDateString('es-ES')}</div>
-                  
-                  <div className="text-xs text-gray-500 mt-2">Categoría</div>
-                  <div className="text-gray-300">{expense.category}</div>
-                  
-                  <div className="text-xs text-gray-500 mt-2">Concepto</div>
-                  <div className="text-gray-300">{expense.description}</div>
-                  
-                  <div className="text-xs text-gray-500 mt-2">Proveedor</div>
-                  <div className="text-gray-300">{expense.supplier}</div>
-                  
-                  <div className="text-xs text-gray-500 mt-2">Base</div>
-                  <div className="font-medium tabular-nums">{expense.base_amount.toFixed(2)} €</div>
-                  
-                  <div className="text-xs text-gray-500 mt-2">IVA</div>
-                  <div className="text-gray-300">{expense.tax_rate}%</div>
-                  
-                  <div className="text-xs text-gray-500 mt-2">Total</div>
-                  <div className="font-semibold text-gray-100 tabular-nums">{expense.total.toFixed(2)} €</div>
-                  
-                  <div className="text-xs text-gray-500 mt-2">Pagado</div>
-                  <div className="text-gray-300">
-                    {expense.paid ? (
-                      <span className="text-green-400">✓ Pagado</span>
-                    ) : (
-                      <span className="text-red-400">✗ Pendiente</span>
-                    )}
+                  <div>
+                    <div className="text-xs text-gray-500">Fecha</div>
+                    <div className="font-medium">{new Date(expense.date).toLocaleDateString('es-ES')}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Categoría</div>
+                    <div className="text-gray-300">{expense.category}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Concepto</div>
+                    <div className="text-gray-300">{expense.description}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Proveedor</div>
+                    <div className="text-gray-300">{expense.supplier}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Base</div>
+                    <div className="font-medium tabular-nums">{expense.base_amount.toFixed(2)} €</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">IVA</div>
+                    <div className="text-gray-300">{expense.tax_rate}%</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Total</div>
+                    <div className="font-semibold text-gray-100 tabular-nums">{expense.total.toFixed(2)} €</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Pagado</div>
+                    <div className="text-gray-300">
+                      {expense.paid ? (
+                        <span className="text-green-400">✓ Pagado</span>
+                      ) : (
+                        <span className="text-red-400">✗ Pendiente</span>
+                      )}
+                    </div>
                   </div>
                 </DataCard>
               ))}

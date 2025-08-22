@@ -5,8 +5,24 @@ const DataCard = ({
   onClick,
   className = "",
   actions = [],
-  isClickable = true
+  isClickable = true,
+  columns = 5 // Número de columnas para desktop (por defecto 5)
 }) => {
+  // Mapear número de columnas a clases de Tailwind
+  const getGridCols = (cols) => {
+    const gridMap = {
+      1: 'md:grid-cols-1',
+      2: 'md:grid-cols-2', 
+      3: 'md:grid-cols-3',
+      4: 'md:grid-cols-4',
+      5: 'md:grid-cols-5',
+      6: 'md:grid-cols-6',
+      7: 'md:grid-cols-7',
+      8: 'md:grid-cols-8'
+    }
+    return gridMap[cols] || 'md:grid-cols-5'
+  }
+
   return (
     <div
       className={`
@@ -17,21 +33,28 @@ const DataCard = ({
         
         /* Responsive padding */
         p-2 sm:p-3 md:p-4
-        
-        /* Responsive min-height */
-        min-h-[7em] sm:min-h-[8em] md:min-h-[8.5em]
       `}
       onClick={isClickable ? onClick : undefined}
     >
-      {/* Contenido principal */}
-      <div className="space-y-1 sm:space-y-1.5 md:space-y-2 mb-2 sm:mb-2.5 md:mb-3">
+      {/* Contenido principal con layout responsive */}
+      <div className={`
+        /* Grid responsive: móvil 1 col, tablet 2 cols, desktop dinámico */
+        grid grid-cols-1 sm:grid-cols-2 ${getGridCols(columns)}
+        gap-2 sm:gap-3 md:gap-4
+        items-start md:items-center
+        mb-2 sm:mb-2.5 md:mb-0
+      `}>
         {children}
       </div>
 
       {/* Sección de acciones */}
       {actions.length > 0 && (
         <div 
-          className="mt-2 sm:mt-2.5 md:mt-3 flex items-center gap-2 sm:gap-3 md:gap-4" 
+          className="
+            mt-2 sm:mt-2.5 md:mt-0 
+            flex items-center gap-2 sm:gap-3 md:gap-4
+            md:justify-end
+          " 
           onClick={(e) => e.stopPropagation()}
         >
           {actions.map((action, index) => (

@@ -337,17 +337,28 @@ export default function Facturas() {
                               onClick: () => deleteInvoice(inv)
                             }
                           ]}
+                        columns={5}
                         >
-                          <div className="text-xs text-gray-500">Número</div>
-                          <div className="font-medium">{inv.number}</div>
-                          <div className="text-xs text-gray-500 mt-2">Cliente</div>
-                          <div className="text-gray-300">{clientName}</div>
-                          <div className="text-xs text-gray-500 mt-2">Fecha</div>
-                          <div className="text-gray-300">{inv.date?.slice(0,10)}</div>
-                          <div className="text-xs text-gray-500 mt-2">Tipo</div>
-                          <div className="text-gray-300 uppercase text-xs">{inv.type}</div>
-                          <div className="text-xs text-gray-500 mt-2">Total</div>
-                          <div className="font-semibold text-gray-100">{(inv.total ?? 0).toFixed(2)} €</div>
+                          <div>
+                            <div className="text-xs text-gray-500">Número</div>
+                            <div className="font-medium">{inv.number}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500">Cliente</div>
+                            <div className="text-gray-300">{clientName}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500">Fecha</div>
+                            <div className="text-gray-300">{inv.date?.slice(0,10)}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500">Tipo</div>
+                            <div className="text-gray-300 uppercase text-xs">{inv.type}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500">Total</div>
+                            <div className="font-semibold text-gray-100">{(inv.total ?? 0).toFixed(2)} €</div>
+                          </div>
                         </DataCard>
                       )
                     })}
