@@ -11,6 +11,7 @@ import CustomSkeleton from "../components/CustomSkeleton"
 import { motion } from 'framer-motion';
 import CreateInvoiceModal from "../components/CreateInvoiceModal";
 import NeoGradientButton from "../components/NeoGradientButton";
+import DataCard from "../components/DataCard";
 
 export default function Facturas() {
   const { 
@@ -316,25 +317,38 @@ export default function Facturas() {
                     {pageItems.map(inv=>{
                       const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
                       return (
-                        <div key={inv.id} className="p-3 bg-gray-800 border border-gray-700 rounded active:scale-95 active:bg-gray-700 transition-all duration-200" onClick={()=>openPreview(inv.id)}>
-                          <div className="space-y-1">
-                            <div className="text-xs text-gray-500">Número</div>
-                            <div className="font-medium">{inv.number}</div>
-                            <div className="text-xs text-gray-500 mt-2">Cliente</div>
-                            <div className="text-gray-300">{clientName}</div>
-                            <div className="text-xs text-gray-500 mt-2">Fecha</div>
-                            <div className="text-gray-300">{inv.date?.slice(0,10)}</div>
-                            <div className="text-xs text-gray-500 mt-2">Tipo</div>
-                            <div className="text-gray-300 uppercase text-xs">{inv.type}</div>
-                            <div className="text-xs text-gray-500 mt-2">Total</div>
-                            <div className="font-semibold text-gray-100">{(inv.total ?? 0).toFixed(2)} €</div>
-                          </div>
-                          <div className="mt-3 flex items-center gap-4" onClick={(e)=>e.stopPropagation()}>
-                            <button className="text-brand underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-brand focus:ring-opacity-50 rounded" onClick={()=>downloadInvoice(inv.id, inv.number)}>PDF</button>
-                            <button className="underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 rounded" onClick={()=>duplicateInvoice(inv)}>Duplicar</button>
-                            <button className="text-red-600 underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded" onClick={()=>deleteInvoice(inv)}>Eliminar</button>
-                          </div>
-                        </div>
+                        <DataCard
+                          key={inv.id}
+                          onClick={()=>openPreview(inv.id)}
+                          actions={[
+                            {
+                              label: 'PDF',
+                              className: 'text-brand focus:ring-brand',
+                              onClick: () => downloadInvoice(inv.id, inv.number)
+                            },
+                            {
+                              label: 'Duplicar',
+                              className: 'focus:ring-gray-500',
+                              onClick: () => duplicateInvoice(inv)
+                            },
+                            {
+                              label: 'Eliminar',
+                              className: 'text-red-600 focus:ring-red-500',
+                              onClick: () => deleteInvoice(inv)
+                            }
+                          ]}
+                        >
+                          <div className="text-xs text-gray-500">Número</div>
+                          <div className="font-medium">{inv.number}</div>
+                          <div className="text-xs text-gray-500 mt-2">Cliente</div>
+                          <div className="text-gray-300">{clientName}</div>
+                          <div className="text-xs text-gray-500 mt-2">Fecha</div>
+                          <div className="text-gray-300">{inv.date?.slice(0,10)}</div>
+                          <div className="text-xs text-gray-500 mt-2">Tipo</div>
+                          <div className="text-gray-300 uppercase text-xs">{inv.type}</div>
+                          <div className="text-xs text-gray-500 mt-2">Total</div>
+                          <div className="font-semibold text-gray-100">{(inv.total ?? 0).toFixed(2)} €</div>
+                        </DataCard>
                       )
                     })}
                   </div>

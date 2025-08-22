@@ -6,6 +6,7 @@ import ContractGeneratorModal from '../features/contracts/components/ContractGen
 import CustomSkeleton from "../components/CustomSkeleton"
 import CreateClientModal from "../components/CreateClientModal"
 import NeoGradientButton from "../components/NeoGradientButton"
+import DataCard from "../components/DataCard"
 
 export default function Clientes() {
   const { clients, setClients, token } = useStore()
@@ -233,27 +234,40 @@ export default function Clientes() {
                   {/* Mobile cards */}
                   <div className="md:hidden space-y-2">
                      {pageItems.map((client) => (
-                       <div key={client.id} className="p-3 bg-gray-800 border border-gray-700 rounded cursor-pointer hover:scale-[1.02] active:scale-95 active:bg-gray-700 transition-all duration-200" onClick={()=>openClientModal(client)}>
-                        <div className="space-y-1">
-                          <div className="text-xs text-gray-500">Nombre</div>
-                            <div className="font-medium text-left">{client.name}</div>
-                          <div className="text-xs text-gray-500 mt-2">CIF/NIF</div>
-                          <div className="text-gray-300">{client.cif}</div>
-                          <div className="text-xs text-gray-500 mt-2">Contacto</div>
-                          <div className="text-sm text-gray-400 break-words">
-                            <div>{client.email}</div>
-                            <div>{client.phone}</div>
-                          </div>
-                          <div className="text-xs text-gray-500 mt-2">Creado</div>
-                          <div className="text-gray-300">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
-                        </div>
-                         <div className="mt-3 flex items-center gap-4" onClick={(e)=>e.stopPropagation()}>
-                           <button className="text-brand underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-brand focus:ring-opacity-50 rounded" onClick={()=>openClientModal(client)}>Ver</button>
-                           <button className="underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 rounded" onClick={()=>openContractModal(client)}>Contrato</button>
-                           <button className="text-red-600 underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded" onClick={()=>deleteClient(client)}>Eliminar</button>
-                        </div>
-                      </div>
-                    ))}
+                       <DataCard
+                         key={client.id}
+                         onClick={()=>openClientModal(client)}
+                         actions={[
+                           {
+                             label: 'Ver',
+                             className: 'text-brand focus:ring-brand',
+                             onClick: () => openClientModal(client)
+                           },
+                           {
+                             label: 'Contrato',
+                             className: 'focus:ring-gray-500',
+                             onClick: () => openContractModal(client)
+                           },
+                           {
+                             label: 'Eliminar',
+                             className: 'text-red-600 focus:ring-red-500',
+                             onClick: () => deleteClient(client)
+                           }
+                         ]}
+                       >
+                         <div className="text-xs text-gray-500">Nombre</div>
+                         <div className="font-medium text-left">{client.name}</div>
+                         <div className="text-xs text-gray-500 mt-2">CIF/NIF</div>
+                         <div className="text-gray-300">{client.cif}</div>
+                         <div className="text-xs text-gray-500 mt-2">Contacto</div>
+                         <div className="text-sm text-gray-400 break-words">
+                           <div>{client.email}</div>
+                           <div>{client.phone}</div>
+                         </div>
+                         <div className="text-xs text-gray-500 mt-2">Creado</div>
+                         <div className="text-gray-300">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
+                       </DataCard>
+                     ))}
                   </div>
 
                   <div className="flex items-center justify-between gap-2 mt-3">

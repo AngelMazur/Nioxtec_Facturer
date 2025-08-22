@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import CustomSkeleton from "../components/CustomSkeleton"
 import CreateExpenseModal from "../components/CreateExpenseModal"
 import NeoGradientButton from "../components/NeoGradientButton"
+import DataCard from "../components/DataCard"
 
 export default function Gastos() {
   const { token } = useStore()
@@ -282,59 +283,57 @@ export default function Gastos() {
             {/* Mobile cards */}
             <div className="md:hidden space-y-2">
               {expenses.map((expense) => (
-                <div key={expense.id} className="p-3 bg-gray-800 border border-gray-700 rounded active:scale-95 active:bg-gray-700 transition-all duration-200">
-                  <div className="space-y-1">
-                    <div className="text-xs text-gray-500">Fecha</div>
-                    <div className="font-medium">{new Date(expense.date).toLocaleDateString('es-ES')}</div>
-                    
-                    <div className="text-xs text-gray-500 mt-2">Categoría</div>
-                    <div className="text-gray-300">{expense.category}</div>
-                    
-                    <div className="text-xs text-gray-500 mt-2">Concepto</div>
-                    <div className="text-gray-300">{expense.description}</div>
-                    
-                    <div className="text-xs text-gray-500 mt-2">Proveedor</div>
-                    <div className="text-gray-300">{expense.supplier}</div>
-                    
-                    <div className="text-xs text-gray-500 mt-2">Base</div>
-                    <div className="font-medium tabular-nums">{expense.base_amount.toFixed(2)} €</div>
-                    
-                    <div className="text-xs text-gray-500 mt-2">IVA</div>
-                    <div className="text-gray-300">{expense.tax_rate}%</div>
-                    
-                    <div className="text-xs text-gray-500 mt-2">Total</div>
-                    <div className="font-semibold text-gray-100 tabular-nums">{expense.total.toFixed(2)} €</div>
-                    
-                    <div className="text-xs text-gray-500 mt-2">Pagado</div>
-                    <div className="text-gray-300">
-                      {expense.paid ? (
-                        <span className="text-green-400">✓ Pagado</span>
-                      ) : (
-                        <span className="text-red-400">✗ Pendiente</span>
-                      )}
-                    </div>
+                <DataCard
+                  key={expense.id}
+                  isClickable={false}
+                  actions={[
+                    {
+                      label: 'Editar',
+                      className: 'text-brand focus:ring-brand',
+                      onClick: () => handleEdit(expense)
+                    },
+                    {
+                      label: 'Duplicar',
+                      className: 'focus:ring-gray-500',
+                      onClick: () => handleEdit(expense)
+                    },
+                    {
+                      label: 'Eliminar',
+                      className: 'text-red-600 focus:ring-red-500',
+                      onClick: () => handleDelete(expense.id)
+                    }
+                  ]}
+                >
+                  <div className="text-xs text-gray-500">Fecha</div>
+                  <div className="font-medium">{new Date(expense.date).toLocaleDateString('es-ES')}</div>
+                  
+                  <div className="text-xs text-gray-500 mt-2">Categoría</div>
+                  <div className="text-gray-300">{expense.category}</div>
+                  
+                  <div className="text-xs text-gray-500 mt-2">Concepto</div>
+                  <div className="text-gray-300">{expense.description}</div>
+                  
+                  <div className="text-xs text-gray-500 mt-2">Proveedor</div>
+                  <div className="text-gray-300">{expense.supplier}</div>
+                  
+                  <div className="text-xs text-gray-500 mt-2">Base</div>
+                  <div className="font-medium tabular-nums">{expense.base_amount.toFixed(2)} €</div>
+                  
+                  <div className="text-xs text-gray-500 mt-2">IVA</div>
+                  <div className="text-gray-300">{expense.tax_rate}%</div>
+                  
+                  <div className="text-xs text-gray-500 mt-2">Total</div>
+                  <div className="font-semibold text-gray-100 tabular-nums">{expense.total.toFixed(2)} €</div>
+                  
+                  <div className="text-xs text-gray-500 mt-2">Pagado</div>
+                  <div className="text-gray-300">
+                    {expense.paid ? (
+                      <span className="text-green-400">✓ Pagado</span>
+                    ) : (
+                      <span className="text-red-400">✗ Pendiente</span>
+                    )}
                   </div>
-                  <div className="mt-3 flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      className="text-brand underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-brand focus:ring-opacity-50 rounded"
-                      onClick={() => handleEdit(expense)}
-                    >
-                      Editar
-                    </button>
-                    <button 
-                      className="underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 rounded"
-                      onClick={() => handleEdit(expense)}
-                    >
-                      Duplicar
-                    </button>
-                    <button 
-                      className="text-red-600 underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded"
-                      onClick={() => handleDelete(expense.id)}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
+                </DataCard>
               ))}
             </div>
           </motion.div>
