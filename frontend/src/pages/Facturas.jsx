@@ -312,6 +312,21 @@ export default function Facturas() {
                     </table>
                   </div>
 
+                  {/* Labels externos solo en desktop */}
+                  <div className={`
+                    hidden md:grid md:grid-cols-6
+                    gap-2 sm:gap-3 md:gap-4
+                    mb-2 sm:mb-2.5 md:mb-3
+                    text-xs text-gray-500 font-medium
+                  `}>
+                    <div>Número</div>
+                    <div>Cliente</div>
+                    <div>Fecha</div>
+                    <div>Tipo</div>
+                    <div>Total</div>
+                    <div>Acciones</div>
+                  </div>
+
                   {/* Cards responsive */}
                   <div className="space-y-2">
                     {pageItems.map(inv=>{
@@ -338,7 +353,6 @@ export default function Facturas() {
                             }
                           ]}
                           columns={5}
-                          labels={['Número', 'Cliente', 'Fecha', 'Tipo', 'Total']}
                           >
                             <div>
                               <div className="text-xs text-gray-500 sm:hidden">Número</div>

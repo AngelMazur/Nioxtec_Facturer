@@ -231,6 +231,20 @@ export default function Clientes() {
                     </ul>
                   </div>
 
+                  {/* Labels externos solo en desktop */}
+                  <div className={`
+                    hidden md:grid md:grid-cols-5
+                    gap-2 sm:gap-3 md:gap-4
+                    mb-2 sm:mb-2.5 md:mb-3
+                    text-xs text-gray-500 font-medium
+                  `}>
+                    <div>Nombre</div>
+                    <div>CIF/NIF</div>
+                    <div>Contacto</div>
+                    <div>Creado</div>
+                    <div>Acciones</div>
+                  </div>
+
                   {/* Cards responsive */}
                   <div className="space-y-2">
                      {pageItems.map((client) => (
@@ -250,7 +264,6 @@ export default function Clientes() {
                            }
                          ]}
                         columns={4}
-                        labels={['Nombre', 'CIF/NIF', 'Contacto', 'Creado']}
                         >
                           <div>
                             <div className="text-xs text-gray-500 sm:hidden">Nombre</div>

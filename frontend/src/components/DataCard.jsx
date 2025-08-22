@@ -6,8 +6,7 @@ const DataCard = ({
   className = "",
   actions = [],
   isClickable = true,
-  columns = 5, // Número de columnas para desktop
-  labels = [] // Array de labels para mostrar fuera en tablet/desktop
+  columns = 5 // Número de columnas para desktop
 }) => {
   // Mapear número de columnas a clases de Tailwind
   const getGridCols = (cols) => {
@@ -19,9 +18,26 @@ const DataCard = ({
       5: 'md:grid-cols-5',
       6: 'md:grid-cols-6',
       7: 'md:grid-cols-7',
-      8: 'md:grid-cols-8'
+      8: 'md:grid-cols-8',
+      9: 'md:grid-cols-9'
     }
-    return gridMap[cols] || 'md:grid-cols-5'
+    return gridMap[cols] || 'md:grid-cols-6'
+  }
+
+  // Mapear número de columnas a col-span
+  const getColSpan = (cols) => {
+    const spanMap = {
+      1: 'md:col-span-1',
+      2: 'md:col-span-2', 
+      3: 'md:col-span-3',
+      4: 'md:col-span-4',
+      5: 'md:col-span-5',
+      6: 'md:col-span-6',
+      7: 'md:col-span-7',
+      8: 'md:col-span-8',
+      9: 'md:col-span-9'
+    }
+    return spanMap[cols] || 'md:col-span-6'
   }
 
   return (
@@ -37,58 +53,60 @@ const DataCard = ({
       `}
       onClick={isClickable ? onClick : undefined}
     >
-      {/* Labels externos solo en tablet/desktop */}
-      {labels.length > 0 && (
-        <div className={`
-          hidden sm:grid sm:grid-cols-2 ${getGridCols(columns)}
-          gap-2 sm:gap-3 md:gap-4
-          mb-2 sm:mb-2.5 md:mb-3
-          text-xs text-gray-500 font-medium
-        `}>
-          {labels.map((label, index) => (
-            <div key={index}>{label}</div>
-          ))}
-        </div>
-      )}
-
-      {/* Contenido principal con layout responsive */}
+      {/* Grid principal: contenido + acciones */}
       <div className={`
-        /* Grid responsive: móvil 1 col, tablet 2 cols, desktop dinámico */
-        grid grid-cols-1 sm:grid-cols-2 ${getGridCols(columns)}
+        /* Móvil: 1 columna */
+        /* Tablet: 2 columnas */
+        /* Desktop: contenido + 1 columna para acciones */
+        grid grid-cols-1 sm:grid-cols-2 ${getGridCols(columns + 1)}
         gap-2 sm:gap-3 md:gap-4
         items-start md:items-center
-        mb-2 sm:mb-2.5 md:mb-0
       `}>
-        {children}
-      </div>
-
-      {/* Sección de acciones */}
-      {actions.length > 0 && (
-        <div 
-          className="
-            mt-2 sm:mt-2.5 md:mt-0 
-            flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 md:gap-4
-            md:justify-end
-          " 
-          onClick={(e) => e.stopPropagation()}
-        >
-          {actions.map((action, index) => (
-            <button
-              key={index}
-              className={`
-                underline active:scale-95 transition-all duration-200
-                inline-block focus:ring-2 focus:ring-opacity-50 rounded
-                text-xs sm:text-sm md:text-base
-                hover:opacity-80 hover:scale-105
-                ${action.className || ''}
-              `}
-              onClick={action.onClick}
-            >
-              {action.label}
-            </button>
-          ))}
+        {/* Contenido principal - se expande en todas las columnas excepto la última en desktop */}
+        <div className={`
+          /* Móvil: 1 columna */
+          /* Tablet: 2 columnas */
+          /* Desktop: todas las columnas excepto la última */
+          grid grid-cols-1 sm:grid-cols-2 ${getGridCols(columns)}
+          gap-2 sm:gap-3 md:gap-4
+          items-start md:items-center
+          col-span-1 sm:col-span-2 ${getColSpan(columns)}
+        `}>
+          {children}
         </div>
-      )}
+
+        {/* Sección de acciones */}
+        {actions.length > 0 && (
+          <div 
+            className={`
+              /* Móvil/tablet: debajo del contenido */
+              /* Desktop: última columna */
+              col-span-1 sm:col-span-2 md:col-span-1
+              flex flex-col items-start gap-1.5 sm:gap-2
+              justify-start md:justify-center
+              mt-2 sm:mt-2.5 md:mt-0
+            `} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {actions.map((action, index) => (
+              <button
+                key={index}
+                className={`
+                  w-full text-left px-2 py-1.5 sm:px-3 sm:py-2
+                  rounded transition-all duration-200
+                  text-xs sm:text-sm
+                  hover:bg-gray-700/50 hover:scale-[1.02]
+                  active:scale-95 focus:ring-2 focus:ring-opacity-50
+                  ${action.className || ''}
+                `}
+                onClick={action.onClick}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

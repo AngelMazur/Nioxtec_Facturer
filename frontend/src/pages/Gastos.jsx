@@ -280,6 +280,24 @@ export default function Gastos() {
               </table>
             </div>
 
+            {/* Labels externos solo en desktop */}
+            <div className={`
+              hidden md:grid md:grid-cols-9
+              gap-2 sm:gap-3 md:gap-4
+              mb-2 sm:mb-2.5 md:mb-3
+              text-xs text-gray-500 font-medium
+            `}>
+              <div>Fecha</div>
+              <div>Categoría</div>
+              <div>Concepto</div>
+              <div>Proveedor</div>
+              <div>Base</div>
+              <div>IVA</div>
+              <div>Total</div>
+              <div>Pagado</div>
+              <div>Acciones</div>
+            </div>
+
             {/* Cards responsive */}
             <div className="space-y-2">
               {expenses.map((expense) => (
@@ -299,7 +317,6 @@ export default function Gastos() {
                     }
                   ]}
                   columns={8}
-                  labels={['Fecha', 'Categoría', 'Concepto', 'Proveedor', 'Base', 'IVA', 'Total', 'Pagado']}
                   >
                     <div>
                       <div className="text-xs text-gray-500 sm:hidden">Fecha</div>
