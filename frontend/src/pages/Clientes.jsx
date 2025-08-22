@@ -266,22 +266,22 @@ export default function Clientes() {
                         columns={4}
                         >
                           <div>
-                            <div className="text-xs text-gray-500 sm:hidden">Nombre</div>
+                            <div className="text-xs text-gray-500 md:hidden">Nombre</div>
                             <div className="font-medium text-left">{client.name}</div>
                           </div>
                           <div>
-                            <div className="text-xs text-gray-500 sm:hidden">CIF/NIF</div>
+                            <div className="text-xs text-gray-500 md:hidden">CIF/NIF</div>
                             <div className="text-gray-300">{client.cif}</div>
                           </div>
                           <div>
-                            <div className="text-xs text-gray-500 sm:hidden">Contacto</div>
+                            <div className="text-xs text-gray-500 md:hidden">Contacto</div>
                             <div className="text-sm text-gray-400 break-words">
                               <div>{client.email}</div>
                               <div>{client.phone}</div>
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-gray-500 sm:hidden">Creado</div>
+                            <div className="text-xs text-gray-500 md:hidden">Creado</div>
                             <div className="text-gray-300">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
                           </div>
                         </DataCard>

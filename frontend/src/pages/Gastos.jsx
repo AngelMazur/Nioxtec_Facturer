@@ -319,35 +319,35 @@ export default function Gastos() {
                   columns={8}
                   >
                     <div>
-                      <div className="text-xs text-gray-500 sm:hidden">Fecha</div>
+                      <div className="text-xs text-gray-500 md:hidden">Fecha</div>
                       <div className="font-medium">{new Date(expense.date).toLocaleDateString('es-ES')}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 sm:hidden">Categoría</div>
+                      <div className="text-xs text-gray-500 md:hidden">Categoría</div>
                       <div className="text-gray-300">{expense.category}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 sm:hidden">Concepto</div>
+                      <div className="text-xs text-gray-500 md:hidden">Concepto</div>
                       <div className="text-gray-300">{expense.description}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 sm:hidden">Proveedor</div>
+                      <div className="text-xs text-gray-500 md:hidden">Proveedor</div>
                       <div className="text-gray-300">{expense.supplier}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 sm:hidden">Base</div>
+                      <div className="text-xs text-gray-500 md:hidden">Base</div>
                       <div className="font-medium tabular-nums">{expense.base_amount.toFixed(2)} €</div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 sm:hidden">IVA</div>
+                      <div className="text-xs text-gray-500 md:hidden">IVA</div>
                       <div className="text-gray-300">{expense.tax_rate}%</div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 sm:hidden">Total</div>
+                      <div className="text-xs text-gray-500 md:hidden">Total</div>
                       <div className="font-semibold text-gray-100 tabular-nums">{expense.total.toFixed(2)} €</div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 sm:hidden">Pagado</div>
+                      <div className="text-xs text-gray-500 md:hidden">Pagado</div>
                       <div className="text-gray-300">
                         {expense.paid ? (
                           <span className="text-green-400">✓ Pagado</span>

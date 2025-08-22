@@ -79,11 +79,11 @@ const DataCard = ({
         {actions.length > 0 && (
           <div 
             className={`
-              /* Móvil/tablet: debajo del contenido */
-              /* Desktop: última columna */
+              /* Móvil/tablet: debajo del contenido en fila horizontal */
+              /* Desktop: última columna en fila vertical */
               col-span-1 sm:col-span-2 md:col-span-1
-              flex flex-col items-start gap-1.5 sm:gap-2
-              justify-start md:justify-center
+              flex flex-row md:flex-col items-center md:items-start gap-2 sm:gap-3 md:gap-1.5
+              justify-center md:justify-center
               mt-2 sm:mt-2.5 md:mt-0
             `} 
             onClick={(e) => e.stopPropagation()}
@@ -92,7 +92,7 @@ const DataCard = ({
               <button
                 key={index}
                 className={`
-                  w-full text-left px-2 py-1.5 sm:px-3 sm:py-2
+                  flex-1 md:w-full text-center md:text-left px-2 py-0.5 sm:px-3 sm:py-1
                   rounded transition-all duration-200
                   text-xs sm:text-sm
                   hover:bg-gray-700/50 hover:scale-[1.02]
