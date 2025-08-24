@@ -24,6 +24,12 @@ export default function Reportes() {
   const [loadingHeatmap, setLoadingHeatmap] = useState(true)
   const [combinedData, setCombinedData] = useState(null)
   const [loadingCombined, setLoadingCombined] = useState(true)
+  
+  // Estados para las tarjetas clickeables
+  const [card1Type, setCard1Type] = useState('income_annual') // 'income_annual', 'profit_annual', 'expenses_annual', 'income_monthly', 'profit_monthly', 'expenses_monthly'
+  const [card2Type, setCard2Type] = useState('profit_annual')
+  const [showCard1Menu, setShowCard1Menu] = useState(false)
+  const [showCard2Menu, setShowCard2Menu] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -54,6 +60,92 @@ export default function Reportes() {
     }
     if (token) load()
   }, [token, year, month])
+
+  // Función para obtener el valor de una tarjeta
+  const getCardValue = (cardType) => {
+    if (!combinedData) return 0
+    
+    switch (cardType) {
+      case 'income_annual':
+        return combinedData.total_income || 0
+      case 'profit_annual':
+        return combinedData.total_profit || 0
+      case 'expenses_annual':
+        return combinedData.total_expenses || 0
+      case 'income_monthly':
+        return combinedData.income_by_month?.[month] || 0
+      case 'profit_monthly':
+        return combinedData.profit_by_month?.[month] || 0
+      case 'expenses_monthly':
+        return combinedData.expenses_by_month?.[month] || 0
+      default:
+        return 0
+    }
+  }
+
+  // Función para obtener el título de una tarjeta
+  const getCardTitle = (cardType) => {
+    switch (cardType) {
+      case 'income_annual':
+        return 'Ingresos anuales'
+      case 'profit_annual':
+        return 'Beneficio anual'
+      case 'expenses_annual':
+        return 'Gastos anuales'
+      case 'income_monthly':
+        return `Ingresos mensuales (${months[month-1]} ${year})`
+      case 'profit_monthly':
+        return `Beneficio mensual (${months[month-1]} ${year})`
+      case 'expenses_monthly':
+        return `Gastos mensuales (${months[month-1]} ${year})`
+      default:
+        return ''
+    }
+  }
+
+  // Función para obtener el color de una tarjeta
+  const getCardColor = (cardType) => {
+    const value = getCardValue(cardType)
+    
+    switch (cardType) {
+      case 'income_annual':
+      case 'income_monthly':
+        return 'text-cyan-400'
+      case 'profit_annual':
+      case 'profit_monthly':
+        return value >= 0 ? 'text-green-400' : 'text-red-400'
+      case 'expenses_annual':
+      case 'expenses_monthly':
+        return 'text-red-400'
+      default:
+        return 'text-white'
+    }
+  }
+
+  // Opciones del menú
+  const menuOptions = [
+    { value: 'income_annual', label: 'Ingresos anuales' },
+    { value: 'profit_annual', label: 'Beneficio anual' },
+    { value: 'expenses_annual', label: 'Gastos anuales' },
+    { value: 'income_monthly', label: 'Ingresos mensuales' },
+    { value: 'profit_monthly', label: 'Beneficio mensual' },
+    { value: 'expenses_monthly', label: 'Gastos mensuales' }
+  ]
+
+  // Cerrar menús cuando se hace clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.card-menu')) {
+        setShowCard1Menu(false)
+        setShowCard2Menu(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 
@@ -135,28 +227,74 @@ export default function Reportes() {
           </select>
         </div>
 
-        {/* Ingresos anuales */}
-        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full">
-          <div className="text-sm text-gray-500 mb-2 text-center">Ingresos anuales</div>
+        {/* Tarjeta 1 - Clickeable */}
+        <div className="card-menu rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full relative cursor-pointer hover:bg-gray-750 transition-colors" 
+             onClick={() => setShowCard1Menu(!showCard1Menu)}>
+          <div className="text-sm text-gray-500 mb-2 text-center">{getCardTitle(card1Type)}</div>
           {loadingCombined ? (
             <div className="w-full">
               <CustomSkeleton count={1} height={32} className="mb-0" />
             </div>
           ) : (
-            <div className="text-2xl font-semibold text-cyan-400 text-center">{combinedData?.total_income?.toFixed(2) || '0.00'} €</div>
+            <div className={`text-2xl font-semibold text-center ${getCardColor(card1Type)}`}>
+              {getCardValue(card1Type).toFixed(2)} €
+            </div>
+          )}
+          
+          {/* Menú desplegable */}
+          {showCard1Menu && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-lg shadow-lg z-10">
+              {menuOptions.map((option) => (
+                <button
+                  key={option.value}
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-800 transition-colors ${
+                    card1Type === option.value ? 'text-cyan-400 bg-gray-800' : 'text-gray-300'
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCard1Type(option.value)
+                    setShowCard1Menu(false)
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Beneficio anual */}
-        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full">
-          <div className="text-sm text-gray-500 mb-2 text-center">Beneficio anual</div>
+        {/* Tarjeta 2 - Clickeable */}
+        <div className="card-menu rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full relative cursor-pointer hover:bg-gray-750 transition-colors" 
+             onClick={() => setShowCard2Menu(!showCard2Menu)}>
+          <div className="text-sm text-gray-500 mb-2 text-center">{getCardTitle(card2Type)}</div>
           {loadingCombined ? (
             <div className="w-full">
               <CustomSkeleton count={1} height={32} className="mb-0" />
             </div>
           ) : (
-            <div className={`text-2xl font-semibold text-center ${(combinedData?.total_profit || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {combinedData?.total_profit?.toFixed(2) || '0.00'} €
+            <div className={`text-2xl font-semibold text-center ${getCardColor(card2Type)}`}>
+              {getCardValue(card2Type).toFixed(2)} €
+            </div>
+          )}
+          
+          {/* Menú desplegable */}
+          {showCard2Menu && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-lg shadow-lg z-10">
+              {menuOptions.map((option) => (
+                <button
+                  key={option.value}
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-800 transition-colors ${
+                    card2Type === option.value ? 'text-cyan-400 bg-gray-800' : 'text-gray-300'
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCard2Type(option.value)
+                    setShowCard2Menu(false)
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
           )}
         </div>

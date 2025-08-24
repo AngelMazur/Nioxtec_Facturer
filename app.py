@@ -1354,6 +1354,68 @@ def reports_combined_summary():
     })
 
 
+@app.route('/api/reports/monthly_summary')
+@jwt_required()
+def reports_monthly_summary():
+    year = request.args.get('year', type=int, default=datetime.utcnow().year)
+    month = request.args.get('month', type=int, default=datetime.utcnow().month)
+    
+    # Get income data for the specific month
+    income_month = 0
+    try:
+        result = (
+            db.session.query(db.func.sum(Invoice.total))
+            .filter(db.extract('year', Invoice.date) == year)
+            .filter(db.extract('month', Invoice.date) == month)
+            .filter(Invoice.type == 'factura')
+            .scalar()
+        )
+        income_month = float(result or 0)
+    except Exception:
+        result = db.session.execute(
+            text("""
+                SELECT SUM(total)
+                FROM invoice
+                WHERE type = 'factura' 
+                  AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                  AND CAST(STRFTIME('%m', date) AS INTEGER) = :month
+            """), { 'year': year, 'month': month }
+        ).scalar()
+        income_month = float(result or 0)
+    
+    # Get expenses data for the specific month
+    expenses_month = 0
+    try:
+        result = (
+            db.session.query(db.func.sum(Expense.total))
+            .filter(db.extract('year', Expense.date) == year)
+            .filter(db.extract('month', Expense.date) == month)
+            .scalar()
+        )
+        expenses_month = float(result or 0)
+    except Exception:
+        result = db.session.execute(
+            text("""
+                SELECT SUM(total)
+                FROM expense
+                WHERE CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                  AND CAST(STRFTIME('%m', date) AS INTEGER) = :month
+            """), { 'year': year, 'month': month }
+        ).scalar()
+        expenses_month = float(result or 0)
+    
+    # Calculate profit for the month
+    profit_month = income_month - expenses_month
+    
+    return jsonify({
+        'year': year,
+        'month': month,
+        'income_month': income_month,
+        'expenses_month': expenses_month,
+        'profit_month': profit_month
+    })
+
+
 def _csv_response(filename: str, content: str) -> Response:
     return Response(
         content,
