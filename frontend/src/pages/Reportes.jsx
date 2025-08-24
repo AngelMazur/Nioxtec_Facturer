@@ -13,6 +13,12 @@ export default function Reportes() {
   const [tip, setTip] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loadingHeatmap, setLoadingHeatmap] = useState(true)
+  
+  // Nuevos estados para gastos
+  const [expensesSummary, setExpensesSummary] = useState({ by_month: {}, total_year: 0 })
+  const [expensesHeatmap, setExpensesHeatmap] = useState({ by_day: {} })
+  const [loadingExpenses, setLoadingExpenses] = useState(true)
+  const [loadingExpensesHeatmap, setLoadingExpensesHeatmap] = useState(true)
 
   useEffect(() => {
     async function load() {
@@ -39,6 +45,37 @@ export default function Reportes() {
         console.error('Error loading heatmap:', error)
       } finally {
         setLoadingHeatmap(false)
+      }
+    }
+    if (token) load()
+  }, [token, year, month])
+
+  // Nuevos useEffect para gastos
+  useEffect(() => {
+    async function load() {
+      setLoadingExpenses(true)
+      try {
+        const data = await apiGet(`/reports/expenses_summary?year=${year}`, token)
+        setExpensesSummary(data)
+      } catch (error) {
+        console.error('Error loading expenses summary:', error)
+      } finally {
+        setLoadingExpenses(false)
+      }
+    }
+    if (token) load()
+  }, [token, year])
+
+  useEffect(() => {
+    async function load() {
+      setLoadingExpensesHeatmap(true)
+      try {
+        const data = await apiGet(`/reports/expenses_heatmap?year=${year}&month=${month}`, token)
+        setExpensesHeatmap(data)
+      } catch (error) {
+        console.error('Error loading expenses heatmap:', error)
+      } finally {
+        setLoadingExpensesHeatmap(false)
       }
     }
     if (token) load()
@@ -179,6 +216,64 @@ export default function Reportes() {
         )}
       </section>
 
+      {/* Sección de gráfico de gastos por mes */}
+      <section className="rounded-lg border border-gray-700 p-4 relative bg-gray-800">
+        <div className="text-sm text-gray-500 mb-2">Gastos por mes</div>
+        {loadingExpenses ? (
+          <div className="grid grid-cols-12 gap-3 h-64">
+            {Array.from({ length: 12 }).map((_, idx) => (
+              <div key={idx} className="flex flex-col items-center justify-end gap-1">
+                <div className="w-full h-48 relative">
+                  <ChartColumnSkeleton className="h-full" />
+                </div>
+                <div className="text-xs text-gray-500">{months[idx]}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-12 gap-3 h-64">
+            {months.map((m, idx) => {
+              const raw = Number(expensesSummary.by_month?.[idx+1] || 0)
+              const max = Math.max(1, ...Object.values(expensesSummary.by_month || {}))
+              const heightPct = Math.max(0, Math.round((raw / max) * 100))
+              return (
+                <div key={m} className="flex flex-col items-center justify-end gap-1">
+                  <div
+                    className="w-full h-48 relative"
+                    onMouseEnter={(e)=>{
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      setTip({
+                        idx,
+                        value: raw,
+                        x: rect.left + rect.width/2,
+                        y: rect.top + window.scrollY - 28,
+                      })
+                    }}
+                    onMouseMove={(e)=>{
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      setTip(t => t ? { ...t, x: rect.left + rect.width/2, y: rect.top + window.scrollY - 28 } : t)
+                    }}
+                    onMouseLeave={()=>setTip(null)}
+                    onClick={() => setMonth(idx + 1)}
+                  >
+                    <div className="absolute bottom-0 left-0 right-0 rounded-sm bg-red-500/80 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-red-500/20 cursor-pointer" style={{ height: `${heightPct}%` }} />
+                  </div>
+                  <div className="text-xs text-gray-500">{m}</div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        {tip && (
+          <div
+            className="fixed z-50 -translate-x-1/2 px-2 py-1 text-xs rounded bg-gray-900 text-white shadow pointer-events-none"
+            style={{ left: tip.x, top: tip.y }}
+          >
+            {months[tip.idx]} · {tip.value.toFixed(2)} €
+          </div>
+        )}
+      </section>
+
       {/* Sección de exportar datos */}
       <section className="rounded-lg border border-gray-700 p-4 bg-gray-800">
         <div className="text-sm text-gray-500 mb-2">Exportar datos</div>
@@ -204,7 +299,7 @@ export default function Reportes() {
         </div>
       </section>
 
-      {/* Sección de heatmap */}
+      {/* Sección de heatmap de ingresos */}
       <section className="rounded-lg border border-gray-700 p-4 space-y-3 bg-gray-800">
         <div className="text-sm text-gray-500">Heatmap de ingresos (día del mes)</div>
         {loadingHeatmap ? (
@@ -229,6 +324,41 @@ export default function Reportes() {
                   <div 
                     className={`w-full h-10 rounded transition-all duration-300 ${value > 0 ? 'cursor-pointer hover:scale-[1.02] hover:shadow-md hover:shadow-cyan-500/30' : ''}`}
                     style={{ backgroundColor: `rgba(8,180,216,${intensity || 0.12})` }}
+                    title={`${day} de ${months[month-1]}: ${value.toFixed(2)} €`}
+                  />
+                  <div className="text-[10px] text-gray-500">{day}</div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Sección de heatmap de gastos */}
+      <section className="rounded-lg border border-gray-700 p-4 space-y-3 bg-gray-800">
+        <div className="text-sm text-gray-500">Heatmap de gastos (día del mes)</div>
+        {loadingExpensesHeatmap ? (
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({length: 31}).map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <CustomSkeleton count={1} height={40} className="mb-0" />
+                <div className="text-[10px] text-gray-500">{i + 1}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({length: 31}).map((_, i) => {
+              const day = i + 1
+              const key = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+              const value = expensesHeatmap.by_day?.[key] || 0
+              const maxDay = Math.max(1, ...Object.values(expensesHeatmap.by_day || {}))
+              const intensity = Math.min(1, value / maxDay)
+              return (
+                <div key={i} className="flex flex-col items-center gap-1">
+                  <div 
+                    className={`w-full h-10 rounded transition-all duration-300 ${value > 0 ? 'cursor-pointer hover:scale-[1.02] hover:shadow-md hover:shadow-red-500/30' : ''}`}
+                    style={{ backgroundColor: `rgba(239,68,68,${intensity || 0.12})` }}
                     title={`${day} de ${months[month-1]}: ${value.toFixed(2)} €`}
                   />
                   <div className="text-[10px] text-gray-500">{day}</div>

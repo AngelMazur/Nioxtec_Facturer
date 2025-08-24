@@ -1219,6 +1219,66 @@ def reports_heatmap():
     return jsonify({'year': year, 'month': month, 'by_day': by_day})
 
 
+@app.route('/api/reports/expenses_summary')
+@jwt_required()
+def reports_expenses_summary():
+    year = request.args.get('year', type=int, default=datetime.utcnow().year)
+    # Sum totals by month for expenses
+    rows = []
+    try:
+        rows = (
+            db.session.query(db.extract('month', Expense.date).label('month'), db.func.sum(Expense.total))
+            .filter(db.extract('year', Expense.date) == year)
+            .group_by('month')
+            .order_by('month')
+            .all()
+        )
+    except Exception:
+        # SQLite fallback using strftime
+        rows = db.session.execute(
+            text("""
+                SELECT CAST(STRFTIME('%m', date) AS INTEGER) AS month, SUM(total)
+                FROM expense
+                WHERE CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                GROUP BY month
+                ORDER BY month
+            """), { 'year': year }
+        ).fetchall()
+    by_month = {int(m): float(t or 0) for m, t in rows}
+    total_year = sum(by_month.values())
+    return jsonify({'year': year, 'by_month': by_month, 'total_year': total_year})
+
+
+@app.route('/api/reports/expenses_heatmap')
+@jwt_required()
+def reports_expenses_heatmap():
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+    if not year or not month:
+        return jsonify({'error': 'Parámetros year y month requeridos'}), 400
+    try:
+        rows = (
+            db.session.query(Expense.date, db.func.sum(Expense.total))
+            .filter(db.extract('year', Expense.date) == year)
+            .filter(db.extract('month', Expense.date) == month)
+            .group_by(Expense.date)
+            .all()
+        )
+    except Exception:
+        rows = db.session.execute(
+            text("""
+                SELECT date as d, SUM(total) as t
+                FROM expense
+                WHERE CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                  AND CAST(STRFTIME('%m', date) AS INTEGER) = :month
+                GROUP BY d
+                ORDER BY d
+            """), { 'year': year, 'month': month }
+        ).fetchall()
+    by_day = {d.strftime('%Y-%m-%d'): float(t or 0) for d, t in rows}
+    return jsonify({'year': year, 'month': month, 'by_day': by_day})
+
+
 def _csv_response(filename: str, content: str) -> Response:
     return Response(
         content,
