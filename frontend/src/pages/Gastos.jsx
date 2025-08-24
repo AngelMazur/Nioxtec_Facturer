@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { apiGet, apiPost, apiPut, apiDelete, apiGetBlob } from '../lib/api'
+import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api'
 import { useStore } from '../store/store'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
@@ -109,22 +109,7 @@ export default function Gastos() {
     }
   }
 
-  const handleExport = async () => {
-    try {
-      const blob = await apiGetBlob('/expenses/export_xlsx', token)
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'gastos.xlsx'
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      toast.success('Exportación completada')
-    } catch (error) {
-      toast.error('Error al exportar: ' + error.message)
-    }
-  }
+
 
   const resetForm = () => {
     setFormData({
@@ -176,12 +161,6 @@ export default function Gastos() {
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
         />
-        <button
-          onClick={handleExport}
-          className="bg-green-600 hover:bg-green-700 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
-        >
-          Exportar
-        </button>
       </div>
 
       {/* Listado */}

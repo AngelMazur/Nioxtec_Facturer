@@ -65,6 +65,7 @@ export default function Reportes() {
   }
   const downloadClients = () => downloadXlsx('/clients/export_xlsx', 'clientes.xlsx')
   const downloadInvoices = () => downloadXlsx('/invoices/export_xlsx', 'facturas.xlsx')
+  const downloadExpenses = () => downloadXlsx('/expenses/export_xlsx', 'gastos.xlsx')
 
   return (
     <main className="mx-auto max-w-6xl p-4 space-y-6">
@@ -107,23 +108,16 @@ export default function Reportes() {
           )}
         </div>
 
-        {/* Exportar datos */}
-        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-between h-full">
-          <div className="text-sm text-gray-500 mb-2">Exportar datos</div>
-          <div className="flex flex-col gap-2">
-            <button 
-              onClick={downloadClients} 
-              className="bg-primary text-white px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap w-full"
-            >
-              Exportar clientes XLSX
-            </button>
-            <button 
-              onClick={downloadInvoices} 
-              className="bg-secondary text-white px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap w-full"
-            >
-              Exportar facturas XLSX
-            </button>
-          </div>
+        {/* Facturación mensual */}
+        <div className="rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full">
+          <div className="text-sm text-gray-500 mb-2 text-center">Facturación mensual ({months[month-1]} {year})</div>
+          {loadingHeatmap ? (
+            <div className="w-full">
+              <CustomSkeleton count={1} height={32} className="mb-0" />
+            </div>
+          ) : (
+            <div className="text-2xl font-semibold text-white text-center">{(heatmap && Object.values(heatmap.by_day || {}).reduce((a,b)=>a+Number(b||0),0)).toFixed(2)} €</div>
+          )}
         </div>
       </section>
 
@@ -185,16 +179,29 @@ export default function Reportes() {
         )}
       </section>
 
-      {/* Sección de facturación mensual */}
+      {/* Sección de exportar datos */}
       <section className="rounded-lg border border-gray-700 p-4 bg-gray-800">
-        <div className="text-sm text-gray-500">Facturación mensual ({months[month-1]} {year})</div>
-        {loadingHeatmap ? (
-          <div className="w-full">
-            <CustomSkeleton count={1} height={32} className="mb-0" />
-          </div>
-        ) : (
-          <div className="text-2xl font-semibold text-white">{(heatmap && Object.values(heatmap.by_day || {}).reduce((a,b)=>a+Number(b||0),0)).toFixed(2)} €</div>
-        )}
+        <div className="text-sm text-gray-500 mb-2">Exportar datos</div>
+        <div className="flex flex-col gap-2">
+          <button 
+            onClick={downloadClients} 
+            className="bg-primary text-white px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap w-full"
+          >
+            Exportar clientes XLSX
+          </button>
+          <button 
+            onClick={downloadExpenses} 
+            className="bg-secondary text-white px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap w-full"
+          >
+            Exportar gastos XLSX
+          </button>
+          <button 
+            onClick={downloadInvoices} 
+            className="border border-gray-400 text-gray-300 px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap w-full"
+          >
+            Exportar facturas XLSX
+          </button>
+        </div>
       </section>
 
       {/* Sección de heatmap */}
