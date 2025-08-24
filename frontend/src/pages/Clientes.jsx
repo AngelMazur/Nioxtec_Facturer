@@ -10,12 +10,10 @@ import DataCard from "../components/DataCard"
 
 export default function Clientes() {
   const { clients, setClients, token } = useStore()
-  const [sort, setSort] = useState({ field: 'created_at', dir: 'desc' })
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ name: '', cif: '', address: '', email: '', phone: '', iban: '' })
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
-  const [userSorted, setUserSorted] = useState(false)
   const [selectedClient, setSelectedClient] = useState(null)
   const [tab, setTab] = useState('facturas') // 'facturas' | 'documentos'
   const [clientInvoices, setClientInvoices] = useState({ loading: false, items: [], total: 0 })
@@ -181,27 +179,14 @@ export default function Clientes() {
           <CustomSkeleton count={5} height={30} className="mb-2" />
         ) : (
           <>
-          <div className="hidden sm:grid grid-cols-[minmax(0,2fr)_12rem_minmax(0,1.6fr)_12rem] gap-6 text-xs text-gray-500 px-2 items-center">
-            <button className="text-left hover:underline whitespace-nowrap" onClick={()=>{ setSort(s=>({ field: 'name', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Nombre</button>
-            <button className="text-center hover:underline whitespace-nowrap" onClick={()=>{ setSort(s=>({ field: 'cif', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>CIF/NIF</button>
-            <div className="text-center whitespace-nowrap">Contacto</div>
-            <button className="text-center hover:underline whitespace-nowrap" onClick={()=>{ setSort(s=>({ field: 'created_at', dir: s.dir==='asc'?'desc':'asc' })); setUserSorted(true); setCurrentPage(1); }}>Creado</button>
-          </div>
            {(() => {
-             // Ordenar: primero fijados (__pinned), luego por columna seleccionada
+             // Ordenar por fecha de creación (más recientes primero)
              const sorted = clients
                .slice()
                .sort((a,b)=>{
-                 // Solo priorizar fijados si el usuario no ha ordenado manualmente
-                 if (!userSorted) {
-                   if (a.__pinned && !b.__pinned) return -1
-                   if (!a.__pinned && b.__pinned) return 1
-                 }
-                 const dir = sort.dir==='asc'?1:-1
-                 const av = a[sort.field] || ''
-                 const bv = b[sort.field] || ''
-                 if (sort.field==='created_at') return String(av||'').localeCompare(String(bv||'')) * dir
-                 return String(av).localeCompare(String(bv), 'es', { numeric: true }) * dir
+                 const aDate = a.created_at || ''
+                 const bDate = b.created_at || ''
+                 return String(bDate).localeCompare(String(aDate))
                })
              const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
              const safePage = Math.min(currentPage, totalPages)
@@ -252,11 +237,6 @@ export default function Clientes() {
                          key={client.id}
                          onClick={()=>openClientModal(client)}
                          actions={[
-                           {
-                             label: 'Ver',
-                             className: 'text-brand focus:ring-brand',
-                             onClick: () => openClientModal(client)
-                           },
                            {
                              label: 'Eliminar',
                              className: 'text-red-600 focus:ring-red-500',
