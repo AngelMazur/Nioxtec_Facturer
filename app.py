@@ -1279,6 +1279,81 @@ def reports_expenses_heatmap():
     return jsonify({'year': year, 'month': month, 'by_day': by_day})
 
 
+@app.route('/api/reports/combined_summary')
+@jwt_required()
+def reports_combined_summary():
+    year = request.args.get('year', type=int, default=datetime.utcnow().year)
+    
+    # Get income data by month
+    income_rows = []
+    try:
+        income_rows = (
+            db.session.query(db.extract('month', Invoice.date).label('month'), db.func.sum(Invoice.total))
+            .filter(db.extract('year', Invoice.date) == year)
+            .filter(Invoice.type == 'factura')
+            .group_by('month')
+            .order_by('month')
+            .all()
+        )
+    except Exception:
+        income_rows = db.session.execute(
+            text("""
+                SELECT CAST(STRFTIME('%m', date) AS INTEGER) AS month, SUM(total)
+                FROM invoice
+                WHERE type = 'factura' AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                GROUP BY month
+                ORDER BY month
+            """), { 'year': year }
+        ).fetchall()
+    
+    # Get expenses data by month
+    expenses_rows = []
+    try:
+        expenses_rows = (
+            db.session.query(db.extract('month', Expense.date).label('month'), db.func.sum(Expense.total))
+            .filter(db.extract('year', Expense.date) == year)
+            .group_by('month')
+            .order_by('month')
+            .all()
+        )
+    except Exception:
+        expenses_rows = db.session.execute(
+            text("""
+                SELECT CAST(STRFTIME('%m', date) AS INTEGER) AS month, SUM(total)
+                FROM expense
+                WHERE CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                GROUP BY month
+                ORDER BY month
+            """), { 'year': year }
+        ).fetchall()
+    
+    # Create combined data structure
+    income_by_month = {int(m): float(t or 0) for m, t in income_rows}
+    expenses_by_month = {int(m): float(t or 0) for m, t in expenses_rows}
+    
+    # Calculate profit (income - expenses) for each month
+    profit_by_month = {}
+    for month in range(1, 13):
+        income = income_by_month.get(month, 0)
+        expenses = expenses_by_month.get(month, 0)
+        profit_by_month[month] = income - expenses
+    
+    # Calculate totals
+    total_income = sum(income_by_month.values())
+    total_expenses = sum(expenses_by_month.values())
+    total_profit = total_income - total_expenses
+    
+    return jsonify({
+        'year': year,
+        'income_by_month': income_by_month,
+        'expenses_by_month': expenses_by_month,
+        'profit_by_month': profit_by_month,
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'total_profit': total_profit
+    })
+
+
 def _csv_response(filename: str, content: str) -> Response:
     return Response(
         content,

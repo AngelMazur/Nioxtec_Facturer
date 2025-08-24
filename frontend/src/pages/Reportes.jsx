@@ -2,34 +2,39 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../store/store'
 import { apiGet, apiGetBlob } from '../lib/api'
 import CustomSkeleton from "../components/CustomSkeleton"
-import ChartColumnSkeleton from "../components/ChartColumnSkeleton"
+import { 
+  BarChart, 
+  Bar, 
+  LineChart, 
+  Line, 
+  ComposedChart,
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from 'recharts'
 
 export default function Reportes() {
   const { token } = useStore()
   const [year, setYear] = useState(new Date().getFullYear())
-  const [summary, setSummary] = useState({ by_month: {}, total_year: 0 })
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [heatmap, setHeatmap] = useState({ by_day: {} })
-  const [tip, setTip] = useState(null)
-  const [loading, setLoading] = useState(true)
   const [loadingHeatmap, setLoadingHeatmap] = useState(true)
-  
-  // Nuevos estados para gastos
-  const [expensesSummary, setExpensesSummary] = useState({ by_month: {}, total_year: 0 })
-  const [expensesHeatmap, setExpensesHeatmap] = useState({ by_day: {} })
-  const [loadingExpenses, setLoadingExpenses] = useState(true)
-  const [loadingExpensesHeatmap, setLoadingExpensesHeatmap] = useState(true)
+  const [combinedData, setCombinedData] = useState(null)
+  const [loadingCombined, setLoadingCombined] = useState(true)
 
   useEffect(() => {
     async function load() {
-      setLoading(true)
+      setLoadingCombined(true)
       try {
-        const data = await apiGet(`/reports/summary?year=${year}`, token)
-        setSummary(data)
+        const data = await apiGet(`/reports/combined_summary?year=${year}`, token)
+        setCombinedData(data)
       } catch (error) {
-        console.error('Error loading summary:', error)
+        console.error('Error loading combined summary:', error)
       } finally {
-        setLoading(false)
+        setLoadingCombined(false)
       }
     }
     if (token) load()
@@ -50,38 +55,18 @@ export default function Reportes() {
     if (token) load()
   }, [token, year, month])
 
-  // Nuevos useEffect para gastos
-  useEffect(() => {
-    async function load() {
-      setLoadingExpenses(true)
-      try {
-        const data = await apiGet(`/reports/expenses_summary?year=${year}`, token)
-        setExpensesSummary(data)
-      } catch (error) {
-        console.error('Error loading expenses summary:', error)
-      } finally {
-        setLoadingExpenses(false)
-      }
-    }
-    if (token) load()
-  }, [token, year])
-
-  useEffect(() => {
-    async function load() {
-      setLoadingExpensesHeatmap(true)
-      try {
-        const data = await apiGet(`/reports/expenses_heatmap?year=${year}&month=${month}`, token)
-        setExpensesHeatmap(data)
-      } catch (error) {
-        console.error('Error loading expenses heatmap:', error)
-      } finally {
-        setLoadingExpensesHeatmap(false)
-      }
-    }
-    if (token) load()
-  }, [token, year, month])
-
   const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+
+  // Prepare data for the combined chart
+  const chartData = months.map((monthName, index) => {
+    const monthNumber = index + 1
+    return {
+      month: monthName,
+      ingresos: combinedData?.income_by_month?.[monthNumber] || 0,
+      gastos: combinedData?.expenses_by_month?.[monthNumber] || 0,
+      beneficio: combinedData?.profit_by_month?.[monthNumber] || 0
+    }
+  })
 
   // Descargas XLSX con Authorization header real
   async function downloadXlsx(path, filename) {
@@ -103,6 +88,23 @@ export default function Reportes() {
   const downloadClients = () => downloadXlsx('/clients/export_xlsx', 'clientes.xlsx')
   const downloadInvoices = () => downloadXlsx('/invoices/export_xlsx', 'facturas.xlsx')
   const downloadExpenses = () => downloadXlsx('/expenses/export_xlsx', 'gastos.xlsx')
+
+  // Custom tooltip for the chart
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-gray-900 border border-gray-700 p-3 rounded shadow-lg">
+          <p className="text-white font-semibold">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} style={{ color: entry.color }}>
+              {entry.name}: {entry.value.toFixed(2)} €
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
 
   return (
     <main className="mx-auto max-w-6xl p-4 space-y-6">
@@ -133,144 +135,82 @@ export default function Reportes() {
           </select>
         </div>
 
-        {/* Facturación anual */}
+        {/* Ingresos anuales */}
         <div className="rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full">
-          <div className="text-sm text-gray-500 mb-2 text-center">Facturación anual</div>
-          {loading ? (
+          <div className="text-sm text-gray-500 mb-2 text-center">Ingresos anuales</div>
+          {loadingCombined ? (
             <div className="w-full">
               <CustomSkeleton count={1} height={32} className="mb-0" />
             </div>
           ) : (
-            <div className="text-2xl font-semibold text-white text-center">{summary.total_year.toFixed(2)} €</div>
+            <div className="text-2xl font-semibold text-cyan-400 text-center">{combinedData?.total_income?.toFixed(2) || '0.00'} €</div>
           )}
         </div>
 
-        {/* Facturación mensual */}
+        {/* Beneficio anual */}
         <div className="rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full">
-          <div className="text-sm text-gray-500 mb-2 text-center">Facturación mensual ({months[month-1]} {year})</div>
-          {loadingHeatmap ? (
+          <div className="text-sm text-gray-500 mb-2 text-center">Beneficio anual</div>
+          {loadingCombined ? (
             <div className="w-full">
               <CustomSkeleton count={1} height={32} className="mb-0" />
             </div>
           ) : (
-            <div className="text-2xl font-semibold text-white text-center">{(heatmap && Object.values(heatmap.by_day || {}).reduce((a,b)=>a+Number(b||0),0)).toFixed(2)} €</div>
+            <div className={`text-2xl font-semibold text-center ${(combinedData?.total_profit || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {combinedData?.total_profit?.toFixed(2) || '0.00'} €
+            </div>
           )}
         </div>
       </section>
 
-      {/* Sección de gráfico de ingresos por mes */}
-      <section className="rounded-lg border border-gray-700 p-4 relative bg-gray-800">
-        <div className="text-sm text-gray-500 mb-2">Ingresos por mes</div>
-        {loading ? (
-          <div className="grid grid-cols-12 gap-3 h-64">
-            {Array.from({ length: 12 }).map((_, idx) => (
-              <div key={idx} className="flex flex-col items-center justify-end gap-1">
-                <div className="w-full h-48 relative">
-                  <ChartColumnSkeleton className="h-full" />
-                </div>
-                <div className="text-xs text-gray-500">{months[idx]}</div>
-              </div>
-            ))}
+      {/* Gráfico combinado de Ingresos, Gastos y Beneficio */}
+      <section className="rounded-lg border border-gray-700 p-4 bg-gray-800">
+        <div className="text-sm text-gray-500 mb-4">Ingresos, Gastos y Beneficio por Mes ({year})</div>
+        {loadingCombined ? (
+          <div className="h-96 flex items-center justify-center">
+            <CustomSkeleton count={1} height={384} className="mb-0" />
           </div>
         ) : (
-          <div className="grid grid-cols-12 gap-3 h-64">
-            {months.map((m, idx) => {
-              const raw = Number(summary.by_month?.[idx+1] || 0)
-              const max = Math.max(1, ...Object.values(summary.by_month || {}))
-              const heightPct = Math.max(0, Math.round((raw / max) * 100))
-              return (
-                <div key={m} className="flex flex-col items-center justify-end gap-1">
-                  <div
-                    className="w-full h-48 relative"
-                    onMouseEnter={(e)=>{
-                      const rect = e.currentTarget.getBoundingClientRect()
-                      setTip({
-                        idx,
-                        value: raw,
-                        x: rect.left + rect.width/2,
-                        y: rect.top + window.scrollY - 28,
-                      })
-                    }}
-                    onMouseMove={(e)=>{
-                      const rect = e.currentTarget.getBoundingClientRect()
-                      setTip(t => t ? { ...t, x: rect.left + rect.width/2, y: rect.top + window.scrollY - 28 } : t)
-                    }}
-                    onMouseLeave={()=>setTip(null)}
-                    onClick={() => setMonth(idx + 1)}
-                  >
-                    <div className="absolute bottom-0 left-0 right-0 rounded-sm bg-cyan-400/80 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-cyan-500/20 cursor-pointer" style={{ height: `${heightPct}%` }} />
-                  </div>
-                  <div className="text-xs text-gray-500">{m}</div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-        {tip && (
-          <div
-            className="fixed z-50 -translate-x-1/2 px-2 py-1 text-xs rounded bg-gray-900 text-white shadow pointer-events-none"
-            style={{ left: tip.x, top: tip.y }}
-          >
-            {months[tip.idx]} · {tip.value.toFixed(2)} €
-          </div>
-        )}
-      </section>
-
-      {/* Sección de gráfico de gastos por mes */}
-      <section className="rounded-lg border border-gray-700 p-4 relative bg-gray-800">
-        <div className="text-sm text-gray-500 mb-2">Gastos por mes</div>
-        {loadingExpenses ? (
-          <div className="grid grid-cols-12 gap-3 h-64">
-            {Array.from({ length: 12 }).map((_, idx) => (
-              <div key={idx} className="flex flex-col items-center justify-end gap-1">
-                <div className="w-full h-48 relative">
-                  <ChartColumnSkeleton className="h-full" />
-                </div>
-                <div className="text-xs text-gray-500">{months[idx]}</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-12 gap-3 h-64">
-            {months.map((m, idx) => {
-              const raw = Number(expensesSummary.by_month?.[idx+1] || 0)
-              const max = Math.max(1, ...Object.values(expensesSummary.by_month || {}))
-              const heightPct = Math.max(0, Math.round((raw / max) * 100))
-              return (
-                <div key={m} className="flex flex-col items-center justify-end gap-1">
-                  <div
-                    className="w-full h-48 relative"
-                    onMouseEnter={(e)=>{
-                      const rect = e.currentTarget.getBoundingClientRect()
-                      setTip({
-                        idx,
-                        value: raw,
-                        x: rect.left + rect.width/2,
-                        y: rect.top + window.scrollY - 28,
-                      })
-                    }}
-                    onMouseMove={(e)=>{
-                      const rect = e.currentTarget.getBoundingClientRect()
-                      setTip(t => t ? { ...t, x: rect.left + rect.width/2, y: rect.top + window.scrollY - 28 } : t)
-                    }}
-                    onMouseLeave={()=>setTip(null)}
-                    onClick={() => setMonth(idx + 1)}
-                  >
-                    <div className="absolute bottom-0 left-0 right-0 rounded-sm bg-red-500/80 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-red-500/20 cursor-pointer" style={{ height: `${heightPct}%` }} />
-                  </div>
-                  <div className="text-xs text-gray-500">{m}</div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-        {tip && (
-          <div
-            className="fixed z-50 -translate-x-1/2 px-2 py-1 text-xs rounded bg-gray-900 text-white shadow pointer-events-none"
-            style={{ left: tip.x, top: tip.y }}
-          >
-            {months[tip.idx]} · {tip.value.toFixed(2)} €
-          </div>
+          <ResponsiveContainer width="100%" height={400}>
+            <ComposedChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="month" 
+                stroke="#9CA3AF"
+                fontSize={12}
+              />
+              <YAxis 
+                stroke="#9CA3AF"
+                fontSize={12}
+                tickFormatter={(value) => `${value.toFixed(0)}€`}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend 
+                wrapperStyle={{ color: '#9CA3AF' }}
+                iconType="circle"
+              />
+              <Bar 
+                dataKey="ingresos" 
+                fill="#06b6d4" 
+                name="Ingresos"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar 
+                dataKey="gastos" 
+                fill="#ef4444" 
+                name="Gastos"
+                radius={[4, 4, 0, 0]}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="beneficio" 
+                stroke="#10b981" 
+                strokeWidth={3}
+                name="Beneficio"
+                dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
         )}
       </section>
 
@@ -324,41 +264,6 @@ export default function Reportes() {
                   <div 
                     className={`w-full h-10 rounded transition-all duration-300 ${value > 0 ? 'cursor-pointer hover:scale-[1.02] hover:shadow-md hover:shadow-cyan-500/30' : ''}`}
                     style={{ backgroundColor: `rgba(8,180,216,${intensity || 0.12})` }}
-                    title={`${day} de ${months[month-1]}: ${value.toFixed(2)} €`}
-                  />
-                  <div className="text-[10px] text-gray-500">{day}</div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* Sección de heatmap de gastos */}
-      <section className="rounded-lg border border-gray-700 p-4 space-y-3 bg-gray-800">
-        <div className="text-sm text-gray-500">Heatmap de gastos (día del mes)</div>
-        {loadingExpensesHeatmap ? (
-          <div className="grid grid-cols-7 gap-1">
-            {Array.from({length: 31}).map((_, i) => (
-              <div key={i} className="flex flex-col items-center gap-1">
-                <CustomSkeleton count={1} height={40} className="mb-0" />
-                <div className="text-[10px] text-gray-500">{i + 1}</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-7 gap-1">
-            {Array.from({length: 31}).map((_, i) => {
-              const day = i + 1
-              const key = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-              const value = expensesHeatmap.by_day?.[key] || 0
-              const maxDay = Math.max(1, ...Object.values(expensesHeatmap.by_day || {}))
-              const intensity = Math.min(1, value / maxDay)
-              return (
-                <div key={i} className="flex flex-col items-center gap-1">
-                  <div 
-                    className={`w-full h-10 rounded transition-all duration-300 ${value > 0 ? 'cursor-pointer hover:scale-[1.02] hover:shadow-md hover:shadow-red-500/30' : ''}`}
-                    style={{ backgroundColor: `rgba(239,68,68,${intensity || 0.12})` }}
                     title={`${day} de ${months[month-1]}: ${value.toFixed(2)} €`}
                   />
                   <div className="text-[10px] text-gray-500">{day}</div>
