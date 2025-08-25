@@ -32,9 +32,6 @@ const LoadingSpinner = () => {
             Cargando...
           </span>
         </div>
-        
-        {/* Subtítulo */}
-        <p className="text-gray-400 text-sm">Preparando tu experiencia</p>
       </div>
     </div>
   )

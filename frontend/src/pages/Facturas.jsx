@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import CreateInvoiceModal from "../components/CreateInvoiceModal";
 import NeoGradientButton from "../components/NeoGradientButton";
 import DataCard from "../components/DataCard";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 export default function Facturas() {
   const { 
@@ -89,6 +90,7 @@ export default function Facturas() {
     items: [],
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const fetchNextNumber = useCallback(async (docType, atDate) => {
     try {
@@ -208,12 +210,15 @@ export default function Facturas() {
   };
 
   const openPreview = async (id) => {
+    setPreviewLoading(true);
     try {
       const blob = await apiGetBlob(`/invoices/${id}/pdf`, token);
       const url = window.URL.createObjectURL(blob);
       setPreview(url);
     } catch {
       toast.error('Error al previsualizar PDF');
+    } finally {
+      setPreviewLoading(false);
     }
   };
   return (
@@ -385,10 +390,10 @@ export default function Facturas() {
         )}
       </section>
 
-      {preview && (
+      {(preview || previewLoading) && (
         <div
           className="fixed inset-0 bg-black/60 flex items-center justify-center p-4"
-          onClick={() => setPreview(null)}
+          onClick={() => !previewLoading && setPreview(null)}
         >
           <div
             className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden shadow-xl max-w-4xl w-full h-[80vh]"
@@ -398,12 +403,19 @@ export default function Facturas() {
               <span className="font-medium">Vista previa</span>
               <button
                 className="text-sm text-red-600"
-                onClick={() => setPreview(null)}
+                onClick={() => !previewLoading && setPreview(null)}
+                disabled={previewLoading}
               >
                 Cerrar
               </button>
             </div>
-            <iframe title="preview" src={preview} className="w-full h-full" />
+            {previewLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <iframe title="preview" src={preview} className="w-full h-full" />
+            )}
           </div>
         </div>
       )}
