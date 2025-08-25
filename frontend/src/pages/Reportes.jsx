@@ -26,8 +26,8 @@ export default function Reportes() {
   const [loadingCombined, setLoadingCombined] = useState(true)
   
   // Estados para las tarjetas clickeables
-  const [card1Type, setCard1Type] = useState('income_annual') // 'income_annual', 'profit_annual', 'expenses_annual', 'income_monthly', 'profit_monthly', 'expenses_monthly'
-  const [card2Type, setCard2Type] = useState('profit_annual')
+  const [card1Type, setCard1Type] = useState('income_monthly') // 'income_annual', 'profit_annual', 'expenses_annual', 'income_monthly', 'profit_monthly', 'expenses_monthly'
+  const [card2Type, setCard2Type] = useState('profit_monthly')
   const [showCard1Menu, setShowCard1Menu] = useState(false)
   const [showCard2Menu, setShowCard2Menu] = useState(false)
 
@@ -119,6 +119,25 @@ export default function Reportes() {
         return 'text-red-400'
       default:
         return 'text-white'
+    }
+  }
+
+  // Función para obtener el color de la sombra de una tarjeta
+  const getCardShadowColor = (cardType) => {
+    switch (cardType) {
+      case 'income_annual':
+      case 'income_monthly':
+        return 'hover:shadow-cyan-500/20'
+      case 'profit_annual':
+      case 'profit_monthly': {
+        const value = getCardValue(cardType)
+        return value >= 0 ? 'hover:shadow-green-500/20' : 'hover:shadow-red-500/20'
+      }
+      case 'expenses_annual':
+      case 'expenses_monthly':
+        return 'hover:shadow-red-500/20'
+      default:
+        return 'hover:shadow-gray-500/20'
     }
   }
 
@@ -228,7 +247,7 @@ export default function Reportes() {
         </div>
 
         {/* Tarjeta 1 - Clickeable */}
-        <div className="card-menu rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full relative cursor-pointer hover:bg-gray-750 transition-colors" 
+        <div className={`card-menu rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full relative cursor-pointer hover:bg-gray-750 hover:border-gray-600 hover:shadow-lg ${getCardShadowColor(card1Type)} transition-all duration-200`}
              onClick={() => setShowCard1Menu(!showCard1Menu)}>
           <div className="text-sm text-gray-500 mb-2 text-center">{getCardTitle(card1Type)}</div>
           {loadingCombined ? (
@@ -264,7 +283,7 @@ export default function Reportes() {
         </div>
 
         {/* Tarjeta 2 - Clickeable */}
-        <div className="card-menu rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full relative cursor-pointer hover:bg-gray-750 transition-colors" 
+        <div className={`card-menu rounded-lg border border-gray-700 p-4 bg-gray-800 flex flex-col justify-center items-center h-full relative cursor-pointer hover:bg-gray-750 hover:border-gray-600 hover:shadow-lg ${getCardShadowColor(card2Type)} transition-all duration-200`}
              onClick={() => setShowCard2Menu(!showCard2Menu)}>
           <div className="text-sm text-gray-500 mb-2 text-center">{getCardTitle(card2Type)}</div>
           {loadingCombined ? (
@@ -358,19 +377,19 @@ export default function Reportes() {
         <div className="flex flex-col gap-2">
           <button 
             onClick={downloadClients} 
-            className="bg-primary text-white px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap w-full"
+            className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/80 transition-all duration-200 text-sm whitespace-nowrap w-full"
           >
             Exportar clientes XLSX
           </button>
           <button 
             onClick={downloadExpenses} 
-            className="bg-secondary text-white px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap w-full"
+            className="bg-secondary text-white px-3 py-2 rounded hover:bg-secondary/80 transition-all duration-200 text-sm whitespace-nowrap w-full"
           >
             Exportar gastos XLSX
           </button>
           <button 
             onClick={downloadInvoices} 
-            className="border border-gray-400 text-gray-300 px-3 py-2 rounded hover:scale-105 transition-all duration-200 text-sm whitespace-nowrap w-full"
+            className="border border-gray-400 text-gray-300 px-3 py-2 rounded hover:bg-gray-700 hover:border-gray-300 transition-all duration-200 text-sm whitespace-nowrap w-full"
           >
             Exportar facturas XLSX
           </button>
