@@ -20,21 +20,10 @@ jobs:
       - nioxtec
     timeout-minutes: 30
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Preflight – PowerShell policy
         shell: powershell
-        env:
-          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-          Write-Host "Deteniendo backend..."
-          if (Test-Path '.\\DEVELOPER\\scripts\\stop_all.ps1') {
-            . .\\DEVELOPER\\scripts\\stop_all.ps1
-          } else {
-            Write-Host "No se encontró .\\DEVELOPER\\stop_all.ps1, continuando"
-          }
 
       - name: Despliegue vía tarea programada (fallback a script)
         shell: powershell
@@ -140,11 +129,4 @@ jobs:
             exit 1
           }
 
-      - name: Reiniciar backend
-        shell: powershell
-        run: |
-          if (Test-Path '.\\DEVELOPER\\scripts\\deploy_prod.ps1') {
-            . .\\DEVELOPER\\scripts\\deploy_prod.ps1
-          } else {
-            Write-Host "No se encontró .\\DEVELOPER\\scripts\\deploy_prod.ps1, omitiendo reinicio backend"
-          }
+
