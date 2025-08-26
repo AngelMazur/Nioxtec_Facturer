@@ -9,11 +9,20 @@ import NeoGradientButton from "../components/NeoGradientButton"
 import DataCard from "../components/DataCard"
 
 export default function Clientes() {
-  const { clients, setClients, token } = useStore()
+  const { 
+    clients, 
+    setClients, 
+    token, 
+    addClientToEnd, 
+    setUserSortedClients, 
+    getOrderedClients,
+    userHasSortedClients
+  } = useStore()
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ name: '', cif: '', address: '', email: '', phone: '', iban: '' })
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
+  const [sort, setSort] = useState({ field: 'created_at', dir: 'desc' })
   const [selectedClient, setSelectedClient] = useState(null)
   const [tab, setTab] = useState('facturas') // 'facturas' | 'documentos'
   const [clientInvoices, setClientInvoices] = useState({ loading: false, items: [], total: 0 })
@@ -29,6 +38,17 @@ export default function Clientes() {
   const imagesPageSize = 6
   const docsPageSize = 5
   const apiBase = (import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')
+
+  // Función para manejar el ordenamiento
+  const handleSort = (field) => {
+    // Marcar que el usuario ha ordenado manualmente
+    setUserSortedClients(true)
+    
+    setSort(prev => ({
+      field,
+      dir: prev.field === field && prev.dir === 'asc' ? 'desc' : 'asc'
+    }))
+  }
 
   useEffect(() => {
     async function load() {
@@ -137,8 +157,9 @@ export default function Clientes() {
       const res = await apiPost('/clients', formData, token)
       toast.success('Cliente guardado')
       setForm({ name: '', cif: '', address: '', email: '', phone: '', iban: '' })
-      // Añadir arriba del todo y fijar como destacado en render (independiente del orden)
-      setClients([{ id: res.id, ...formData, created_at: new Date().toISOString(), __pinned: true }, ...clients])
+      // Añadir el nuevo cliente al final del orden personalizado
+      addClientToEnd(res)
+      setClients([{ id: res.id, ...formData, created_at: new Date().toISOString() }, ...clients])
       setCurrentPage(1)
       setShowCreateModal(false)
     } catch {
@@ -180,14 +201,40 @@ export default function Clientes() {
         ) : (
           <>
            {(() => {
-             // Ordenar por fecha de creación (más recientes primero)
-             const sorted = clients
-               .slice()
-               .sort((a,b)=>{
-                 const aDate = a.created_at || ''
-                 const bDate = b.created_at || ''
-                 return String(bDate).localeCompare(String(aDate))
+             // Obtener clientes en orden personalizado o aplicar ordenamiento manual
+             let sorted;
+             if (userHasSortedClients) {
+               // Si el usuario ha ordenado manualmente, aplicar ese ordenamiento con desempate estable por ID
+               sorted = clients.slice().sort((a, b) => {
+                 const dir = sort.dir === 'asc' ? 1 : -1
+                 const aId = a?.id || 0
+                 const bId = b?.id || 0
+                 const fallback = (aId - bId) * dir
+                 
+                 if (sort.field === 'created_at') {
+                   const aDate = a.created_at || ''
+                   const bDate = b.created_at || ''
+                   const cmp = String(aDate).localeCompare(String(bDate))
+                   return cmp !== 0 ? cmp * dir : fallback
+                 }
+                 if (sort.field === 'name') {
+                   const cmp = String(a.name || '').localeCompare(String(b.name || ''), 'es', { numeric: true })
+                   return cmp !== 0 ? cmp * dir : fallback
+                 }
+                 if (sort.field === 'cif') {
+                   const cmp = String(a.cif || '').localeCompare(String(b.cif || ''), 'es', { numeric: true })
+                   return cmp !== 0 ? cmp * dir : fallback
+                 }
+                 
+                 const av = a[sort.field]
+                 const bv = b[sort.field]
+                 const cmp = String(av ?? '').localeCompare(String(bv ?? ''), 'es', { numeric: true })
+                 return cmp !== 0 ? cmp * dir : fallback
                })
+             } else {
+               // Usar orden personalizado del store (nuevos clientes al final)
+               sorted = getOrderedClients(clients);
+             }
              const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
              const safePage = Math.min(currentPage, totalPages)
              const start = (safePage - 1) * pageSize
@@ -223,10 +270,31 @@ export default function Clientes() {
                     mb-2 sm:mb-2.5 md:mb-3
                     text-xs text-gray-500 font-medium
                   `}>
-                    <div>Nombre</div>
-                    <div>CIF/NIF</div>
+                    <div>
+                      <button 
+                        className="hover:underline cursor-pointer" 
+                        onClick={() => handleSort('name')}
+                      >
+                        Nombre {sort.field === 'name' && (sort.dir === 'asc' ? '↑' : '↓')}
+                      </button>
+                    </div>
+                    <div>
+                      <button 
+                        className="hover:underline cursor-pointer" 
+                        onClick={() => handleSort('cif')}
+                      >
+                        CIF/NIF {sort.field === 'cif' && (sort.dir === 'asc' ? '↑' : '↓')}
+                      </button>
+                    </div>
                     <div>Contacto</div>
-                    <div>Creado</div>
+                    <div>
+                      <button 
+                        className="hover:underline cursor-pointer" 
+                        onClick={() => handleSort('created_at')}
+                      >
+                        Creado {sort.field === 'created_at' && (sort.dir === 'asc' ? '↑' : '↓')}
+                      </button>
+                    </div>
                     <div>Acciones</div>
                   </div>
 

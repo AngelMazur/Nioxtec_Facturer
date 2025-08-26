@@ -9,7 +9,13 @@ import NeoGradientButton from "../components/NeoGradientButton"
 import DataCard from "../components/DataCard"
 
 export default function Gastos() {
-  const { token } = useStore()
+  const { 
+    token, 
+    addExpenseToEnd, 
+    setUserSortedExpenses, 
+    getOrderedExpenses,
+    userHasSortedExpenses
+  } = useStore()
   const [expenses, setExpenses] = useState([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -70,8 +76,10 @@ export default function Gastos() {
         await apiPut(`/expenses/${editingExpense.id}`, submitData, token)
         toast.success('Gasto actualizado correctamente')
       } else {
-        await apiPost('/expenses', submitData, token)
+        const response = await apiPost('/expenses', submitData, token)
         toast.success('Gasto creado correctamente')
+        // Añadir el nuevo gasto al final del orden personalizado
+        addExpenseToEnd(response)
       }
       setShowForm(false)
       setShowCreateModal(false)
@@ -124,6 +132,9 @@ export default function Gastos() {
   }
 
   const handleSort = (field) => {
+    // Marcar que el usuario ha ordenado manualmente
+    setUserSortedExpenses(true)
+    
     if (sort === field) {
       setDir(dir === 'asc' ? 'desc' : 'asc')
     } else {
@@ -266,20 +277,95 @@ export default function Gastos() {
               mb-2 sm:mb-2.5 md:mb-3
               text-xs text-gray-500 font-medium
             `}>
-              <div>Fecha</div>
-              <div>Categoría</div>
-              <div>Concepto</div>
-              <div>Proveedor</div>
+              <div>
+                <button 
+                  className="hover:underline cursor-pointer" 
+                  onClick={() => handleSort('date')}
+                >
+                  Fecha {sort === 'date' && (dir === 'asc' ? '↑' : '↓')}
+                </button>
+              </div>
+              <div>
+                <button 
+                  className="hover:underline cursor-pointer" 
+                  onClick={() => handleSort('category')}
+                >
+                  Categoría {sort === 'category' && (dir === 'asc' ? '↑' : '↓')}
+                </button>
+              </div>
+              <div>
+                <button 
+                  className="hover:underline cursor-pointer" 
+                  onClick={() => handleSort('description')}
+                >
+                  Concepto {sort === 'description' && (dir === 'asc' ? '↑' : '↓')}
+                </button>
+              </div>
+              <div>
+                <button 
+                  className="hover:underline cursor-pointer" 
+                  onClick={() => handleSort('supplier')}
+                >
+                  Proveedor {sort === 'supplier' && (dir === 'asc' ? '↑' : '↓')}
+                </button>
+              </div>
               <div>Base</div>
               <div>IVA</div>
-              <div>Total</div>
+              <div>
+                <button 
+                  className="hover:underline cursor-pointer" 
+                  onClick={() => handleSort('total')}
+                >
+                  Total {sort === 'total' && (dir === 'asc' ? '↑' : '↓')}
+                </button>
+              </div>
               <div>Pagado</div>
               <div>Acciones</div>
             </div>
 
             {/* Cards responsive */}
             <div className="space-y-2">
-              {expenses.map((expense) => (
+              {(() => {
+                // Obtener gastos en orden personalizado o aplicar ordenamiento manual
+                let sorted;
+                if (userHasSortedExpenses) {
+                  // Si el usuario ha ordenado manualmente, aplicar ese ordenamiento con desempate estable por ID
+                  sorted = expenses.slice().sort((a, b) => {
+                    const dir = dir === 'asc' ? 1 : -1
+                    const aId = a?.id || 0
+                    const bId = b?.id || 0
+                    const fallback = (aId - bId) * dir
+                    if (sort === 'date') {
+                      const cmp = String(a.date || '').localeCompare(String(b.date || ''))
+                      return cmp !== 0 ? cmp * dir : fallback
+                    }
+                    if (sort === 'total') {
+                      const diff = ((a.total ?? 0) - (b.total ?? 0))
+                      return diff !== 0 ? diff * dir : fallback
+                    }
+                    if (sort === 'category') {
+                      const cmp = String(a.category || '').localeCompare(String(b.category || ''), 'es', { numeric: true })
+                      return cmp !== 0 ? cmp * dir : fallback
+                    }
+                    if (sort === 'description') {
+                      const cmp = String(a.description || '').localeCompare(String(b.description || ''), 'es', { numeric: true })
+                      return cmp !== 0 ? cmp * dir : fallback
+                    }
+                    if (sort === 'supplier') {
+                      const cmp = String(a.supplier || '').localeCompare(String(b.supplier || ''), 'es', { numeric: true })
+                      return cmp !== 0 ? cmp * dir : fallback
+                    }
+                    const av = a[sort]
+                    const bv = b[sort]
+                    const cmp = String(av ?? '').localeCompare(String(bv ?? ''), 'es', { numeric: true })
+                    return cmp !== 0 ? cmp * dir : fallback
+                  })
+                } else {
+                  // Usar orden personalizado del store (nuevos gastos al final)
+                  sorted = getOrderedExpenses(expenses);
+                }
+                
+                return sorted.map((expense) => (
                                 <DataCard
                   key={expense.id}
                   isClickable={false}
@@ -336,7 +422,8 @@ export default function Gastos() {
                       </div>
                     </div>
                   </DataCard>
-              ))}
+                ))
+              })()}
             </div>
           </motion.div>
         )}

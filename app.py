@@ -420,7 +420,7 @@ def _format_number_for_type(doc_type: str, sequence_number: int, year: int, mont
     return f"{prefix}{yy:02d}{mm:02d}{sequence_number:03d}"
 
 
-def _next_sequence_atomic(doc_type: str, at_date: datetime | None = None) -> str:
+def _next_sequence_atomic(doc_type: str, at_date: datetime = None) -> str:
     """Atomically increment and return the next formatted number for a given type and current year/month."""
     at = at_date or datetime.utcnow()
     y, m = at.year, at.month
@@ -1565,7 +1565,7 @@ def list_expenses():
     dir = request.args.get('dir', 'desc')
     
     # Validate sort field
-    allowed_sort = {'date', 'total', 'created_at', 'category'}
+    allowed_sort = {'date', 'total', 'created_at', 'category', 'description', 'supplier'}
     if sort not in allowed_sort:
         sort = 'date'
     
