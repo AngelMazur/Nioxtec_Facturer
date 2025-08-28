@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store/store'
-import { apiGet, apiPost, apiDelete, apiGetBlob } from '../lib/api'
+import { apiGet, apiPost, apiDelete, apiGetBlob, apiPut } from '../lib/api'
 import toast from 'react-hot-toast'
 import ContractGeneratorModal from '../features/contracts/components/ContractGeneratorModal'
 import CustomSkeleton from "../components/CustomSkeleton"
@@ -34,6 +34,7 @@ export default function Clientes() {
   const [showContractModal, setShowContractModal] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedClientForContract, setSelectedClientForContract] = useState(null)
+  const [selectedClientForEdit, setSelectedClientForEdit] = useState(null)
   const invoicesPageSize = 10
   const imagesPageSize = 6
   const docsPageSize = 5
@@ -72,6 +73,19 @@ export default function Clientes() {
   function openContractModal(client) {
     setSelectedClientForContract(client)
     setShowContractModal(true)
+  }
+
+  function openEditModal(client) {
+    setSelectedClientForEdit(client)
+    setForm({
+      name: client.name || '',
+      cif: client.cif || '',
+      address: client.address || '',
+      email: client.email || '',
+      phone: client.phone || '',
+      iban: client.iban || ''
+    })
+    setShowCreateModal(true)
   }
 
   async function loadClientInvoices(clientId) {
@@ -154,16 +168,31 @@ export default function Clientes() {
 
   const handleSubmit = async (formData) => {
     try {
-      const res = await apiPost('/clients', formData, token)
-      toast.success('Cliente guardado')
-      setForm({ name: '', cif: '', address: '', email: '', phone: '', iban: '' })
-      // Añadir el nuevo cliente al final del orden personalizado
-      addClientToEnd(res)
-      setClients([{ id: res.id, ...formData, created_at: new Date().toISOString() }, ...clients])
-      setCurrentPage(1)
+      if (selectedClientForEdit) {
+        // Modo edición
+        await apiPut(`/clients/${selectedClientForEdit.id}`, formData, token)
+        toast.success('Cliente actualizado')
+        // Actualizar el cliente en la lista
+        const updatedClients = clients.map(client => 
+          client.id === selectedClientForEdit.id 
+            ? { ...client, ...formData }
+            : client
+        )
+        setClients(updatedClients)
+        setSelectedClientForEdit(null)
+      } else {
+        // Modo creación
+        const res = await apiPost('/clients', formData, token)
+        toast.success('Cliente guardado')
+        setForm({ name: '', cif: '', address: '', email: '', phone: '', iban: '' })
+        // Añadir el nuevo cliente al final del orden personalizado
+        addClientToEnd(res)
+        setClients([{ id: res.id, ...formData, created_at: new Date().toISOString() }, ...clients])
+        setCurrentPage(1)
+      }
       setShowCreateModal(false)
-    } catch {
-      toast.error('Error al guardar')
+    } catch (e) {
+      toast.error(e?.message || 'Error al guardar cliente')
     }
   }
 
@@ -304,13 +333,18 @@ export default function Clientes() {
                                               <DataCard
                          key={client.id}
                          onClick={()=>openClientModal(client)}
-                         actions={[
-                           {
-                             label: 'Eliminar',
-                             className: 'text-red-600 focus:ring-red-500',
-                             onClick: () => deleteClient(client)
-                           }
-                         ]}
+                                                 actions={[
+                          {
+                            label: 'Editar',
+                            className: 'text-brand focus:ring-brand',
+                            onClick: () => openEditModal(client)
+                          },
+                          {
+                            label: 'Eliminar',
+                            className: 'text-red-600 focus:ring-red-500',
+                            onClick: () => deleteClient(client)
+                          }
+                        ]}
                         columns={4}
                         >
                           <div>
@@ -618,10 +652,15 @@ export default function Clientes() {
       {/* Modal para crear cliente */}
       <CreateClientModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false)
+          setForm({ name: '', cif: '', address: '', email: '', phone: '', iban: '' })
+          setSelectedClientForEdit(null)
+        }}
         onSubmit={handleSubmit}
         form={form}
         setForm={setForm}
+        isEditing={!!selectedClientForEdit}
       />
     </main>
   )

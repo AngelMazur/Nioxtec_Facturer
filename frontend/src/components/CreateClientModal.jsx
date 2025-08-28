@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const CreateClientModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
+const CreateClientModal = ({ isOpen, onClose, onSubmit, form, setForm, isEditing = false }) => {
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
@@ -31,7 +31,7 @@ const CreateClientModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Crear Nuevo Cliente</h3>
+              <h3 className="text-xl font-semibold text-white">{isEditing ? 'Editar Cliente' : 'Crear Nuevo Cliente'}</h3>
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-gray-800 rounded-lg"
@@ -161,7 +161,7 @@ const CreateClientModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                   type="submit"
                   className="flex-1 bg-primary hover:bg-primary/90 active:scale-95 focus:scale-105 transition-all duration-200 text-white px-6 py-3 rounded-lg font-medium focus:ring-2 focus:ring-brand focus:ring-opacity-50"
                 >
-                  Guardar Cliente
+                  {isEditing ? 'Actualizar Cliente' : 'Guardar Cliente'}
                 </button>
                 <button
                   type="button"
