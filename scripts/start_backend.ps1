@@ -9,9 +9,11 @@ $env:JWT_SECRET_KEY = "Rbd4?P5Axi@aS0bhNwN07sptS4&S?R"
 $env:CORS_ORIGINS = "https://app.nioxtec.es,http://localhost:5173,http://localhost:8080,http://127.0.0.1:8080"
 $env:APP_ORIGIN = "https://app.nioxtec.es"
 
-# Ejecutar Flask
+# Ejecutar Flask (soporta VENV_DIR en .env)
 try {
-    $py = "C:\Nioxtec\Nioxtec_Facturer\.venv\Scripts\python.exe"
+    $venvDir = $env:VENV_DIR
+    if (-not $venvDir -or -not (Test-Path $venvDir)) { $venvDir = "C:\Nioxtec\Nioxtec_Facturer\.venv" }
+    $py = Join-Path $venvDir 'Scripts\python.exe'
     if (-not (Test-Path $py)) { $py = "C:\Nioxtec\Nioxtec_Facturer\.venv310\Scripts\python.exe" }
     & $py "C:\Nioxtec\Nioxtec_Facturer\app.py"
 } catch {

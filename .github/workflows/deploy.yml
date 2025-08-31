@@ -60,7 +60,7 @@ jobs:
               # Limpiar venvs versionados o previos
               try { Remove-Item -Recurse -Force '.\\.venv' -ErrorAction SilentlyContinue } catch {}
               try { Remove-Item -Recurse -Force '.\\.venv310' -ErrorAction SilentlyContinue } catch {}
-              # Validar/recrear venv y usar python -m pip (evita shims pip.exe dependientes del usuario)
+              # Validar/recrear venv (crea un venv NUEVO por despliegue para evitar bloqueos por .pyd)
               try {
                 # Usar un venv neutro (.venv) para no depender de Python310
                 $venvDir = '.\\.venv'
@@ -214,14 +214,16 @@ jobs:
               npm run build
             } catch { Log "Frontend build error: $($_.Exception.Message)" }
 
-            # Escribir APP_VERSION en .env para que la app lo lea al arrancar
+            # Escribir APP_VERSION, APP_ORIGIN y VENV_DIR en .env para que la app lo lea al arrancar
             try {
               $envFile = 'C:\Nioxtec\Nioxtec_Facturer\.env'
               if (Test-Path $envFile) {
-                (Get-Content $envFile | Where-Object { $_ -notmatch '^APP_VERSION=' -and $_ -notmatch '^APP_ORIGIN=' }) | Set-Content $envFile -Encoding UTF8
+                (Get-Content $envFile | Where-Object { $_ -notmatch '^APP_VERSION=' -and $_ -notmatch '^APP_ORIGIN=' -and $_ -notmatch '^VENV_DIR=' }) | Set-Content $envFile -Encoding UTF8
               }
               Add-Content -Path $envFile -Value ("APP_VERSION=" + $env:APP_VERSION)
               Add-Content -Path $envFile -Value ("APP_ORIGIN=https://app.nioxtec.es")
+              $absVenv = (Resolve-Path $venvDir).Path
+              Add-Content -Path $envFile -Value ("VENV_DIR=" + $absVenv)
               Log (".env actualizado con APP_VERSION=" + $env:APP_VERSION)
             } catch { Log "No se pudo actualizar .env con APP_VERSION: $($_.Exception.Message)" }
             # 2) Reiniciar servicios tras migración
