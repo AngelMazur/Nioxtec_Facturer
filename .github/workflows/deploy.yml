@@ -114,6 +114,7 @@ jobs:
                   } catch { $venvOk = $false }
                 }
                 if ($venvOk) {
+                  try { & $venvPy -m ensurepip --upgrade 2>$null | Out-Null } catch {}
                   & $venvPy -m pip install --upgrade pip
                   & $venvPy -m pip install -r requirements.txt
                 } else {
@@ -166,15 +167,21 @@ jobs:
                     }
                     $py = Get-Command python -ErrorAction SilentlyContinue
                     if ($py) { & $py.Source -m venv $venvDir 2>$null }
-                    if (Test-Path $venvPy) { & $venvPy -m pip install --upgrade pip; & $venvPy -m pip install -r requirements.txt; $venvOk = $true }
+                    if (Test-Path $venvPy) {
+                      try { & $venvPy -m ensurepip --upgrade 2>$null | Out-Null } catch {}
+                      & $venvPy -m pip install --upgrade pip
+                      & $venvPy -m pip install -r requirements.txt
+                      $venvOk = $true
+                    }
                   } catch { Log "No fue posible instalar Python automáticamente: $($_.Exception.Message)" }
                 }
                 if ($venvOk) {
                   # Asegurar dependencias antes de ejecutar Alembic
                   try {
+                    & $venvPy -m ensurepip --upgrade 2>$null | Out-Null
                     & $venvPy -m pip --version 2>$null | Out-Null
-                    & $venvPy -m pip install --upgrade pip 2>$null
-                    & $venvPy -m pip install -r requirements.txt 2>$null
+                    & $venvPy -m pip install --upgrade pip 2>$null | Out-Null
+                    & $venvPy -m pip install -r requirements.txt 2>$null | Out-Null
                   } catch { Log 'Aviso: no se pudieron instalar dependencias antes de Alembic' }
 
                   $hasAlembic = $false
@@ -275,7 +282,6 @@ jobs:
 
           Write-Error "API publica no disponible tras reintentos"
           exit 1
-
 
 
 
