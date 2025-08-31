@@ -1,0 +1,88 @@
+# Plan de Fases y Despliegues Seguros
+
+Este documento define las fases de mejora y cómo desplegarlas sin romper producción.
+Mantén este archivo actualizado en cada fase y vincula PRs/tags.
+
+## Convenciones
+- Ramas: `feat/*`, `fix/*`, `chore/*` → PR a `main`.
+- Versionado: tag `vX.Y.Z` en `main` dispara deploy a producción.
+- Entornos: macOS (dev) y Windows Server (prod, runner Actions).
+- Health: `/health` debe devolver 200 tras cada despliegue.
+
+## Fases
+
+### Fase 0 — Preparación (Baseline)
+- Objetivo: infra mínima para poder desplegar con seguridad.
+- Alcance:
+  - Variables de entorno separadas por entorno.
+  - Endpoint `/health` (ya existe) y `APP_VERSION` opcional.
+  - Ajustes menores en plantillas (ej. emisor dinámico en factura).
+- Criterios de aceptación:
+  - App arranca en dev y prod como antes.
+  - Health 200.
+- Rollback: N/A (cambios de bajo riesgo).
+
+### Fase 1 — Infra de deploy seguro
+- Objetivo: migraciones y checks automatizados.
+- Alcance:
+  - Integrar Alembic (migraciones versionadas).
+  - Pipeline: backup DB → `alembic upgrade head` → restart servicio → health-check.
+  - `Flask-Compress` para JSON/HTML.
+- Criterios de aceptación:
+  - PR con CI verde (lint/tests/build).
+  - Despliegue en Windows con backup + migración + health 200.
+- Rollback: `alembic downgrade -1` + restart.
+
+### Fase 2 — Contrato y validación
+- Objetivo: contrato API visible y validación robusta.
+- Alcance:
+  - OpenAPI (/apidocs) para 3 endpoints clave.
+  - Validación de entrada con schemas (Pydantic/Marshmallow).
+- Criterios: errores 400 uniformes; docs navegables.
+- Rollback: revertir PR (no impacta datos).
+
+### Fase 3 — Robustez runtime
+- Objetivo: proteger recursos y homogeneizar listados.
+- Alcance:
+  - Rate limiting por endpoint con Redis en prod.
+  - Logs estructurados JSON y Sentry.
+  - Paginación consistente (limit/offset/sort) en todas las listas.
+- Criterios: límites efectivos; formato uniforme de respuestas.
+- Rollback: desactivar límites o revertir cambios.
+
+### Fase 4 — Rendimiento y coste
+- Objetivo: acelerar reportes y asegurar integridad.
+- Alcance:
+  - Redis cache en reportes (TTL 5–10 min) + invalidación.
+  - Índices compuestos/UNIQUE necesarios.
+  - Soft delete en `Client`/`Invoice` (opcional).
+- Criterios: menor latencia en reportes; no rompe integridad.
+- Rollback: limpiar cache y revertir migraciones si procede.
+
+### Fase 5 — Jobs y notificaciones
+- Objetivo: sacar tareas pesadas del request.
+- Alcance:
+  - Cola (RQ/Celery + Redis) para PDFs, emails, exportaciones.
+  - Endpoint 202 con `job_id` y consulta de estado.
+- Criterios: PDFs/emails no bloquean, con reintentos.
+- Rollback: desactivar workers y servir vía síncrona temporalmente.
+
+### Fase 6 — Frontend UX
+- Objetivo: experiencia moderna y resiliente.
+- Alcance:
+  - PWA (installable) + offline básico con Workbox.
+  - Optimización de bundle, a11y, y tests E2E (Playwright).
+- Criterios: Lighthouse PWA ok; flujos E2E verdes en CI.
+- Rollback: desactivar service worker.
+
+---
+
+## Checklist de despliegue (por versión)
+1. CI: lint + tests + build ok en PR.
+2. Tag `vX.Y.Z` creado en `main`.
+3. Backup DB realizado en runner Windows.
+4. `alembic upgrade head` ejecutado sin errores.
+5. Servicio reiniciado correctamente.
+6. Health-check `/health` responde 200.
+7. Monitoreo 30–60 min y validación de rutas críticas.
+8. Si falla: `alembic downgrade -1` y reinicio.

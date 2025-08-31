@@ -22,6 +22,7 @@ trap cleanup SIGINT
 # Iniciar backend en segundo plano
 echo "🔧 Iniciando backend Flask..."
 export FLASK_DEBUG=true
+export FLASK_ENV=development
 export CORS_ORIGINS="http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080"
 export PORT=5001
 source venv/bin/activate

@@ -187,11 +187,16 @@
         <div class="info-block right" style="align-self:start;">
             <h3>DATOS DEL EMISOR</h3>
             <div style="display:grid; grid-template-columns: 1fr; justify-items: end;" class="info-inner right">
-                <p><strong>José Luis Condolo Cuenca</strong></p>
-                <p>CIF:  12450905Q</p>
-                <p>C/Hacienda de pavones, 150 28030, Madrid, España</p>
-                <p>info@nioxtec</p>
-                <p>613 094 653</p>
+                <p><strong>{{ company.name }}</strong></p>
+                <p>CIF: {{ company.cif }}</p>
+                <p>
+                    {{ company.address }}
+                    {% if company.city %}, {{ company.city }}{% endif %}
+                    {% if company.province %}, {{ company.province }}{% endif %}
+                </p>
+                <p>{{ company.email }}</p>
+                <p>{{ company.phone }}</p>
+                {% if company.iban %}<p>IBAN: {{ company.iban }}</p>{% endif %}
             </div>
         </div>
     </div>

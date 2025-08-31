@@ -34,6 +34,7 @@ import unicodedata
 from docx import Document
 from flask import Flask, jsonify, request, render_template, send_file, abort, url_for, Response
 from flask_sqlalchemy import SQLAlchemy
+from flask_compress import Compress
 from flask_cors import CORS
 from flask_talisman import Talisman
 from flask_limiter import Limiter
@@ -106,6 +107,12 @@ app = Flask(__name__, instance_relative_config=True)
 app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH_MB', '20')) * 1024 * 1024
 # Detrás de un proxy/túnel (Cloudflare/Nginx), respeta cabeceras X-Forwarded-*
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)  # type: ignore
+
+# Compresión de respuestas (JSON/HTML) para reducir latencia en listados/reportes
+app.config.setdefault('COMPRESS_MIMETYPES', ['application/json', 'text/html'])
+app.config.setdefault('COMPRESS_LEVEL', 6)
+app.config.setdefault('COMPRESS_MIN_SIZE', 500)
+Compress(app)
 
 # Filtro personalizado para saltos de línea en PDFs
 @app.template_filter('nl2br')
@@ -1784,6 +1791,7 @@ def health():
     """Sonda de salud simple para monitoreo/compose."""
     return jsonify({
         'status': 'ok',
+    'version': os.getenv('APP_VERSION', 'dev'),
         'pdf_engine': 'wkhtmltopdf' if pdfkit else 'reportlab_fallback',
         'database': app.config.get('SQLALCHEMY_DATABASE_URI', '')
     })
@@ -2602,4 +2610,6 @@ if __name__ == '__main__':
     debug_env = os.getenv('FLASK_DEBUG', 'true').lower() in ('1', 'true', 'yes')
     # Escuchar en 0.0.0.0 para permitir acceso externo cuando se necesite.
     # El puerto puede configurarse con la variable de entorno PORT (por defecto 5000).
-    app.run(debug=debug_env, host='0.0.0.0', port=int(os.getenv('PORT', '5000')))
+    # Prefer explicit PORT; default to 5001 in development to avoid macOS AirDrop on 5000, else 5000
+    default_port = '5001' if os.getenv('FLASK_ENV') == 'development' else '5000'
+    app.run(debug=debug_env, host='0.0.0.0', port=int(os.getenv('PORT', default_port)))

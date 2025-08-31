@@ -3,6 +3,8 @@
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
   workflow_dispatch: {}
 
 concurrency:
@@ -14,6 +16,8 @@ permissions:
 
 jobs:
   deploy:
+    env:
+      APP_VERSION: ${{ github.ref_name }}
     runs-on:
       - self-hosted
       - windows
@@ -29,6 +33,7 @@ jobs:
         shell: powershell
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           # Intentar ejecutar tarea si existe; si falla por permisos o inexistente, ejecutar script directo
           cmd.exe /c 'schtasks /Query /TN "Nioxtec Deploy CI" >NUL 2>&1'
@@ -68,6 +73,40 @@ jobs:
                   Log 'AVISO: No se pudo preparar venv; se omite instalación de deps backend'
                 }
               } catch { Log "Backend deps error: $($_.Exception.Message)" }
+
+              # Backup de base de datos (SQLite local y/o PostgreSQL si DATABASE_URL está presente)
+              try {
+                $timestamp = Get-Date -Format yyyyMMddHHmmss
+                $backupRoot = 'C:\Nioxtec\backups\facturer'
+                New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
+                $sqliteDb = 'C:\Nioxtec\Nioxtec_Facturer\instance\app.db'
+                if (Test-Path $sqliteDb) {
+                  Copy-Item $sqliteDb (Join-Path $backupRoot ("app_" + $timestamp + '.db')) -Force
+                  Log "Backup SQLite creado"
+                }
+                if ($env:DATABASE_URL -and $env:DATABASE_URL.StartsWith('postgres')) {
+                  $pgDump = 'C:\Program Files\PostgreSQL\16\bin\pg_dump.exe'
+                  if (-not (Test-Path $pgDump)) { $pgDump = 'C:\Program Files\PostgreSQL\15\bin\pg_dump.exe' }
+                  if (Test-Path $pgDump) {
+                    & $pgDump --file (Join-Path $backupRoot ("backup_" + $timestamp + '.dump')) --format=c $env:DATABASE_URL
+                    Log 'Backup PostgreSQL creado'
+                  } else {
+                    Log 'pg_dump no encontrado; omitido backup PostgreSQL'
+                  }
+                }
+              } catch { Log "Error en backup DB: $($_.Exception.Message)" }
+
+              # Migraciones Alembic
+              try {
+                if (Test-Path $venvPy) {
+                  Log 'Ejecutando migraciones Alembic (upgrade head)'
+                  & $venvPy -m alembic upgrade head
+                } else {
+                  Log 'No hay venv para ejecutar Alembic; se omite migración'
+                }
+              } catch {
+                Write-Error "Alembic upgrade falló: $($_.Exception.Message)"; exit 1
+              }
             } catch { Log "Backend update error: $($_.Exception.Message)" }
             try {
               Log 'npm ci && build frontend'
@@ -76,7 +115,17 @@ jobs:
               $env:VITE_API_BASE = 'https://api.nioxtec.es'
               npm run build
             } catch { Log "Frontend build error: $($_.Exception.Message)" }
-            # 2) Si el build fue OK (no hubo errores críticos), reiniciamos servicios de forma rápida
+
+            # Escribir APP_VERSION en .env para que la app lo lea al arrancar
+            try {
+              $envFile = 'C:\Nioxtec\Nioxtec_Facturer\.env'
+              if (Test-Path $envFile) {
+                (Get-Content $envFile | Where-Object { $_ -notmatch '^APP_VERSION=' }) | Set-Content $envFile -Encoding UTF8
+              }
+              Add-Content -Path $envFile -Value ("APP_VERSION=" + $env:APP_VERSION)
+              Log (".env actualizado con APP_VERSION=" + $env:APP_VERSION)
+            } catch { Log "No se pudo actualizar .env con APP_VERSION: $($_.Exception.Message)" }
+            # 2) Reiniciar servicios tras migración
             try { Log 'Reiniciando backend'; schtasks /End /TN "Nioxtec Backend" 2>$null | Out-Null; $backendStopped=$true } catch {}
             try { Log 'Reiniciando frontend'; schtasks /End /TN "Nioxtec Frontend" 2>$null | Out-Null; $frontendStopped=$true } catch {}
             try { if ($backendStopped) { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null; Log 'Backend arrancado' } } catch {}
@@ -108,7 +157,14 @@ jobs:
           Write-Host "Servicios reiniciados: OK"
           Write-Host "Aplicacion actualizada y funcionando"
 
-          # Verificacion simple: solo API publica
+          # Verificación local primero
+          Write-Host "Verificando API local..."
+          try {
+            $local = Invoke-WebRequest http://localhost:8000/health -UseBasicParsing -TimeoutSec 10
+            Write-Host ("API local: " + $local.StatusCode)
+          } catch { Write-Host 'Aviso: API local no verificada' }
+
+          # Verificación pública
           Write-Host "Verificando API publica..."
           Start-Sleep -Seconds 20
 
@@ -128,5 +184,16 @@ jobs:
             Write-Error ("API respondio con codigo: " + $response.StatusCode)
             exit 1
           }
+
+
+
+
+
+
+
+
+
+
+
 
 
