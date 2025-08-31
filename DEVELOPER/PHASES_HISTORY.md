@@ -23,6 +23,18 @@ Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inve
 - Tag: v0.1.1
 - Notas: Se disparó el workflow de producción por tag; actualizar este bloque cuando finalice con el resultado del health-check.
 
+## 2025-08-31 — Fase 3 (Desplegada)
+- Alcance:
+  - Logs JSON opcionales y Sentry configurable por `SENTRY_DSN`.
+  - Rate limiting con Redis en prod (fallback memoria) y manejador 429 uniforme.
+  - JWT 401/invalid/expired uniformes `{error, code}`.
+  - Paginación/sort unificados en Clientes/Facturas; OpenAPI actualizado.
+- Estado: Completado
+- PR: feat/fase-3-robustez → main
+- Tag: (añadir)
+- Notas: Verificar en prod: `/openapi.json`, 401 uniforme en `/api/clients`, y preflight CORS.
+
+
 ## 2025-08-31 — Fase 3 (Iniciada)
 - Alcance realizado:
   - Activado logging JSON opcional por `JSON_LOGS=true` y handler 500 uniforme.

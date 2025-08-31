@@ -13,6 +13,11 @@
 - [ ] `alembic upgrade head` sin errores
 - [ ] Servicio reiniciado (NSSM/IIS/Waitress)
 - [ ] `/health` = 200 y versión esperada
+- [ ] 401 uniforme `{error, code}` (JWT faltante/inválido/expirado)
+- [ ] 429 `{error, code}` al exceder límites
+- [ ] Listados aceptan `limit, offset, sort, dir` (clientes/facturas)
+- [ ] `LIMITER_STORAGE_URI` usa Redis en prod (fallback mem)
+- [ ] (Opcional) Sentry recibe eventos si `SENTRY_DSN` está configurado
 - [ ] Smoke test manual:
   - [ ] Login
   - [ ] Crear cliente

@@ -48,11 +48,13 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
 ### Fase 3 — Robustez runtime
 - Objetivo: proteger recursos y homogeneizar listados.
 - Alcance:
-  - Logs estructurados JSON y Sentry.
-  - Rate limiting por endpoint con Redis en prod (login, uploads, PDF/contratos, exportaciones).
-  - Paginación y sort consistentes en listados (clientes, facturas, gastos) y respuestas uniformes.
-- Criterios: límites efectivos; formato uniforme de respuestas.
-- Rollback: desactivar límites o revertir cambios.
+  - Logs estructurados JSON (`JSON_LOGS=true`) y Sentry opcional (`SENTRY_DSN`).
+  - Rate limiting por endpoint; `LIMITER_STORAGE_URI=redis://...` en prod (fallback a memoria si falla).
+  - Respuestas uniformes: 401 de JWT y 429 devuelven `{error, code}`.
+  - Paginación/sort consistente en listados (Clientes/Facturas): `limit`, `offset`, `sort`, `dir`.
+- Criterios: límites efectivos; 401/429 uniformes; listados ordenables/paginables; OpenAPI refleja parámetros `GET`.
+- Verificación: curl a `/api/clients` y `/api/invoices` con y sin token; forzar 429; `/openapi.json` incluye paths GET.
+- Rollback: desactivar límites o revertir; quitar `SENTRY_DSN`.
 
 ### Fase 4 — Rendimiento y coste
 - Objetivo: acelerar reportes y asegurar integridad.
