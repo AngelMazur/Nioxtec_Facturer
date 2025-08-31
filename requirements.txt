@@ -14,3 +14,4 @@ python-docx==1.1.0
 Flask-Compress==1.15
 alembic==1.13.2
 pydantic>=2.7,<3
+sentry-sdk==1.43.0

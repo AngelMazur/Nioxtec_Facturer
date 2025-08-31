@@ -37,6 +37,7 @@ def get_openapi_spec(base_url: str = "") -> Dict[str, Any]:
                         },
                         "400": {"$ref": "#/components/responses/BadRequest"},
                         "401": {"$ref": "#/components/responses/Unauthorized"},
+                        "429": {"$ref": "#/components/responses/TooManyRequests"},
                     },
                 }
             },
@@ -130,6 +131,21 @@ def get_openapi_spec(base_url: str = "") -> Dict[str, Any]:
                         }
                     },
                 },
+                "TooManyRequests": {
+                    "description": "Demasiadas peticiones (rate limit)",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "error": {"type": "string"},
+                                    "code": {"type": "integer", "example": 429},
+                                },
+                                "required": ["error", "code"],
+                            }
+                        }
+                    },
+                },
             },
             "schemas": {
                 "LoginRequest": {
@@ -182,4 +198,3 @@ def get_openapi_spec(base_url: str = "") -> Dict[str, Any]:
         },
     }
     return spec
-

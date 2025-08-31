@@ -46,6 +46,11 @@ from flask_jwt_extended import (
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
+try:
+    import sentry_sdk  # type: ignore
+    from sentry_sdk.integrations.flask import FlaskIntegration  # type: ignore
+except Exception:
+    sentry_sdk = None  # type: ignore
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from typing import Tuple
@@ -59,6 +64,21 @@ from openapi import get_openapi_spec
 
 # Cargar variables de entorno desde .env si existe
 load_dotenv()
+
+# Sentry opcional (activado solo si SENTRY_DSN está definido)
+try:
+    _sentry_dsn = os.getenv('SENTRY_DSN')
+    if _sentry_dsn and sentry_sdk is not None:
+        sentry_sdk.init(
+            dsn=_sentry_dsn,
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0.0')),
+            environment=os.getenv('APP_ENV', 'production'),
+            release=os.getenv('APP_VERSION') or None,
+        )
+except Exception:
+    # No bloquear el arranque si Sentry falla
+    pass
 
 # Motor PDF unificado: solo wkhtmltopdf para consistencia dev/prod
 # Eliminamos WeasyPrint para evitar incompatibilidades entre entornos
@@ -346,6 +366,10 @@ def handle_400(err):
 @app.errorhandler(401)
 def handle_401(err):
     return jsonify({"error": getattr(err, 'description', 'unauthorized'), "code": 401}), 401
+
+@app.errorhandler(429)
+def handle_429(err):
+    return jsonify({"error": "rate limit exceeded", "code": 429}), 429
 
 @app.errorhandler(404)
 def handle_404(err):
