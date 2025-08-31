@@ -128,12 +128,30 @@ jobs:
 
               # Migraciones Alembic
               try {
+                $venvOk = $false
                 if (Test-Path $venvPy) {
+                  try { & $venvPy -c "import sys; print(sys.version)" 2>$null | Out-Null; $venvOk = $true } catch { $venvOk = $false }
+                }
+                if (-not $venvOk) {
+                  Log 'Venv inexistente o inválido; intento de crear uno con winget (Python 3.11)'
+                  try {
+                    $winget = Get-Command winget -ErrorAction SilentlyContinue
+                    if ($winget) {
+                      winget install --id Python.Python.3.11 -e --silent --accept-package-agreements --accept-source-agreements
+                      $py = Get-Command python -ErrorAction SilentlyContinue
+                      if ($py) { & $py.Source -m venv $venvDir 2>$null }
+                      if (Test-Path $venvPy) { & $venvPy -m pip install --upgrade pip; & $venvPy -m pip install -r requirements.txt; $venvOk = $true }
+                    } else {
+                      Log 'winget no disponible; no se puede instalar Python automáticamente'
+                    }
+                  } catch { Log "No fue posible instalar Python automáticamente: $($_.Exception.Message)" }
+                }
+                if ($venvOk) {
                   Log 'Ejecutando migraciones Alembic (upgrade head)'
                   & $venvPy -m alembic upgrade head
                   if ($LASTEXITCODE -ne 0) { throw "Alembic upgrade devolvió código $LASTEXITCODE" }
                 } else {
-                  Log 'No hay venv para ejecutar Alembic; se omite migración'
+                  Log 'Omitiendo migraciones: no hay intérprete Python funcional. (Fase 2 sin cambios de esquema)'
                 }
               } catch {
                 Write-Error "Alembic upgrade falló: $($_.Exception.Message)"; exit 1
@@ -215,7 +233,6 @@ jobs:
             Write-Error ("API respondio con codigo: " + $response.StatusCode)
             exit 1
           }
-
 
 
 
