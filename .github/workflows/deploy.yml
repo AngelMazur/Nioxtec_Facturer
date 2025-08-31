@@ -141,12 +141,18 @@ jobs:
                     $winget = Get-Command winget -ErrorAction SilentlyContinue
                     if ($winget) {
                       winget install --id Python.Python.3.11 -e --silent --accept-package-agreements --accept-source-agreements
-                      $py = Get-Command python -ErrorAction SilentlyContinue
-                      if ($py) { & $py.Source -m venv $venvDir 2>$null }
-                      if (Test-Path $venvPy) { & $venvPy -m pip install --upgrade pip; & $venvPy -m pip install -r requirements.txt; $venvOk = $true }
                     } else {
-                      Log 'winget no disponible; no se puede instalar Python automáticamente'
+                      Log 'winget no disponible; intentando instalador oficial de python.org'
+                      $pyUrl = 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe'
+                      $installer = Join-Path $env:TEMP 'python311.exe'
+                      try { Invoke-WebRequest -Uri $pyUrl -UseBasicParsing -OutFile $installer } catch {}
+                      if (Test-Path $installer) {
+                        Start-Process -FilePath $installer -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 Include_pip=1' -Wait
+                      } else { Log 'No se pudo descargar instalador de Python. Revise conectividad.' }
                     }
+                    $py = Get-Command python -ErrorAction SilentlyContinue
+                    if ($py) { & $py.Source -m venv $venvDir 2>$null }
+                    if (Test-Path $venvPy) { & $venvPy -m pip install --upgrade pip; & $venvPy -m pip install -r requirements.txt; $venvOk = $true }
                   } catch { Log "No fue posible instalar Python automáticamente: $($_.Exception.Message)" }
                 }
                 if ($venvOk) {
@@ -237,7 +243,6 @@ jobs:
             Write-Error ("API respondio con codigo: " + $response.StatusCode)
             exit 1
           }
-
 
 
 
