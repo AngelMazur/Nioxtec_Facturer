@@ -172,9 +172,10 @@ jobs:
             try {
               $envFile = 'C:\Nioxtec\Nioxtec_Facturer\.env'
               if (Test-Path $envFile) {
-                (Get-Content $envFile | Where-Object { $_ -notmatch '^APP_VERSION=' }) | Set-Content $envFile -Encoding UTF8
+                (Get-Content $envFile | Where-Object { $_ -notmatch '^APP_VERSION=' -and $_ -notmatch '^APP_ORIGIN=' }) | Set-Content $envFile -Encoding UTF8
               }
               Add-Content -Path $envFile -Value ("APP_VERSION=" + $env:APP_VERSION)
+              Add-Content -Path $envFile -Value ("APP_ORIGIN=https://app.nioxtec.es")
               Log (".env actualizado con APP_VERSION=" + $env:APP_VERSION)
             } catch { Log "No se pudo actualizar .env con APP_VERSION: $($_.Exception.Message)" }
             # 2) Reiniciar servicios tras migración
