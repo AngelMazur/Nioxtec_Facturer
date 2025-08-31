@@ -2,6 +2,16 @@
 
 Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inverso (lo más reciente arriba).
 
+## 2025-08-31 — Fase 2 (Iniciada)
+- Alcance:
+  - Documentación OpenAPI accesible en `/apidocs` para endpoints clave (auth/login, clientes, facturas).
+  - Validación de entrada con schemas (Pydantic/Marshmallow) y errores 400 uniformes `{error, code}`.
+  - Sin cambios de esquema (solo contrato y manejo de errores).
+- Estado: En progreso
+- PR: (añadir enlace cuando se cree)
+- Tag: (añadir cuando se despliegue)
+- Notas: Objetivo es estandarizar contrato y mejorar DX/QA.
+
 ## 2025-08-31 — Fase 1 (Deploy en curso)
 - Alcance:
   - Alembic integrado; pipeline de deploy con backup + migración + health-check.

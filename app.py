@@ -49,6 +49,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from typing import Tuple
 from werkzeug.middleware.proxy_fix import ProxyFix
+from pydantic import ValidationError as PydValidationError
+
+from schemas.api import LoginRequest, ClientCreateRequest, InvoiceCreateRequest
+from openapi import get_openapi_spec
 
 # Cargar variables de entorno desde .env si existe
 load_dotenv()
@@ -250,8 +254,9 @@ if enable_talisman:
     # CSP mínimo: permite este origen, inline para plantillas simples y blobs para descargas
     csp = {
         'default-src': ["'self'"],
-        'script-src': ["'self'", "'unsafe-inline'"],
-        'style-src': ["'self'", "'unsafe-inline'"],
+        'script-src': ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+        'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
         'img-src': ["'self'", 'data:', 'blob:'],
             # Permitir previsualización de PDFs en iframe como blob:
             'frame-src': ["'self'", 'blob:'],
@@ -296,6 +301,23 @@ os.makedirs(STATIC_FOLDER, exist_ok=True)
 # Carpeta base para subidas (documentos/imágenes de clientes)
 UPLOADS_ROOT = os.path.join(app.instance_path, 'uploads')
 os.makedirs(UPLOADS_ROOT, exist_ok=True)
+
+
+# -------------------------------------
+# Error handling (uniform JSON)
+# -------------------------------------
+
+@app.errorhandler(400)
+def handle_400(err):
+    return jsonify({"error": getattr(err, 'description', 'bad request'), "code": 400}), 400
+
+@app.errorhandler(401)
+def handle_401(err):
+    return jsonify({"error": getattr(err, 'description', 'unauthorized'), "code": 401}), 401
+
+@app.errorhandler(404)
+def handle_404(err):
+    return jsonify({"error": "not found", "code": 404}), 404
 
 
 # -----------------------------------------------------------------------------
@@ -666,14 +688,17 @@ def index():
 @jwt_required()
 def create_client():
     """Create a new client via JSON request."""
-    data = request.get_json(force=True)
+    try:
+        payload = ClientCreateRequest.model_validate(request.get_json(force=True))
+    except PydValidationError as e:
+        return jsonify({"error": e.errors()[0]['msg'] if e.errors() else 'invalid payload', "code": 400}), 400
     client = Client(
-        name=data.get('name'),
-        cif=data.get('cif'),
-        address=data.get('address'),
-        email=data.get('email'),
-        phone=data.get('phone'),
-        iban=data.get('iban')
+        name=payload.name,
+        cif=payload.cif,
+        address=payload.address,
+        email=payload.email,
+        phone=payload.phone,
+        iban=payload.iban,
     )
     db.session.add(client)
     db.session.commit()
@@ -713,15 +738,16 @@ def create_invoice():
 
     Número se asigna automáticamente según el tipo.
     """
-    data = request.get_json(force=True)
-    date_str = data.get('date')
-    invoice_type = data.get('type', 'factura')
-    client_id = data.get('client_id')
-    notes = data.get('notes', '')
-    payment_method = data.get('payment_method')
-    items_data = data.get('items', [])
-    if not (date_str and client_id and items_data):
-        return jsonify({'error': 'Missing required fields'}), 400
+    try:
+        payload = InvoiceCreateRequest.model_validate(request.get_json(force=True))
+    except PydValidationError as e:
+        return jsonify({"error": e.errors()[0]['msg'] if e.errors() else 'invalid payload', "code": 400}), 400
+    date_str = payload.date
+    invoice_type = payload.type
+    client_id = payload.client_id
+    notes = payload.notes or ''
+    payment_method = payload.payment_method
+    items_data = [i.model_dump() for i in payload.items]
     # Convert date string to date object
     date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
     # Normalize payment method
@@ -1835,16 +1861,47 @@ def login():
     Returns:
         JSON: Access token on success or error message on failure
     """
-    data = request.get_json(force=True)
-    username = data.get('username')
-    password = data.get('password')
-    if not username or not password:
-        return jsonify({'error': 'username y password requeridos'}), 400
+    try:
+        payload = LoginRequest.model_validate(request.get_json(force=True))
+    except PydValidationError as e:
+        return jsonify({"error": e.errors()[0]['msg'] if e.errors() else 'invalid payload', "code": 400}), 400
+    username = payload.username
+    password = payload.password
     user = User.query.filter_by(username=username).first()
     if not user or not check_password_hash(user.password_hash, password):
-        return jsonify({'error': 'Credenciales inválidas'}), 401
+        return jsonify({'error': 'Credenciales inválidas', 'code': 401}), 401
     token = create_access_token(identity=username)
     return jsonify({'access_token': token})
+
+
+# -------------------------------------
+# OpenAPI docs
+# -------------------------------------
+
+@app.get('/openapi.json')
+def openapi_json():
+    base = request.host_url.rstrip('/')
+    return jsonify(get_openapi_spec(base)), 200
+
+
+@app.get('/apidocs')
+def apidocs():
+    # Minimal Redoc page served inline (uses CDN)
+    html = f"""
+<!doctype html>
+<html>
+  <head>
+    <meta charset=\"utf-8\"/>
+    <title>Nioxtec Facturer API Docs</title>
+    <style> body {{ margin:0; padding:0; }} </style>
+  </head>
+  <body>
+    <redoc spec-url=\"/openapi.json\"></redoc>
+    <script src=\"https://cdn.jsdelivr.net/npm/redoc/bundles/redoc.standalone.js\"></script>
+  </body>
+</html>
+"""
+    return Response(html, mimetype='text/html')
 
 
 # -------------------------------------
