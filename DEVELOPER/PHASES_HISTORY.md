@@ -2,6 +2,15 @@
 
 Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inverso (lo más reciente arriba).
 
+## 2025-08-31 — Fase 1 (Deploy en curso)
+- Alcance:
+  - Alembic integrado; pipeline de deploy con backup + migración + health-check.
+  - `Flask-Compress` habilitado; `/health` expone `APP_VERSION`.
+- Estado: Despliegue iniciado por tag
+- PR: #1 (release/v0.1.0 → main)
+- Tag: v0.1.1
+- Notas: Se disparó el workflow de producción por tag; actualizar este bloque cuando finalice con el resultado del health-check.
+
 ## 2025-08-31 — Fase 0 (Baseline)
 - Alcance:
   - Alineada plantilla `templates/invoice_template.html` para usar `company.*` en emisor (coherente con `CompanyConfig`).
@@ -25,5 +34,4 @@ Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inve
   - Validado ciclo `alembic upgrade head` → `alembic downgrade -1` → `alembic upgrade head` en local.
   - Workflow de deploy actualizado: backup+migración+health-check y trigger por tags `v*`, exporta `APP_VERSION` al job.
 - Próximos pasos:
-  - Crear tag `v0.1.0` y probar despliegue en runner Windows.
-  - Completar checklist de release y documentar resultado.
+  - Completar checklist de release y documentar resultado del tag `v0.1.1`.
