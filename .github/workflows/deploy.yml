@@ -103,8 +103,16 @@ jobs:
                   if (-not $created) { throw 'No se pudo crear venv: no se encontró Python' }
                 }
 
-                & $venvPy -m pip install --upgrade pip
-                & $venvPy -m pip install -r requirements.txt
+                $venvOk = $false
+                if (Test-Path $venvPy) {
+                  try { & $venvPy -c "import sys; print(sys.version)" 2>$null | Out-Null; $venvOk = $true } catch { $venvOk = $false }
+                }
+                if ($venvOk) {
+                  & $venvPy -m pip install --upgrade pip
+                  & $venvPy -m pip install -r requirements.txt
+                } else {
+                  Log 'Aviso: venv no disponible aún; se intentará instalar Python en la fase de Alembic'
+                }
               } catch { Log "Backend deps error: $($_.Exception.Message)" }
 
               # Backup de base de datos (SQLite local y/o PostgreSQL si DATABASE_URL está presente)
@@ -244,7 +252,6 @@ jobs:
 
           Write-Error "API publica no disponible tras reintentos"
           exit 1
-
 
 
 
