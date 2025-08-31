@@ -40,7 +40,8 @@ from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_jwt_extended import (
-    JWTManager, create_access_token, jwt_required, get_jwt_identity
+    JWTManager, create_access_token, jwt_required, get_jwt_identity,
+    set_access_cookies, unset_jwt_cookies
 )
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
@@ -49,6 +50,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from typing import Tuple
 from werkzeug.middleware.proxy_fix import ProxyFix
+import logging
+import traceback
 from pydantic import ValidationError as PydValidationError
 
 from schemas.api import LoginRequest, ClientCreateRequest, InvoiceCreateRequest
@@ -98,6 +101,7 @@ except Exception:
 import io
 from pathlib import Path
 from uuid import uuid4
+import json
 
 # -----------------------------------------------------------------------------
 # Flask configuration
@@ -117,6 +121,29 @@ app.config.setdefault('COMPRESS_MIMETYPES', ['application/json', 'text/html'])
 app.config.setdefault('COMPRESS_LEVEL', 6)
 app.config.setdefault('COMPRESS_MIN_SIZE', 500)
 Compress(app)
+
+# Logging estructurado opcional (JSON) controlado por ENV JSON_LOGS=true
+class _JsonFormatter(logging.Formatter):
+    def format(self, record):
+        payload = {
+            'level': record.levelname,
+            'name': record.name,
+            'message': record.getMessage(),
+            'time': datetime.utcnow().isoformat() + 'Z',
+        }
+        if record.exc_info:
+            payload['exc_info'] = ''.join(traceback.format_exception(*record.exc_info))
+        return json.dumps(payload, ensure_ascii=False)
+
+if os.getenv('JSON_LOGS', 'false').lower() in ('1', 'true', 'yes'):
+    try:
+        handler = logging.StreamHandler()
+        handler.setFormatter(_JsonFormatter())
+        root = logging.getLogger()
+        root.handlers = [handler]
+        root.setLevel(logging.INFO)
+    except Exception:
+        pass
 
 # Filtro personalizado para saltos de línea en PDFs
 @app.template_filter('nl2br')
@@ -224,11 +251,16 @@ def _add_cors_headers(response: Response) -> Response:
 
 # JWT
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'change-this-secret')
-# Aceptar token JWT tanto por cabecera Authorization como por query string (?token=...)
-app.config['JWT_TOKEN_LOCATION'] = ['headers', 'query_string']
+# Aceptar token JWT por cabecera, query (?token=...) y cookies
+app.config['JWT_TOKEN_LOCATION'] = ['headers', 'query_string', 'cookies']
 app.config['JWT_QUERY_STRING_NAME'] = 'token'
 # Flag de debug (usado también para relajar X-Frame-Options solo en local)
 DEBUG_MODE = os.getenv('FLASK_DEBUG', 'true').lower() in ('1','true','yes')
+# Cookies JWT: seguras en prod, flexibles en dev
+app.config['JWT_COOKIE_SECURE'] = not DEBUG_MODE
+app.config['JWT_COOKIE_SAMESITE'] = os.getenv('JWT_COOKIE_SAMESITE', 'Lax' if DEBUG_MODE else 'None')
+app.config['JWT_COOKIE_DOMAIN'] = os.getenv('JWT_COOKIE_DOMAIN')  # ej.: api.nioxtec.es o .nioxtec.es
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 # Rechazar arranque en prod sin secreto adecuado
 if not DEBUG_MODE:
     if not os.getenv('JWT_SECRET_KEY') or app.config['JWT_SECRET_KEY'] == 'change-this-secret':
@@ -318,6 +350,10 @@ def handle_401(err):
 @app.errorhandler(404)
 def handle_404(err):
     return jsonify({"error": "not found", "code": 404}), 404
+
+@app.errorhandler(500)
+def handle_500(err):
+    return jsonify({"error": 'internal error', "code": 500}), 500
 
 
 # -----------------------------------------------------------------------------
@@ -970,6 +1006,7 @@ def list_client_documents(client_id):
 
 @app.route('/api/clients/<int:client_id>/documents', methods=['POST'])
 @jwt_required()
+@limiter.limit("20 per minute")
 def upload_client_document(client_id):
     Client.query.get_or_404(client_id)
     if 'file' not in request.files:
@@ -1010,7 +1047,15 @@ def get_client_document(client_id, doc_id):
     abs_path = os.path.join(UPLOADS_ROOT, doc.stored_path)
     if not os.path.isfile(abs_path):
         abort(404)
-    return send_file(abs_path, mimetype=doc.content_type, as_attachment=False, download_name=doc.filename)
+    dl_flag = (request.args.get('dl', '') or '').lower() in ('1','true','yes')
+    resp = send_file(
+        abs_path,
+        mimetype=doc.content_type,
+        as_attachment=dl_flag,
+        download_name=doc.filename,
+    )
+    resp.headers['Cache-Control'] = 'private, no-store'
+    return resp
 
 
 @app.route('/api/clients/<int:client_id>/documents/<int:doc_id>', methods=['DELETE'])
@@ -1459,6 +1504,7 @@ def _csv_response(filename: str, content: str) -> Response:
 
 @app.route('/api/clients/export')
 @jwt_required()
+@limiter.limit("10 per minute")
 def export_clients():
     clients = Client.query.order_by(Client.id).all()
     lines = ['id,name,cif,address,email,phone,iban,created_at']
@@ -1471,6 +1517,7 @@ def export_clients():
 
 @app.route('/api/invoices/export')
 @jwt_required()
+@limiter.limit("10 per minute")
 def export_invoices():
     invoices = Invoice.query.order_by(Invoice.id).all()
     lines = ['id,number,date,type,client_id,total,tax_total']
@@ -1483,6 +1530,7 @@ def export_invoices():
 
 @app.route('/api/clients/export_xlsx')
 @jwt_required()
+@limiter.limit("10 per minute")
 def export_clients_xlsx():
     # Lazy import to avoid hard dependency if not used
     from openpyxl import Workbook
@@ -1500,6 +1548,7 @@ def export_clients_xlsx():
 
 @app.route('/api/invoices/export_xlsx')
 @jwt_required()
+@limiter.limit("10 per minute")
 def export_invoices_xlsx():
     from openpyxl import Workbook
     wb = Workbook()
@@ -1516,6 +1565,7 @@ def export_invoices_xlsx():
 
 @app.route('/api/expenses', methods=['POST'])
 @jwt_required()
+@limiter.limit("60 per minute")
 def create_expense():
     """Create a new expense record."""
     data = request.get_json(force=True)
@@ -1717,6 +1767,7 @@ def delete_expense(expense_id):
 
 @app.route('/api/expenses/export_xlsx')
 @jwt_required()
+@limiter.limit("10 per minute")
 def export_expenses_xlsx():
     """Export expenses to XLSX file."""
     from openpyxl import Workbook
@@ -1745,6 +1796,7 @@ def export_expenses_xlsx():
 
 @app.route('/api/invoices/<int:invoice_id>/pdf', methods=['GET'])
 @jwt_required()
+@limiter.limit("60 per minute")
 def invoice_pdf(invoice_id):
     """Generate a PDF for a given invoice."""
     invoice = Invoice.query.get_or_404(invoice_id)
@@ -1871,7 +1923,12 @@ def login():
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify({'error': 'Credenciales inválidas', 'code': 401}), 401
     token = create_access_token(identity=username)
-    return jsonify({'access_token': token})
+    resp = jsonify({'access_token': token})
+    try:
+        set_access_cookies(resp, token)
+    except Exception:
+        pass
+    return resp
 
 
 # -------------------------------------
@@ -1907,6 +1964,13 @@ def apidocs():
 # -------------------------------------
 # Contract Generation
 # -------------------------------------
+
+@app.post('/api/auth/logout')
+def logout():
+    """Borra cookies JWT en el navegador (logout)."""
+    resp = jsonify({'status': 'ok'})
+    unset_jwt_cookies(resp)
+    return resp
 
 @app.post('/api/contracts/generate-pdf')
 @jwt_required()

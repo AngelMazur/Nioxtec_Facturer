@@ -9,8 +9,10 @@ Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inve
   - Sin cambios de esquema (solo contrato y manejo de errores).
 - Estado: Completado
 - PR: release/v0.2.0 → main
-- Tag: v0.2.0
-- Notas: Añadido script `DEVELOPER/scripts/check_phase2_local.sh` para verificación local.
+- Tag: v0.2.1
+- Notas:
+  - Añadido script `DEVELOPER/scripts/check_phase2_local.sh` para verificación local.
+  - Mejora post‑doc: cookies JWT en login para evitar `?token=` en enlaces de descargas; cabecera `Cache-Control: private, no-store` en `/api/clients/:id/documents/:doc_id`; opción `?dl=1` para descarga forzada.
 
 ## 2025-08-31 — Fase 1 (Deploy en curso)
 - Alcance:
@@ -20,6 +22,14 @@ Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inve
 - PR: #1 (release/v0.1.0 → main)
 - Tag: v0.1.1
 - Notas: Se disparó el workflow de producción por tag; actualizar este bloque cuando finalice con el resultado del health-check.
+
+## 2025-08-31 — Fase 3 (Iniciada)
+- Alcance realizado:
+  - Activado logging JSON opcional por `JSON_LOGS=true` y handler 500 uniforme.
+  - Rate limits por endpoint: login, uploads, PDFs y exportaciones.
+- Próximos pasos:
+  - Conectar Sentry (si se define `SENTRY_DSN`).
+  - Homogeneizar paginación/sort en listados restantes y respuestas 401 uniformes.
 
 ## 2025-08-31 — Fase 0 (Baseline)
 - Alcance:

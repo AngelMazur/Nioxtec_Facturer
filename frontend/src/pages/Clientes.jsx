@@ -151,6 +151,7 @@ export default function Clientes() {
       const res = await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents`, {
         method: 'POST',
         headers: { Authorization: token ? `Bearer ${token}` : '' },
+        credentials: 'include',
         body: formData,
       })
       if (!res.ok) throw new Error((await res.json()).error || res.statusText)
@@ -512,10 +513,10 @@ export default function Clientes() {
                             <div className="space-y-2">
                               {pageItems.map(d => (
                                 <div key={d.id} className="flex items-center justify-between">
-                                  <a className="underline text-brand hover:scale-105 transition-all duration-200 inline-block" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer">{d.filename}</a>
+                                  <a className="underline text-brand hover:scale-105 transition-all duration-200 inline-block" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer">{d.filename}</a>
                                   <button className="text-red-500 underline hover:scale-105 transition-transform duration-200 inline-block" onClick={async()=>{
                                     if(!window.confirm('¿Eliminar documento?')) return;
-                                    try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' } }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                                    try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
                                   }}>Eliminar</button>
                                 </div>
                               ))}
@@ -584,12 +585,12 @@ export default function Clientes() {
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                               {pageItems.map(d => (
                                 <div key={d.id} className="group relative">
-                                  <a href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300">
-                                    <img src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}?token=${encodeURIComponent(token || '')}`} alt={d.filename} className="w-full h-32 object-cover rounded border border-gray-700" />
+                                  <a href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300">
+                                    <img src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} alt={d.filename} className="w-full h-32 object-cover rounded border border-gray-700" />
                                   </a>
                                   <button className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 hover:scale-105 transition-all duration-200" onClick={async()=>{
                                     if(!window.confirm('¿Eliminar imagen?')) return;
-                                    try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' } }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                                    try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
                                   }}>Eliminar</button>
                                 </div>
                               ))}

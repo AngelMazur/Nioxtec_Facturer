@@ -36,17 +36,21 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
 ### Fase 2 — Contrato y validación
 - Objetivo: contrato API visible y validación robusta.
 - Alcance:
-  - OpenAPI (/apidocs) para 3 endpoints clave.
-  - Validación de entrada con schemas (Pydantic/Marshmallow).
-- Criterios: errores 400 uniformes; docs navegables.
+  - OpenAPI con `/openapi.json` y página `/apidocs` (Redoc) para 3 endpoints clave (login, clientes, invoices).
+  - Validación de entrada con schemas Pydantic y errores 400 uniformes `{error, code}`.
+  - Autenticación via JWT con compatibilidad en cookies: login fija cookie para que descargas no expongan el token en la URL.
+  - Descargas de documentos sin `?token=` en enlaces; encabezado `Cache-Control: private, no-store` en `/api/clients/:id/documents/:doc_id`.
+  - `?dl=1` fuerza descarga como adjunto; inline por defecto para previsualizar.
+- Criterios de aceptación: `/apidocs` accesible; `/openapi.json` válido; payloads inválidos devuelven 400 con forma uniforme; documentos accesibles sin `?token=`.
+- Verificación local: `DEVELOPER/scripts/check_phase2_local.sh` + prueba manual de descarga inline/forzada.
 - Rollback: revertir PR (no impacta datos).
 
 ### Fase 3 — Robustez runtime
 - Objetivo: proteger recursos y homogeneizar listados.
 - Alcance:
-  - Rate limiting por endpoint con Redis en prod.
   - Logs estructurados JSON y Sentry.
-  - Paginación consistente (limit/offset/sort) en todas las listas.
+  - Rate limiting por endpoint con Redis en prod (login, uploads, PDF/contratos, exportaciones).
+  - Paginación y sort consistentes en listados (clientes, facturas, gastos) y respuestas uniformes.
 - Criterios: límites efectivos; formato uniforme de respuestas.
 - Rollback: desactivar límites o revertir cambios.
 

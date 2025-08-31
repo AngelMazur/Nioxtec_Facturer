@@ -35,3 +35,6 @@ logs/
 .env
 .env.*
 ~/
+
+# Conversations (Codex logs)
+DEVELOPER/CONVERSATIONS/

@@ -18,8 +18,11 @@
   - [ ] Crear cliente
   - [ ] Crear factura y generar PDF
   - [ ] Reporte mensual
-  - [ ] OpenAPI `/apidocs` carga y lista endpoints
-  - [ ] Validación: peticiones inválidas devuelven 400 con `{error, code}`
+- [ ] OpenAPI `/apidocs` carga y lista endpoints
+- [ ] Validación: peticiones inválidas devuelven 400 con `{error, code}`
+- [ ] `/openapi.json` responde 200 y contiene campo `openapi`
+- [ ] Preflight CORS sobre endpoints clave (ej. `/api/auth/login`) devuelve cabeceras esperadas (`access-control-allow-origin`, métodos y headers)
+- [ ] (Opcional) `DEVELOPER/scripts/check_phase2_local.sh` pasa contra la URL local de backend
 - [ ] Monitoreo/Sentry sin errores críticos
 - [ ] Documentar en `PHASES_HISTORY.md`
 

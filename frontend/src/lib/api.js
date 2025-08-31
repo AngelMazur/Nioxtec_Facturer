@@ -35,7 +35,7 @@ function getHeaders(token) {
  * @throws {Error} API error message
  */
 export async function apiGet(path, token) {
-  const res = await fetch(`${API_BASE}/api${path}`, { headers: getHeaders(token) })
+  const res = await fetch(`${API_BASE}/api${path}`, { headers: getHeaders(token), credentials: 'include' })
   if (!res.ok) throw new Error(await safeError(res))
   return res.json()
 }
@@ -53,6 +53,7 @@ export async function apiPost(path, body, token) {
   const res = await fetch(`${API_BASE}/api${path}`, {
     method: 'POST',
     headers: getHeaders(token),
+    credentials: 'include',
     body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(await safeError(res))
@@ -68,7 +69,7 @@ export async function apiPost(path, body, token) {
  * @throws {Error} API error message
  */
 export async function apiGetBlob(path, token) {
-  const res = await fetch(`${API_BASE}/api${path}`, { headers: getHeaders(token) })
+  const res = await fetch(`${API_BASE}/api${path}`, { headers: getHeaders(token), credentials: 'include' })
   if (!res.ok) throw new Error(await safeError(res))
   return res.blob()
 }
@@ -77,6 +78,7 @@ export async function apiDelete(path, token) {
   const res = await fetch(`${API_BASE}/api${path}`, {
     method: 'DELETE',
     headers: getHeaders(token),
+    credentials: 'include',
   })
   if (!res.ok) throw new Error(await safeError(res))
   return res.json()
@@ -86,6 +88,7 @@ export async function apiPut(path, body, token) {
   const res = await fetch(`${API_BASE}/api${path}`, {
     method: 'PUT',
     headers: getHeaders(token),
+    credentials: 'include',
     body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(await safeError(res))
@@ -96,6 +99,7 @@ export async function apiPatch(path, body, token) {
   const res = await fetch(`${API_BASE}/api${path}`, {
     method: 'PATCH',
     headers: getHeaders(token),
+    credentials: 'include',
     body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(await safeError(res))
@@ -113,5 +117,4 @@ export async function apiPatch(path, body, token) {
 async function safeError(res) {
   try { const j = await res.json(); return j.error || res.statusText } catch { return res.statusText }
 }
-
 
