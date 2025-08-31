@@ -20,6 +20,7 @@ jobs:
       - name: Create or update PR
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.PR_TOKEN }}
           script: |
             const head = context.ref.replace('refs/heads/', '');
             const base = 'main';
@@ -63,4 +64,3 @@ jobs:
             } catch (e) {
               core.info('Label "release" not added (may not exist).');
             }
-
