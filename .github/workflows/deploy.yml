@@ -237,12 +237,15 @@ jobs:
             # 2) Reiniciar servicios tras migración
             try { Log 'Reiniciando backend'; schtasks /End /TN "Nioxtec Backend" 2>$null | Out-Null; $backendStopped=$true } catch {}
             try { Log 'Reiniciando frontend'; schtasks /End /TN "Nioxtec Frontend" 2>$null | Out-Null; $frontendStopped=$true } catch {}
+            try { Log 'Reiniciando Cloudflare Tunnel'; schtasks /End /TN "Cloudflared Tunnel" 2>$null | Out-Null } catch {}
             try { if ($backendStopped) { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null; Log 'Backend arrancado' } } catch {}
             try { if ($frontendStopped) { schtasks /Run /TN "Nioxtec Frontend" 2>$null | Out-Null; Log 'Frontend arrancado' } } catch {}
+            try { schtasks /Run /TN "Cloudflared Tunnel" 2>$null | Out-Null; Log 'Cloudflare arrancado' } catch {}
             # 3) Asegurar que los servicios están arrancados
             Start-Sleep -Seconds 3
             try { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null; Log 'Backend asegurado' } catch {}
             try { schtasks /Run /TN "Nioxtec Frontend" 2>$null | Out-Null; Log 'Frontend asegurado' } catch {}
+            try { schtasks /Run /TN "Cloudflared Tunnel" 2>$null | Out-Null; Log 'Cloudflare asegurado' } catch {}
             # 4) Verificar rutas nuevas (robusto a 502 de túnel/CDN)
             try {
               # Esperar a que la salud pública sea 200 antes de pruebas de preflight
