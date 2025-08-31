@@ -9,6 +9,7 @@
   - [ ] WKHTMLTOPDF_PATH
   - [ ] APP_ENV=production
   - [ ] REDIS_URL (si aplica)
+  - [ ] COMPANY_* (si no hay fila en BD): `COMPANY_NAME, COMPANY_CIF, COMPANY_ADDRESS, COMPANY_CITY, COMPANY_PROVINCE, COMPANY_EMAIL, COMPANY_PHONE, COMPANY_IBAN, COMPANY_WEBSITE`
 - [ ] Infra del runner (Windows):
   - [x] Tareas programadas existen y están habilitadas: "Nioxtec Backend", "Nioxtec Frontend", "Cloudflared Tunnel". ✅
   - [x] Cloudflare Tunnel mapea `api.nioxtec.es` → `http://localhost:8000` (protocolo http y puerto 8000). ✅

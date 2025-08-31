@@ -8,15 +8,17 @@ Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inve
   - Rate limits por endpoint: login, uploads, PDFs y exportaciones.
   - Integración Sentry opcional (activar con `SENTRY_DSN`).
   - Handler JSON para 429 (rate limit excedido).
+  - Bugfix PDF: datos del emisor desde BD con fallback `.env`; dirección compuesta sin duplicar ciudad/provincia.
 - Próximos pasos:
-  - Homogeneizar paginación/sort en listados restantes y respuestas 401 uniformes.
+  - Homogeneizar paginación/sort en listados de Clientes/Facturas (Gastos ya lo tiene).
+  - Desactivar `?token=` en prod (mantener solo cabecera/cookies) mediante flag.
 - Notas de despliegue (2025-08-31):
   - Pipeline robustece deploy: venv por despliegue, escritura de `APP_VERSION` y `VENV_DIR` en `.env`, reinicio de tareas Backend/Frontend/Cloudflared.
   - Verificación pública con reintentos y tolerancia de 502 si la salud local (8000) está OK.
   - Cloudflare Tunnel mapeado a `http://localhost:8000` para `api.nioxtec.es`.
 - Estado: En progreso (parcial desplegado)
 - PR: `feat/fase-3-robustez` → `main`
-- Tag: `v0.2.2`
+- Tag: `v0.2.2` (pendiente `v0.2.3` para bugfix PDF si procede)
 
 ## 2025-08-31 — Fase 2 (Desplegada)
 - Alcance:

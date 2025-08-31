@@ -50,6 +50,21 @@ $env:Path="$env:APPDATA\npm;$env:Path"
 if (-not (Test-Path "$env:APPDATA\npm\serve.cmd")) { npm i -g serve }
 npx serve -s dist -l 8080
 
+### 5.1) Datos de empresa para PDFs
+Si no existe una fila en la tabla `company_config`, define en `C:\\Nioxtec\\Nioxtec_Facturer\\.env` estas variables (el script `scripts/start_backend.ps1` las carga automáticamente):
+
+```
+COMPANY_NAME=D. José Luis Condolo Cuenca
+COMPANY_CIF=12450905Q
+COMPANY_ADDRESS=Calle Hacienda de Pavones 150, 3A, Madrid
+COMPANY_CITY=Madrid
+COMPANY_PROVINCE=Madrid
+COMPANY_EMAIL=info@nioxtec.es
+COMPANY_PHONE=+34 613094653
+COMPANY_IBAN=ES89 2080 0609 1030 4011 5824
+COMPANY_WEBSITE=nioxtec.es
+```
+
 ## 6) Cloudflare Tunnel
 Crear C:\ProgramData\Cloudflare\cloudflared\config.yml:
 tunnel: 478db0c4-6db4-4094-9896-52622211f7c1

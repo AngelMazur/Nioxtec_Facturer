@@ -56,6 +56,16 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
 - Criterios: límites efectivos; formato uniforme de respuestas.
 - Rollback: desactivar límites o revertir cambios.
 
+### Fase 3.1 — Refactor modular (SOLID)
+- Objetivo: separar responsabilidades y preparar crecimiento.
+- Alcance:
+  - Extraer `app.py` en paquetes: `core/config.py`, `models.py`, `services/` (negocio), `routes/` (Blueprints), `utils/` (formatters, logging), `pdf/`.
+  - Sustituir migraciones ad-hoc en arranque por Alembic (scripts en `migrations/`), eliminando ALTERs en runtime.
+  - Configurar `ALLOW_QUERY_TOKEN=false` por defecto en prod y condicionar `JWT_TOKEN_LOCATION` para evitar `?token=` (mantener cookies/cabecera).
+  - Añadir tests mínimos (pytest) para numeración, validación y endpoints clave (login, clientes, facturas, gastos).
+- Criterios: código dividido por capas, tests básicos verdes, sin migraciones en runtime.
+- Rollback: mantener `app.py` legacy como fallback temporal mientras se migran rutas.
+
 ### Fase 4 — Rendimiento y coste
 - Objetivo: acelerar reportes y asegurar integridad.
 - Alcance:
@@ -93,3 +103,11 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
 7. Health-check local y público (`/health`) responden 200 (con reintentos si CDN tarda).
 8. Monitoreo 30–60 min y validación de rutas críticas.
 9. Si falla: `alembic downgrade -1` y reinicio.
+
+---
+
+## Limpieza de repositorio (no bloqueante)
+- Marcar como solo‑desarrollo o mover a `DEVELOPER/tools/`:
+  - `simple_test.py`, `debug_frontend.py`, `debug_contracts.py`, `test_renting_styles.py`.
+- Duplicados de scripts: consolidar `start_backend_dev.sh` vs `start_backend.sh` y `scripts/start_frontend.sh` vs `start_frontend.sh`.
+- Excluir `.history/` del repositorio (archivo generador de IDE) si aún existe.
