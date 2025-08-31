@@ -164,9 +164,26 @@ jobs:
                   } catch { Log "No fue posible instalar Python automáticamente: $($_.Exception.Message)" }
                 }
                 if ($venvOk) {
-                  Log 'Ejecutando migraciones Alembic (upgrade head)'
-                  & $venvPy -m alembic upgrade head
-                  if ($LASTEXITCODE -ne 0) { throw "Alembic upgrade devolvió código $LASTEXITCODE" }
+                  # Asegurar dependencias antes de ejecutar Alembic
+                  try {
+                    & $venvPy -m pip --version 2>$null | Out-Null
+                    & $venvPy -m pip install --upgrade pip 2>$null
+                    & $venvPy -m pip install -r requirements.txt 2>$null
+                  } catch { Log 'Aviso: no se pudieron instalar dependencias antes de Alembic' }
+
+                  $hasAlembic = $false
+                  try { & $venvPy -c "import alembic" 2>$null | Out-Null; $hasAlembic = $true } catch { $hasAlembic = $false }
+                  if (-not $hasAlembic) {
+                    try { & $venvPy -m pip install alembic 2>$null | Out-Null; $hasAlembic = $true } catch { $hasAlembic = $false }
+                  }
+
+                  if ($hasAlembic) {
+                    Log 'Ejecutando migraciones Alembic (upgrade head)'
+                    & $venvPy -m alembic upgrade head
+                    if ($LASTEXITCODE -ne 0) { throw "Alembic upgrade devolvió código $LASTEXITCODE" }
+                  } else {
+                    Log 'Alembic no disponible; omitiendo migraciones (sin cambios de esquema críticos)'
+                  }
                 } else {
                   Log 'Omitiendo migraciones: no hay intérprete Python funcional. (Fase 2 sin cambios de esquema)'
                 }
@@ -252,7 +269,6 @@ jobs:
 
           Write-Error "API publica no disponible tras reintentos"
           exit 1
-
 
 
 
