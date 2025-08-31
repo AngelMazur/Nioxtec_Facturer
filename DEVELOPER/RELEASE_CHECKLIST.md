@@ -9,22 +9,30 @@
   - [ ] WKHTMLTOPDF_PATH
   - [ ] APP_ENV=production
   - [ ] REDIS_URL (si aplica)
-- [ ] Backup de la base de datos completado
-- [ ] `alembic upgrade head` sin errores
-- [ ] Servicio reiniciado (NSSM/IIS/Waitress)
-- [ ] `/health` = 200 y versión esperada
+- [ ] Infra del runner (Windows):
+  - [x] Tareas programadas existen y están habilitadas: "Nioxtec Backend", "Nioxtec Frontend", "Cloudflared Tunnel". ✅
+  - [x] Cloudflare Tunnel mapea `api.nioxtec.es` → `http://localhost:8000` (protocolo http y puerto 8000). ✅
+  - [x] Archivo `.env` actualizado con `APP_VERSION` y `VENV_DIR` absoluto (escrito por el workflow durante el deploy). ✅
+  - [x] `scripts/start_backend.ps1` carga `.env` y usa `VENV_DIR`; backend enlaza `PORT=8000`. ✅
+  - [x] Salud local: `http://localhost:8000/health` responde 200 en el servidor. ✅
+- [x] Backup de la base de datos completado ✅
+- [x] `alembic upgrade head` sin errores ✅
+- [x] Servicio reiniciado (NSSM/IIS/Waitress) ✅
+- [x] `/health` = 200 y versión esperada ✅
 - [ ] Smoke test manual:
-  - [ ] Login
+  - [x] Login ✅
   - [ ] Crear cliente
   - [ ] Crear factura y generar PDF
   - [ ] Reporte mensual
-- [ ] OpenAPI `/apidocs` carga y lista endpoints
-- [ ] Validación: peticiones inválidas devuelven 400 con `{error, code}`
-- [ ] `/openapi.json` responde 200 y contiene campo `openapi`
-- [ ] Preflight CORS sobre endpoints clave (ej. `/api/auth/login`) devuelve cabeceras esperadas (`access-control-allow-origin`, métodos y headers)
+- [x] Validar cookies JWT: `HttpOnly` + `Secure` + `SameSite=None` y que descargas no usen `?token=` ✅
+- [ ] Rate limiting: provocar un 429 en `/api/auth/login` tras varios intentos rápidos
+- [x] OpenAPI `/apidocs` carga y lista endpoints ✅
+- [x] Validación: peticiones inválidas devuelven 400 con `{error, code}` ✅
+- [x] `/openapi.json` responde 200 y contiene campo `openapi` ✅
+- [x] Preflight CORS sobre endpoints clave (ej. `/api/auth/login`) devuelve cabeceras esperadas (`access-control-allow-origin`, métodos y headers) ✅
 - [ ] (Opcional) `DEVELOPER/scripts/check_phase2_local.sh` pasa contra la URL local de backend
 - [ ] Monitoreo/Sentry sin errores críticos
-- [ ] Documentar en `PHASES_HISTORY.md`
+- [x] Documentar en `PHASES_HISTORY.md` ✅
 
 Rollback
 - [ ] `alembic downgrade -1`

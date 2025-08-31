@@ -5,9 +5,11 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
 
 ## Convenciones
 - Ramas: `feat/*`, `fix/*`, `chore/*` → PR a `main`.
-- Versionado: tag `vX.Y.Z` en `main` dispara deploy a producción.
+- Despliegue: push a `main` o tag `vX.Y.Z` en `main` dispara deploy a producción.
 - Entornos: macOS (dev) y Windows Server (prod, runner Actions).
 - Health: `/health` debe devolver 200 tras cada despliegue.
+ - Infra de deploy (Windows): venv por despliegue (`.venv_<timestamp>`), backend enlaza `PORT=8000`, el workflow escribe `APP_VERSION` y `VENV_DIR` en `.env` y reinicia tareas programadas (Backend/Frontend/Cloudflared).
+ - Dominio público: Cloudflare Tunnel mapea `api.nioxtec.es` → `http://localhost:8000`.
 
 ## Fases
 
@@ -48,7 +50,7 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
 ### Fase 3 — Robustez runtime
 - Objetivo: proteger recursos y homogeneizar listados.
 - Alcance:
-  - Logs estructurados JSON y Sentry.
+  - Logs estructurados JSON y Sentry (opcional, pendiente de `SENTRY_DSN`).
   - Rate limiting por endpoint con Redis en prod (login, uploads, PDF/contratos, exportaciones).
   - Paginación y sort consistentes en listados (clientes, facturas, gastos) y respuestas uniformes.
 - Criterios: límites efectivos; formato uniforme de respuestas.
@@ -83,10 +85,11 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
 
 ## Checklist de despliegue (por versión)
 1. CI: lint + tests + build ok en PR.
-2. Tag `vX.Y.Z` creado en `main`.
-3. Backup DB realizado en runner Windows.
-4. `alembic upgrade head` ejecutado sin errores.
-5. Servicio reiniciado correctamente.
-6. Health-check `/health` responde 200.
-7. Monitoreo 30–60 min y validación de rutas críticas.
-8. Si falla: `alembic downgrade -1` y reinicio.
+2. Push a `main` o tag `vX.Y.Z` creado en `main`.
+3. Infra runner verificada: tareas programadas (Backend/Frontend/Cloudflared) habilitadas; Cloudflare mapea `api.nioxtec.es` → `http://localhost:8000`.
+4. Backup DB realizado en runner Windows.
+5. `alembic upgrade head` ejecutado sin errores.
+6. Servicios reiniciados correctamente (incluye Cloudflared Tunnel).
+7. Health-check local y público (`/health`) responden 200 (con reintentos si CDN tarda).
+8. Monitoreo 30–60 min y validación de rutas críticas.
+9. Si falla: `alembic downgrade -1` y reinicio.
