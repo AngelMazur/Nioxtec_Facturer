@@ -11,7 +11,9 @@ $env:APP_ORIGIN = "https://app.nioxtec.es"
 
 # Ejecutar Flask
 try {
-    & "C:\Nioxtec\Nioxtec_Facturer\.venv310\Scripts\python.exe" "C:\Nioxtec\Nioxtec_Facturer\app.py"
+    $py = "C:\Nioxtec\Nioxtec_Facturer\.venv\Scripts\python.exe"
+    if (-not (Test-Path $py)) { $py = "C:\Nioxtec\Nioxtec_Facturer\.venv310\Scripts\python.exe" }
+    & $py "C:\Nioxtec\Nioxtec_Facturer\app.py"
 } catch {
     Write-Host "Error iniciando backend: $($_.Exception.Message)"
     exit 1
