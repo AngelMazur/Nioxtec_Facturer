@@ -17,7 +17,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create or update PR
+      - name: Create or update PR (using PR_TOKEN)
+        if: ${{ secrets.PR_TOKEN != '' }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.PR_TOKEN }}
@@ -27,40 +28,32 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            // Check if an open PR already exists from this head to base
-            const { data: existing } = await github.rest.pulls.list({
-              owner,
-              repo,
-              state: 'open',
-              base,
-              head: `${owner}:${head}`,
-            });
-            if (existing.length > 0) {
-              core.info(`PR already exists: #${existing[0].number}`);
-              return;
-            }
+            const { data: existing } = await github.rest.pulls.list({ owner, repo, state: 'open', base, head: `${owner}:${head}` });
+            if (existing.length > 0) { core.info(`PR already exists: #${existing[0].number}`); return; }
 
             const title = `Release ${head.replace(/^release\//, '')}`;
             const body = `PR automático generado por workflow para la rama ${head}.`;
-            const { data: pr } = await github.rest.pulls.create({
-              owner,
-              repo,
-              title,
-              head,
-              base,
-              body,
-              draft: false,
-            });
+            const { data: pr } = await github.rest.pulls.create({ owner, repo, title, head, base, body, draft: false });
             core.info(`PR created: #${pr.number}`);
+            try { await github.rest.issues.addLabels({ owner, repo, issue_number: pr.number, labels: ['release'] }); } catch (e) { core.info('Label "release" not added (may not exist).'); }
 
-            // Try to add a 'release' label if it exists
-            try {
-              await github.rest.issues.addLabels({
-                owner,
-                repo,
-                issue_number: pr.number,
-                labels: ['release'],
-              });
-            } catch (e) {
-              core.info('Label "release" not added (may not exist).');
-            }
+      - name: Attempt PR with GITHUB_TOKEN (may be restricted)
+        if: ${{ secrets.PR_TOKEN == '' }}
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            core.info('PR_TOKEN not set; attempting with GITHUB_TOKEN (may be restricted by repo policy).');
+            const head = context.ref.replace('refs/heads/', '');
+            const base = 'main';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const { data: existing } = await github.rest.pulls.list({ owner, repo, state: 'open', base, head: `${owner}:${head}` });
+            if (existing.length > 0) { core.info(`PR already exists: #${existing[0].number}`); return; }
+
+            const title = `Release ${head.replace(/^release\//, '')}`;
+            const body = `PR automático (fallback) para la rama ${head}.`;
+            const { data: pr } = await github.rest.pulls.create({ owner, repo, title, head, base, body, draft: false });
+            core.info(`PR created: #${pr.number}`);
