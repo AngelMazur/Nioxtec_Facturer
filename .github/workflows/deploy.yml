@@ -62,8 +62,9 @@ jobs:
               try { Remove-Item -Recurse -Force '.\\.venv310' -ErrorAction SilentlyContinue } catch {}
               # Validar/recrear venv (crea un venv NUEVO por despliegue para evitar bloqueos por .pyd)
               try {
-                # Usar un venv neutro (.venv) para no depender de Python310
-                $venvDir = '.\\.venv'
+                # Crear un venv NUEVO por despliegue (evita bloqueos de .pyd en Windows)
+                $ts = Get-Date -Format yyyyMMddHHmmss
+                $venvDir = ".\\.venv_" + $ts
                 $venvPy  = Join-Path $venvDir 'Scripts\\python.exe'
                 $recreate = $true
                 if (Test-Path $venvPy) {
@@ -286,5 +287,4 @@ jobs:
 
           Write-Error "API publica no disponible tras reintentos"
           exit 1
-
 
