@@ -72,7 +72,20 @@ def get_openapi_spec(base_url: str = "") -> Dict[str, Any]:
                 }
             },
             "/api/invoices": {
-                "post": {
+                "get": {
+                    "summary": "Listar facturas",
+                    "security": [{"bearerAuth": []}],
+                    "parameters": [
+                        {"in": "query", "name": "month", "schema": {"type": "integer"}},
+                        {"in": "query", "name": "year", "schema": {"type": "integer"}},
+                        {"in": "query", "name": "limit", "schema": {"type": "integer"}},
+                        {"in": "query", "name": "offset", "schema": {"type": "integer"}},
+                        {"in": "query", "name": "sort", "schema": {"type": "string", "enum": ["id", "date", "total", "number"]}},
+                        {"in": "query", "name": "dir", "schema": {"type": "string", "enum": ["asc", "desc"]}},
+                    ],
+                    "responses": {"200": {"description": "OK"}, "401": {"$ref": "#/components/responses/Unauthorized"}}
+                },
+                "post": 
                     "summary": "Crear factura/proforma",
                     "security": [{"bearerAuth": []}],
                     "requestBody": {

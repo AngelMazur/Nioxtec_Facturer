@@ -52,6 +52,9 @@ from typing import Tuple
 from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
 import traceback
+import json
+import logging
+import traceback
 from pydantic import ValidationError as PydValidationError
 
 from schemas.api import LoginRequest, ClientCreateRequest, InvoiceCreateRequest
@@ -144,6 +147,22 @@ if os.getenv('JSON_LOGS', 'false').lower() in ('1', 'true', 'yes'):
         root.setLevel(logging.INFO)
     except Exception:
         pass
+
+# Sentry opcional (Fase 3)
+try:
+    import sentry_sdk  # type: ignore
+    from sentry_sdk.integrations.flask import FlaskIntegration  # type: ignore
+    _dsn = os.getenv('SENTRY_DSN')
+    if _dsn:
+        sentry_sdk.init(
+            dsn=_dsn,
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0.0')),
+            profiles_sample_rate=float(os.getenv('SENTRY_PROFILES_SAMPLE_RATE', '0.0')),
+            environment=os.getenv('APP_ENV', 'production'),
+        )
+except Exception:
+    pass
 
 # Filtro personalizado para saltos de línea en PDFs
 @app.template_filter('nl2br')
@@ -313,12 +332,22 @@ if enable_talisman:
             return resp
 
 # Rate limiting por IP (puede migrarse a Redis en prod con STORAGE_URI)
-limiter = Limiter(
-    key_func=get_remote_address,
-    app=app,
-    default_limits=["1000 per day", "300 per hour"],
-    storage_uri=os.getenv('LIMITER_STORAGE_URI', "memory://"),
-)
+# Limiter con fallback a memoria si falla la URI (Redis en prod)
+_limiter_uri = os.getenv('LIMITER_STORAGE_URI', "memory://")
+try:
+    limiter = Limiter(
+        key_func=get_remote_address,
+        app=app,
+        default_limits=["1000 per day", "300 per hour"],
+        storage_uri=_limiter_uri,
+    )
+except Exception:
+    limiter = Limiter(
+        key_func=get_remote_address,
+        app=app,
+        default_limits=["1000 per day", "300 per hour"],
+        storage_uri="memory://",
+    )
 
 # Directory where generated PDFs will be saved.  This makes it easy for the
 # React front‑end to offer downloadable links.  The folder is created on
@@ -354,6 +383,36 @@ def handle_404(err):
 @app.errorhandler(500)
 def handle_500(err):
     return jsonify({"error": 'internal error', "code": 500}), 500
+
+# 429 (rate limit)
+try:
+    from flask_limiter.errors import RateLimitExceeded  # type: ignore
+    @app.errorhandler(RateLimitExceeded)
+    def handle_429(err):
+        return jsonify({"error": 'too many requests', "code": 429}), 429
+except Exception:
+    pass
+
+# JWT uniform 401/422
+@jwt.unauthorized_loader
+def _jwt_unauthorized(msg):
+    return jsonify({"error": msg or 'unauthorized', "code": 401}), 401
+
+@jwt.invalid_token_loader
+def _jwt_invalid(msg):
+    return jsonify({"error": msg or 'invalid token', "code": 401}), 401
+
+@jwt.expired_token_loader
+def _jwt_expired(jwt_header, jwt_payload):
+    return jsonify({"error": 'token expired', "code": 401}), 401
+
+@jwt.needs_fresh_token_loader
+def _jwt_fresh(msg):
+    return jsonify({"error": msg or 'fresh token required', "code": 401}), 401
+
+@jwt.revoked_token_loader
+def _jwt_revoked(jwt_header, jwt_payload):
+    return jsonify({"error": 'token revoked', "code": 401}), 401
 
 
 # -----------------------------------------------------------------------------
@@ -744,10 +803,21 @@ def create_client():
 @app.route('/api/clients', methods=['GET'])
 @jwt_required()
 def list_clients():
-    """Return clients with optional pagination: limit, offset."""
+    """Return clients with pagination and optional sorting: limit, offset, sort, dir."""
     limit = request.args.get('limit', type=int)
     offset = request.args.get('offset', type=int, default=0)
+    sort = request.args.get('sort', default='created_at')
+    direction = request.args.get('dir', default='desc')
+    allowed_sort = {'id', 'name', 'cif', 'created_at'}
+    if sort not in allowed_sort:
+        sort = 'created_at'
     query = Client.query
+    # Sorting
+    sort_col = getattr(Client, sort, Client.id)
+    if direction == 'asc':
+        query = query.order_by(sort_col.asc())
+    else:
+        query = query.order_by(sort_col.desc())
     total = query.count()
     if limit:
         query = query.offset(offset or 0).limit(limit)
@@ -852,11 +922,13 @@ def create_invoice():
 @app.route('/api/invoices', methods=['GET'])
 @jwt_required()
 def list_invoices():
-    """List invoices, optionally filtered by month and year, with pagination."""
+    """List invoices, optionally filtered by month and year, with pagination and sorting."""
     month = request.args.get('month')
     year = request.args.get('year')
     limit = request.args.get('limit', type=int)
     offset = request.args.get('offset', type=int, default=0)
+    sort = request.args.get('sort', default='id')
+    direction = request.args.get('dir', default='desc')
     query = Invoice.query
     if month and year:
         try:
@@ -866,8 +938,15 @@ def list_invoices():
             query = query.filter(db.extract('year', Invoice.date) == year)
         except ValueError:
             return jsonify({'error': 'Month and year must be integers'}), 400
-    # Orden estable por defecto: id descendente (más recientes primero)
-    query = query.order_by(Invoice.id.desc())
+    # Ordenar
+    allowed_sort = {'id', 'date', 'total', 'number'}
+    if sort not in allowed_sort:
+        sort = 'id'
+    sort_col = getattr(Invoice, sort, Invoice.id)
+    if direction == 'asc':
+        query = query.order_by(sort_col.asc())
+    else:
+        query = query.order_by(sort_col.desc())
     total = query.count()
     if limit:
         query = query.offset(offset or 0).limit(limit)
