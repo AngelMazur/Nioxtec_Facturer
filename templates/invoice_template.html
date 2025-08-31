@@ -189,11 +189,7 @@
             <div style="display:grid; grid-template-columns: 1fr; justify-items: end;" class="info-inner right">
                 <p><strong>{{ company.name }}</strong></p>
                 <p>CIF: {{ company.cif }}</p>
-                <p>
-                    {{ company.address }}
-                    {% if company.city %}, {{ company.city }}{% endif %}
-                    {% if company.province %}, {{ company.province }}{% endif %}
-                </p>
+                <p>{{ company_address_line }}</p>
                 <p>{{ company.email }}</p>
                 <p>{{ company.phone }}</p>
                 {% if company.iban %}<p>IBAN: {{ company.iban }}</p>{% endif %}

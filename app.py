@@ -46,6 +46,7 @@ from flask_jwt_extended import (
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
+from types import SimpleNamespace
 try:
     import sentry_sdk  # type: ignore
     from sentry_sdk.integrations.flask import FlaskIntegration  # type: ignore
@@ -118,6 +119,59 @@ try:
     reportlab_available = True
 except Exception:
     reportlab_available = False
+
+
+# -------------------------------------------------------------
+# Company config helpers
+
+def _company_from_env() -> SimpleNamespace:
+    """Build a company-like object from environment variables.
+
+    Allows showing real company data in PDFs without requiring a DB row.
+
+    Supported env vars:
+      COMPANY_NAME, COMPANY_CIF, COMPANY_ADDRESS, COMPANY_CITY,
+      COMPANY_PROVINCE, COMPANY_EMAIL, COMPANY_PHONE, COMPANY_IBAN,
+      COMPANY_WEBSITE
+    """
+    return SimpleNamespace(
+        name=os.getenv('COMPANY_NAME', 'Mi Empresa'),
+        cif=os.getenv('COMPANY_CIF', 'A00000000'),
+        address=os.getenv('COMPANY_ADDRESS', 'Dirección de ejemplo'),
+        city=os.getenv('COMPANY_CITY', ''),
+        province=os.getenv('COMPANY_PROVINCE', ''),
+        email=os.getenv('COMPANY_EMAIL', 'info@example.com'),
+        phone=os.getenv('COMPANY_PHONE', '000 000 000'),
+        iban=os.getenv('COMPANY_IBAN', ''),
+        website=os.getenv('COMPANY_WEBSITE', ''),
+    )
+
+
+def _compose_company_address(company) -> str:
+    """Compose a single address line without repeating city/province.
+
+    - Starts from company.address
+    - Appends city and province only if they are not already present
+      and not equal to each other (case-insensitive)
+    """
+    base = (getattr(company, 'address', '') or '').strip(' ,\n\t')
+    addr_lower = base.lower()
+    parts = [base] if base else []
+
+    def add_if_absent(value: str):
+        v = (value or '').strip()
+        if not v:
+            return
+        if v.lower() not in addr_lower and all(p.lower() != v.lower() for p in parts):
+            parts.append(v)
+
+    add_if_absent(getattr(company, 'city', ''))
+    # Avoid duplicating province if same as city
+    province = getattr(company, 'province', '') or ''
+    if province.strip().lower() != (getattr(company, 'city', '') or '').strip().lower():
+        add_if_absent(province)
+
+    return ', '.join([p for p in parts if p])
 import io
 from pathlib import Path
 from uuid import uuid4
@@ -1169,17 +1223,18 @@ def get_company_config():
     """Get company configuration for contract generation."""
     company = CompanyConfig.query.first()
     if not company:
-        # Return default company config
+        # Fallback a variables de entorno si no existe fila en DB
+        env_company = _company_from_env()
         return jsonify({
-            'name': 'Mi Empresa',
-            'cif': 'A00000000',
-            'address': 'Dirección de ejemplo',
-            'city': 'Ciudad',
-            'province': 'Provincia',
-            'email': 'info@example.com',
-            'phone': '000 000 000',
-            'iban': '',
-            'website': ''
+            'name': env_company.name,
+            'cif': env_company.cif,
+            'address': env_company.address,
+            'city': env_company.city or '',
+            'province': env_company.province or '',
+            'email': env_company.email,
+            'phone': env_company.phone,
+            'iban': env_company.iban or '',
+            'website': env_company.website or ''
         })
     
     return jsonify({
@@ -1825,18 +1880,7 @@ def invoice_pdf(invoice_id):
     """Generate a PDF for a given invoice."""
     invoice = Invoice.query.get_or_404(invoice_id)
     client = invoice.client
-    company = CompanyConfig.query.first()
-    # If DB has no company row, we still pass a lightweight object with defaults, but DO NOT persist
-    if not company:
-        class _CompanyDefault:
-            name='Mi Empresa'
-            cif='A00000000'
-            address='Dirección de ejemplo'
-            email='info@example.com'
-            phone='000 000 000'
-            iban=''
-            website=''
-        company = _CompanyDefault()
+    company = CompanyConfig.query.first() or _company_from_env()
     items = invoice.items
     # Build absolute file URI for logo to avoid network issues in wkhtmltopdf
     # Use a proper file URI (file:///C:/...) and forward slashes
@@ -1845,8 +1889,15 @@ def invoice_pdf(invoice_id):
         logo_uri = Path(logo_path).resolve().as_uri()
     except Exception:
         logo_uri = 'file:///' + logo_path.replace('\\', '/')
-    rendered = render_template('invoice_template.html', invoice=invoice, client=client,
-                               company=company, items=items, logo_uri=logo_uri)
+    rendered = render_template(
+        'invoice_template.html',
+        invoice=invoice,
+        client=client,
+        company=company,
+        items=items,
+        logo_uri=logo_uri,
+        company_address_line=_compose_company_address(company),
+    )
     filename = f"{invoice.type}_{invoice.number}.pdf"
     file_path = os.path.join(DOWNLOAD_FOLDER, filename)
     # Usar solo wkhtmltopdf para consistencia dev/prod

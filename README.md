@@ -111,6 +111,17 @@ PORT=5001
 # Producción
 FORCE_HTTPS=true
 DATABASE_URL=postgresql+psycopg://usuario:pass@host:5432/basedatos
+
+# Datos de empresa (usados si no hay registro en DB)
+COMPANY_NAME=Mi Empresa S.L.
+COMPANY_CIF=B12345678
+COMPANY_ADDRESS=Calle Ejemplo 123, Madrid
+COMPANY_CITY=Madrid
+COMPANY_PROVINCE=Madrid
+COMPANY_EMAIL=facturas@miempresa.com
+COMPANY_PHONE=600 000 000
+COMPANY_IBAN=ES21 1234 5678 9012 3456 7890
+COMPANY_WEBSITE=https://miempresa.com
 ```
 
 ### Puertos
