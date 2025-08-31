@@ -57,21 +57,25 @@ jobs:
               git reset --hard origin/main
               # Validar/recrear venv y usar python -m pip (evita shims pip.exe dependientes del usuario)
               try {
-                $venvPy = '.\\.venv310\\Scripts\\python.exe'
-                $needRecreate = $true
+                $venvDir = '.\\.venv310'
+                $venvPy  = Join-Path $venvDir 'Scripts\\python.exe'
+                $recreate = $false
                 if (Test-Path $venvPy) {
-                  try { & $venvPy -c "import sys; print(sys.version)" 2>$null | Out-Null; $needRecreate = $false } catch {}
+                  try { & $venvPy -c "import sys; print(sys.version)" 2>$null | Out-Null } catch { $recreate = $true }
+                } else { $recreate = $true }
+
+                if ($recreate) {
+                  try { Remove-Item -Recurse -Force $venvDir -ErrorAction SilentlyContinue } catch {}
+                  $created = $false
+                  try { py -3 -m venv $venvDir 2>$null; $created = Test-Path $venvPy } catch {}
+                  if (-not $created) { try { py -m venv $venvDir 2>$null; $created = Test-Path $venvPy } catch {} }
+                  if (-not $created) { try { python -m venv $venvDir 2>$null; $created = Test-Path $venvPy } catch {} }
                 }
-                if ($needRecreate) {
-                  try { py -3.10 -m venv .venv310 2>$null } catch {}
-                  if (-not (Test-Path $venvPy)) { try { py -3 -m venv .venv310 2>$null } catch {} }
-                }
+
                 if (Test-Path $venvPy) {
-                  & $venvPy -m pip install --upgrade pip 2>$null
-                  & $venvPy -m pip install -r requirements.txt 2>$null
-                } else {
-                  Log 'AVISO: No se pudo preparar venv; se omite instalación de deps backend'
-                }
+                  & $venvPy -m pip install --upgrade pip
+                  & $venvPy -m pip install -r requirements.txt
+                } else { Log 'AVISO: venv no disponible; se omite instalación de deps backend' }
               } catch { Log "Backend deps error: $($_.Exception.Message)" }
 
               # Backup de base de datos (SQLite local y/o PostgreSQL si DATABASE_URL está presente)
@@ -101,6 +105,7 @@ jobs:
                 if (Test-Path $venvPy) {
                   Log 'Ejecutando migraciones Alembic (upgrade head)'
                   & $venvPy -m alembic upgrade head
+                  if ($LASTEXITCODE -ne 0) { throw "Alembic upgrade devolvió código $LASTEXITCODE" }
                 } else {
                   Log 'No hay venv para ejecutar Alembic; se omite migración'
                 }
@@ -184,7 +189,6 @@ jobs:
             Write-Error ("API respondio con codigo: " + $response.StatusCode)
             exit 1
           }
-
 
 
 

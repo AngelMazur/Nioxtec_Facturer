@@ -13,15 +13,15 @@ fi
 echo "🔧 Activando entorno virtual..."
 source venv/bin/activate
 
-# Instalar dependencias si no existen
-if [ ! -f "venv/pyvenv.cfg" ]; then
-    echo "📦 Instalando dependencias Python..."
-    pip install -r requirements.txt
-fi
+# Instalar/actualizar dependencias siempre (idempotente)
+echo "📦 Instalando dependencias Python (requirements.txt)..."
+pip install -r requirements.txt >/dev/null
 
 # Configurar variables de entorno para desarrollo
 export PORT=5001
 export FLASK_DEBUG=1
+export FLASK_ENV=development
+export CORS_ORIGINS="http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080"
 
 # Iniciar servidor Flask
 echo "🚀 Iniciando servidor Flask en puerto $PORT..."

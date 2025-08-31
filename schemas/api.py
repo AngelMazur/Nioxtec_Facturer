@@ -24,7 +24,8 @@ class InvoiceItem(BaseModel):
 
 
 class InvoiceCreateRequest(BaseModel):
-    date: constr(regex=r"^\d{4}-\d{2}-\d{2}$")
+    # En Pydantic v2 se usa 'pattern' en lugar de 'regex'
+    date: constr(pattern=r"^\d{4}-\d{2}-\d{2}$")
     type: Literal['factura', 'proforma'] = 'factura'
     client_id: conint(gt=0)
     notes: Optional[str] = ''
@@ -39,4 +40,3 @@ __all__ = [
     'InvoiceCreateRequest',
     'ValidationError',
 ]
-
