@@ -6,8 +6,9 @@ Reads COMPANY_* variables (NAME, CIF, ADDRESS, CITY, PROVINCE, EMAIL, PHONE, IBA
 and ensures a single row exists in the database with those values.
 
 Usage (Windows PowerShell):
-  # Define variables in .env or ENV and then run:
-  C:\Nioxtec\Nioxtec_Facturer\.venv310\Scripts\python.exe C:\Nioxtec\Nioxtec_Facturer\DEVELOPER\scripts\seed_company.py
+    # Define variables in .env or ENV and then run (example using forward slashes to avoid
+    # accidental escape sequences in docstrings):
+    C:/Nioxtec/Nioxtec_Facturer/.venv310/Scripts/python.exe C:/Nioxtec/Nioxtec_Facturer/DEVELOPER/scripts/seed_company.py
 
 Safe to run multiple times (idempotent).
 """
@@ -15,6 +16,13 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Ensure repo root is in sys.path so top-level modules (app.py) can be imported
+import sys
+import os
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
 
 from app import app, db, CompanyConfig  # type: ignore
 
