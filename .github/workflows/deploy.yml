@@ -55,6 +55,9 @@ jobs:
               git remote set-url origin $repoUrl
               git fetch origin main --prune
               git reset --hard origin/main
+              # Limpiar venvs versionados o previos
+              try { Remove-Item -Recurse -Force '.\\.venv' -ErrorAction SilentlyContinue } catch {}
+              try { Remove-Item -Recurse -Force '.\\.venv310' -ErrorAction SilentlyContinue } catch {}
               # Validar/recrear venv y usar python -m pip (evita shims pip.exe dependientes del usuario)
               try {
                 # Usar un venv neutro (.venv) para no depender de Python310
@@ -233,7 +236,6 @@ jobs:
             Write-Error ("API respondio con codigo: " + $response.StatusCode)
             exit 1
           }
-
 
 
 
