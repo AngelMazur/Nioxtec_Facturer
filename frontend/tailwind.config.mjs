@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
-// eslint-disable-next-line no-undef
-module.exports = {
+import animations from 'tailwind-animations'
+
+export default {
   darkMode: 'class',
   content: [
     "./index.html",
@@ -57,6 +58,11 @@ module.exports = {
           'from': { transform: 'rotate(0deg)' },
           'to': { transform: 'rotate(360deg)' },
         },
+        // Nota: blurred-fade-in ya viene del plugin; mantenemos este alias por compatibilidad
+        'blurred-fade-in': {
+          '0%': { opacity: '0', filter: 'blur(8px)', transform: 'scale(0.98)' },
+          '100%': { opacity: '1', filter: 'blur(0)', transform: 'scale(1)' },
+        },
       },
       animation: {
         shimmer: 'shimmer 2s infinite',
@@ -67,12 +73,11 @@ module.exports = {
         'shimmer-bottom-up-delayed': 'shimmer-bottom-up-delayed 2s infinite',
         'soft-zoom-in': 'soft-zoom-in 300ms ease-out both',
         'spin-clockwise': 'spin-clockwise 0.8s linear infinite',
+        'blurred-fade-in': 'blurred-fade-in 350ms ease-out both',
       },
     },
   },
-  plugins: [
-    require('tailwind-animations')
-  ],
+  plugins: [animations],
   safelist: [
     'hover:scale-105',
     'hover:scale-110',

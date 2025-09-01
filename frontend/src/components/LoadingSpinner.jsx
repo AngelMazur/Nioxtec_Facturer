@@ -5,9 +5,18 @@ const LoadingSpinner = () => {
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="text-center space-y-4">
         {/* Spinner con gradiente del logo NIOXTEC (versión estable previa) */}
-        <div className="relative">
+        <div className="relative w-16 h-16">
+          {/* Aro base (gris), tamaño fijo cuadrado, 100% circular */}
+          <div className="absolute inset-0 rounded-full border-4 border-gray-800 animate-[spin-clockwise_0.8s_linear_infinite] niox-animate-spin" />
+          {/* Aro superior con segmentos en colores de marca */}
           <div
-            className="w-16 h-16 rounded-full border-4 border-t-transparent border-r-secondary border-b-brand border-l-secondary animate-spin"
+            className="absolute inset-0 rounded-full border-4 border-transparent animate-[spin-clockwise_0.6s_linear_infinite] niox-animate-spin"
+            style={{
+              borderTopColor: '#08b4d8',
+              borderRightColor: '#0b3c5d',
+              borderBottomColor: '#08b4d8',
+              borderLeftColor: '#0b3c5d',
+            }}
           />
         </div>
         
