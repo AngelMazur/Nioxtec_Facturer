@@ -73,6 +73,7 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
 - Criterios: límites efectivos; formato uniforme de respuestas.
 - Verificación local: `DEVELOPER/scripts/check_phase3_local.sh` debe pasar con un usuario válido y comprobar CORS/login/listados/`?token` (según entorno).
 - Migraciones: eliminar migraciones en arranque. Todas las modificaciones de esquema deben estar en Alembic (`alembic upgrade head`).
+ - Frontend: tailwind config en ESM (`tailwind.config.mjs`) con `tailwind-animations`; reiniciar el dev server tras cambios de config.
 - Rollback: desactivar límites o revertir cambios.
 
 ### Fase 3.1 — Refactor modular (SOLID)
@@ -107,6 +108,7 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
 - Alcance:
   - PWA (installable) + offline básico con Workbox.
   - Optimización de bundle, a11y, y tests E2E (Playwright).
+  - Animaciones sutiles con Tailwind: `animate-blurred-fade-in` para hover del logo y transiciones en títulos/botones sin afectar rendimiento.
 - Criterios: Lighthouse PWA ok; flujos E2E verdes en CI.
 - Rollback: desactivar service worker.
 

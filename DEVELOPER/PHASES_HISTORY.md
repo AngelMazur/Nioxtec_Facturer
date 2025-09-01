@@ -30,6 +30,16 @@ Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inve
 - Política: al cerrar Fase 3 y pasar a Fase 3.1/4 se eliminarán scripts `check_phase*_local.sh` obsoletos, dejando constancia en este histórico.
  - Migraciones: añadido Alembic `0002_phase3_schema` (client.created_at, invoice.payment_method, company_config.city/province, doc_sequence year/month + unique).
 
+## 2025-09-02 — UX y Animaciones (ajustes menores)
+- Frontend:
+  - Formato de fecha DD‑MM‑AAAA en Facturas y Clientes.
+  - Persistencia de filtros en URL limpiando valores por defecto (sin `?page=1&sort=date&dir=desc`).
+  - Logo: `animate-blurred-fade-in` al hover (Header) y en carga en Login.
+  - Spinner: doble aro con colores de marca y `spin-clockwise` rápido; estructura corregida para evitar “óvalo”.
+  - Tailwind: migración a `tailwind.config.mjs` (ESM) con plugin `tailwind-animations`; fallback CSS para `animate-spin` en caso de caché.
+  - Linter: limpio sin warnings.
+- Notas: reiniciar Vite cuando cambie `tailwind.config.mjs` para regenerar utilidades.
+
 ## 2025-08-31 — Fase 2 (Desplegada)
 - Alcance:
   - Documentación OpenAPI en `/openapi.json` y `/apidocs` (login, clientes, facturas).

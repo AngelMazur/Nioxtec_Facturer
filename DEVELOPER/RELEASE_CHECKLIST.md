@@ -40,6 +40,14 @@
 - [ ] Monitoreo/Sentry sin errores críticos
 - [x] Documentar en `PHASES_HISTORY.md` ✅
 
+Frontend (UX/Animaciones)
+- [ ] Reiniciar Vite tras cambios en `tailwind.config.mjs` (ESM)
+- [ ] Plugin `tailwind-animations` instalado y activo (o usar fallback CSS)
+- [ ] Logo: `animate-blurred-fade-in` en hover (Header) y en carga en Login
+- [ ] Spinner: doble aro, `spin-clockwise` rápido, circular (sin ovalo)
+- [ ] Listados: fecha en formato DD‑MM‑AAAA
+- [ ] Facturas: URL limpia sin parámetros por defecto
+
 Limpieza tras cambio de fase
 - [ ] Eliminar scripts de verificación de fases previas (`DEVELOPER/scripts/check_phase*_local.sh`) y anotar la limpieza en `PHASES_HISTORY.md`
 
