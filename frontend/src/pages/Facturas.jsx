@@ -235,7 +235,7 @@ export default function Facturas() {
   };
   return (
     <main className="mx-auto max-w-6xl p-4 space-y-8">
-      <h2 className="text-2xl font-semibold tracking-tight text-white/90">Facturas</h2>
+      <h2 className="text-2xl font-semibold tracking-tight text-white/90 drop-shadow-sm">Facturas</h2>
       
       {/* Botón Crear Factura */}
       <div className="flex justify-center">

@@ -211,7 +211,7 @@ export default function Clientes() {
 
   return (
     <main className="mx-auto max-w-6xl p-4 space-y-8">
-      <h2 className="text-2xl font-semibold tracking-tight text-white/90">Clientes</h2>
+      <h2 className="text-2xl font-semibold tracking-tight text-white/90 drop-shadow-sm">Clientes</h2>
       {/* Botón Crear Cliente */}
       <div className="flex justify-center">
         <NeoGradientButton
