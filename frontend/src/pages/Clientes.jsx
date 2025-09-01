@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatDateES } from '../lib/format'
 import { useStore } from '../store/store'
 import { apiGet, apiPost, apiDelete, apiGetBlob, apiPut } from '../lib/api'
 import toast from 'react-hot-toast'
@@ -210,7 +211,7 @@ export default function Clientes() {
 
   return (
     <main className="mx-auto max-w-6xl p-4 space-y-8">
-      <h2 className="text-2xl font-bold">Clientes</h2>
+      <h2 className="text-2xl font-semibold tracking-tight text-white/90">Clientes</h2>
       {/* Botón Crear Cliente */}
       <div className="flex justify-center">
         <NeoGradientButton
@@ -284,7 +285,7 @@ export default function Clientes() {
                               <div>{client.phone}</div>
                             </div>
                             <div className="text-sm text-gray-400 sm:text-center flex flex-col items-end sm:items-center gap-1 justify-center">
-                                  <span className="whitespace-nowrap">{client.created_at ? require('../lib/format').formatDateES(client.created_at) : ''}</span>
+                                  <span className="whitespace-nowrap">{client.created_at ? formatDateES(client.created_at) : ''}</span>
                                <button className="text-red-600 underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded" onClick={(e)=>{ e.stopPropagation(); deleteClient(client) }}>Eliminar</button>
                             </div>
                           </div>
@@ -365,7 +366,7 @@ export default function Clientes() {
                           </div>
                           <div>
                             <div className="text-xs text-gray-500 md:hidden">Creado</div>
-                            <div className="text-gray-300">{client.created_at ? require('../lib/format').formatDateES(client.created_at) : ''}</div>
+                            <div className="text-gray-300">{client.created_at ? formatDateES(client.created_at) : ''}</div>
                           </div>
                         </DataCard>
                      ))}
@@ -447,7 +448,7 @@ export default function Clientes() {
                             <li key={inv.id} onClick={()=>downloadClientInvoice(inv)} className="py-2 flex items-center justify-between rounded px-2 hover:bg-gray-800/80 cursor-pointer hover:scale-[1.02] transition-all duration-200">
                               <div className="space-x-3">
                                 <span className="font-medium">{inv.number}</span>
-                                <span className="text-gray-400">{inv.date}</span>
+                                <span className="text-gray-400">{formatDateES(inv.date)}</span>
                                 <span className="text-gray-400">{inv.type}</span>
                                 <span className="text-gray-400 tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
                               </div>
