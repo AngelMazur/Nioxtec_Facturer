@@ -35,6 +35,8 @@
 - [x] Preflight CORS sobre endpoints clave (ej. `/api/auth/login`) devuelve cabeceras esperadas (`access-control-allow-origin`, métodos y headers) ✅
 - [ ] `DEVELOPER/scripts/check_phase2_local.sh` pasa contra la URL local de backend
 - [ ] `DEVELOPER/scripts/check_phase3_local.sh` pasa (auth, CORS, listados, política `?token`)
+- [ ] Alembic: `alembic upgrade head` ejecutado (sin migraciones en arranque)
+- [ ] Rate limiting en prod: `LIMITER_STORAGE_URI=redis://...` configurado (si aplica)
 - [ ] Monitoreo/Sentry sin errores críticos
 - [x] Documentar en `PHASES_HISTORY.md` ✅
 

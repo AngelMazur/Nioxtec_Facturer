@@ -706,92 +706,9 @@ def _generate_pdf_fallback(invoice: 'Invoice', client: 'Client', company: 'Compa
 # was removed in Flask 3【582101706213846†L169-L173】, so we explicitly initialize
 # the database here using the application context.
 with app.app_context():
+    # Crear tablas base si no existen (para desarrollo). En producción usar Alembic.
     db.create_all()
-    # Ensure Client.created_at column exists (SQLite quick migration)
-    try:
-        inspector = inspect(db.engine)
-        cols = [c['name'] for c in inspector.get_columns('client')]
-        if 'created_at' not in cols:
-            if database_url.startswith('sqlite'):
-                db.session.execute(text("ALTER TABLE client ADD COLUMN created_at DATETIME"))
-                db.session.execute(text("UPDATE client SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"))
-                db.session.commit()
-            else:
-                db.session.execute(text("ALTER TABLE client ADD COLUMN created_at TIMESTAMP DEFAULT NOW()"))
-                db.session.commit()
-    except Exception:
-        pass
-    # Inicializar secuencias por tipo tomando el mayor existente si no hay fila
-    try:
-        # No pre-cargamos secuencias antiguas porque el nuevo formato reinicia por año/mes.
-        # Creamos filas on-demand cuando se emite el primer documento del mes.
-        inspector = inspect(db.engine)
-        # Migración rápida SQLite: adaptar document_sequence a nuevo esquema (year, month, unique compuesto)
-        if database_url.startswith('sqlite'):
-            try:
-                cols = [c['name'] for c in inspector.get_columns('document_sequence')]
-                needs_rebuild = False
-                if 'year' not in cols or 'month' not in cols:
-                    needs_rebuild = True
-                if needs_rebuild:
-                    db.session.execute(text(
-                        """
-                        CREATE TABLE IF NOT EXISTS document_sequence_new (
-                          id INTEGER PRIMARY KEY AUTOINCREMENT,
-                          doc_type VARCHAR(16) NOT NULL,
-                          year INTEGER NOT NULL DEFAULT 0,
-                          month INTEGER NOT NULL DEFAULT 0,
-                          last_number INTEGER NOT NULL DEFAULT 0,
-                          UNIQUE(doc_type, year, month)
-                        )
-                        """
-                    ))
-                    # Migrar datos existentes (si los hay) a fila year=0, month=0
-                    db.session.execute(text(
-                        """
-                        INSERT INTO document_sequence_new (doc_type, year, month, last_number)
-                        SELECT doc_type, 0 as year, 0 as month, last_number FROM document_sequence
-                        """
-                    ))
-                    db.session.execute(text("DROP TABLE document_sequence"))
-                    db.session.execute(text("ALTER TABLE document_sequence_new RENAME TO document_sequence"))
-                    db.session.commit()
-            except Exception:
-                db.session.rollback()
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-    # Migración rápida: añadir columna payment_method si no existe
-    try:
-        inspector = inspect(db.engine)
-        cols = [c['name'] for c in inspector.get_columns('invoice')]
-        if 'payment_method' not in cols:
-            if database_url.startswith('sqlite'):
-                db.session.execute(text("ALTER TABLE invoice ADD COLUMN payment_method VARCHAR(32)"))
-                db.session.commit()
-            else:
-                db.session.execute(text("ALTER TABLE invoice ADD COLUMN payment_method VARCHAR(32)"))
-                db.session.commit()
-    except Exception:
-        db.session.rollback()
-    # Migración rápida: asegurar columnas city y province en company_config (evita 500 en PDFs)
-    try:
-        inspector = inspect(db.engine)
-        cols = [c['name'] for c in inspector.get_columns('company_config')]
-        if 'city' not in cols:
-            if database_url.startswith('sqlite'):
-                db.session.execute(text("ALTER TABLE company_config ADD COLUMN city VARCHAR(128)"))
-            else:
-                db.session.execute(text("ALTER TABLE company_config ADD COLUMN city VARCHAR(128)"))
-        if 'province' not in cols:
-            if database_url.startswith('sqlite'):
-                db.session.execute(text("ALTER TABLE company_config ADD COLUMN province VARCHAR(128)"))
-            else:
-                db.session.execute(text("ALTER TABLE company_config ADD COLUMN province VARCHAR(128)"))
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-    # Crear usuario admin inicial si hay variables de entorno definidas y no existe
+    # Usuario admin inicial opcional
     admin_user = os.getenv('ADMIN_USERNAME')
     admin_pass = os.getenv('ADMIN_PASSWORD')
     if admin_user and admin_pass:

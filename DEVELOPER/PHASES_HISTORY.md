@@ -28,6 +28,7 @@ Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inve
   - `pytest tests/test_phase3_api.py` → 4 tests OK.
 - Rama creada: `release/v0.2.3` (incluye gating `?token`, listados homogéneos, script y tests; docs actualizadas).
 - Política: al cerrar Fase 3 y pasar a Fase 3.1/4 se eliminarán scripts `check_phase*_local.sh` obsoletos, dejando constancia en este histórico.
+ - Migraciones: añadido Alembic `0002_phase3_schema` (client.created_at, invoice.payment_method, company_config.city/province, doc_sequence year/month + unique).
 
 ## 2025-08-31 — Fase 2 (Desplegada)
 - Alcance:

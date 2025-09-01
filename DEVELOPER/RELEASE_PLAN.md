@@ -72,13 +72,14 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
   - Paginación y sort consistentes en listados (clientes, facturas, gastos) y respuestas uniformes.
 - Criterios: límites efectivos; formato uniforme de respuestas.
 - Verificación local: `DEVELOPER/scripts/check_phase3_local.sh` debe pasar con un usuario válido y comprobar CORS/login/listados/`?token` (según entorno).
+- Migraciones: eliminar migraciones en arranque. Todas las modificaciones de esquema deben estar en Alembic (`alembic upgrade head`).
 - Rollback: desactivar límites o revertir cambios.
 
 ### Fase 3.1 — Refactor modular (SOLID)
 - Objetivo: separar responsabilidades y preparar crecimiento.
 - Alcance:
   - Extraer `app.py` en paquetes: `core/config.py`, `models.py`, `services/` (negocio), `routes/` (Blueprints), `utils/` (formatters, logging), `pdf/`.
-  - Sustituir migraciones ad-hoc en arranque por Alembic (scripts en `migrations/`), eliminando ALTERs en runtime.
+  - Sustituir migraciones ad-hoc en arranque por Alembic (scripts en `migrations/`), eliminando ALTERs en runtime. [COMPLETADO: `0002_phase3_schema`]
   - Configurar `ALLOW_QUERY_TOKEN=false` por defecto en prod y condicionar `JWT_TOKEN_LOCATION` para evitar `?token=` (mantener cookies/cabecera).
   - Añadir tests mínimos (pytest) para numeración, validación y endpoints clave (login, clientes, facturas, gastos).
 - Criterios: código dividido por capas, tests básicos verdes, sin migraciones en runtime.

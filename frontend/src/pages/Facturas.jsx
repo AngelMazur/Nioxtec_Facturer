@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/store';
 import {
   apiGet,
@@ -12,6 +13,7 @@ import { motion } from 'framer-motion';
 import CreateInvoiceModal from "../components/CreateInvoiceModal";
 import NeoGradientButton from "../components/NeoGradientButton";
 import DataCard from "../components/DataCard";
+import { formatDateES } from '../lib/format'
 import LoadingSpinner from "../components/LoadingSpinner";
 
 export default function Facturas() {
@@ -29,43 +31,43 @@ export default function Facturas() {
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState({ field: 'date', dir: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams()
   const pageSize = 10;
-  // Cargar sort persistido al montar
+  // Inicializar estado desde URL si existe (fallback a localStorage)
   useEffect(() => {
-    try {
-      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('invoiceSort') : null
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (parsed && parsed.field && parsed.dir) {
-          setSort({ field: parsed.field, dir: parsed.dir })
+    const spSort = searchParams.get('sort')
+    const spDir = searchParams.get('dir')
+    const spPage = Number(searchParams.get('page') || '1')
+    if (spSort && spDir) setSort({ field: spSort, dir: spDir })
+    if (!Number.isNaN(spPage) && spPage > 0) setCurrentPage(spPage)
+    if (!spSort && !spDir) {
+      try {
+        const saved = typeof window !== 'undefined' ? window.localStorage.getItem('invoiceSort') : null
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed && parsed.field && parsed.dir) setSort({ field: parsed.field, dir: parsed.dir })
         }
-      }
-    } catch (e) { void e }
+      } catch (e) { void e }
+    }
   }, [])
-  // Persistir sort cuando cambie
+  // Persistir sort en localStorage y URL
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
         window.localStorage.setItem('invoiceSort', JSON.stringify(sort))
       }
     } catch (e) { void e }
+    const next = new URLSearchParams(searchParams)
+    next.set('sort', sort.field)
+    next.set('dir', sort.dir)
+    setSearchParams(next, { replace: true })
   }, [sort])
   // Persistir página seleccionada entre secciones
   useEffect(() => {
-    try {
-      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('invoicePage') : null
-      if (saved) {
-        const p = parseInt(saved, 10)
-        if (!Number.isNaN(p) && p > 0) setCurrentPage(p)
-      }
-    } catch (e) { void e }
-  }, [])
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem('invoicePage', String(currentPage))
-      }
-    } catch (e) { void e }
+    try { if (typeof window !== 'undefined') window.localStorage.setItem('invoicePage', String(currentPage)) } catch (e) { void e }
+    const next = new URLSearchParams(searchParams)
+    next.set('page', String(currentPage))
+    setSearchParams(next, { replace: true })
   }, [currentPage])
   // Helpers de redondeo/conversión (2 decimales máximo)
   const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
@@ -223,7 +225,7 @@ export default function Facturas() {
   };
   return (
     <main className="mx-auto max-w-6xl p-4 space-y-8">
-      <h2 className="text-2xl font-bold">Facturas / Proformas</h2>
+      <h2 className="text-2xl font-semibold tracking-tight text-white/90">Facturas / Proformas</h2>
       
       {/* Botón Crear Factura */}
       <div className="flex justify-center">
@@ -300,7 +302,7 @@ export default function Facturas() {
                             <tr key={inv.id} onClick={()=>openPreview(inv.id)} className="cursor-pointer group hover:scale-[1.02] transition-all duration-200">
                               <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors rounded-l-lg whitespace-nowrap font-medium">{inv.number}</td>
                               <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors truncate">{clientName}</td>
-                              <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-center text-sm text-gray-300">{inv.date?.slice(0,10)}</td>
+                              <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-center text-sm text-gray-300">{formatDateES(inv.date)}</td>
                               <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-center text-xs uppercase">{inv.type}</td>
                               <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors text-right font-semibold tabular-nums whitespace-nowrap">{(inv.total ?? 0).toFixed(2)} €</td>
                               <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors rounded-r-lg">
@@ -369,7 +371,7 @@ export default function Facturas() {
                             </div>
                             <div>
                               <div className="text-xs text-gray-500 md:hidden">Fecha</div>
-                              <div className="text-gray-300">{inv.date?.slice(0,10)}</div>
+                              <div className="text-gray-300">{formatDateES(inv.date)}</div>
                             </div>
                             <div>
                               <div className="text-xs text-gray-500 md:hidden">Tipo</div>

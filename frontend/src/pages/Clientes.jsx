@@ -284,7 +284,7 @@ export default function Clientes() {
                               <div>{client.phone}</div>
                             </div>
                             <div className="text-sm text-gray-400 sm:text-center flex flex-col items-end sm:items-center gap-1 justify-center">
-                               <span className="whitespace-nowrap">{client.created_at ? String(client.created_at).slice(0,10) : ''}</span>
+                                  <span className="whitespace-nowrap">{client.created_at ? require('../lib/format').formatDateES(client.created_at) : ''}</span>
                                <button className="text-red-600 underline active:scale-95 transition-transform duration-200 inline-block focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded" onClick={(e)=>{ e.stopPropagation(); deleteClient(client) }}>Eliminar</button>
                             </div>
                           </div>
@@ -365,7 +365,7 @@ export default function Clientes() {
                           </div>
                           <div>
                             <div className="text-xs text-gray-500 md:hidden">Creado</div>
-                            <div className="text-gray-300">{client.created_at ? String(client.created_at).slice(0,10) : ''}</div>
+                            <div className="text-gray-300">{client.created_at ? require('../lib/format').formatDateES(client.created_at) : ''}</div>
                           </div>
                         </DataCard>
                      ))}
