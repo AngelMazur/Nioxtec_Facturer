@@ -110,6 +110,8 @@ module.exports = {
     'animate-shimmer-vertical-delayed',
     'animate-shimmer-bottom-up',
     'animate-shimmer-bottom-up-delayed',
-    'animate-blurred-fade-in'
+    'animate-blurred-fade-in',
+    'animate-spin',
+    'animate-spin-clockwise'
   ],
 }

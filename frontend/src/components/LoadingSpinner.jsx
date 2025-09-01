@@ -7,15 +7,7 @@ const LoadingSpinner = () => {
         {/* Spinner con gradiente del logo NIOXTEC (versión estable previa) */}
         <div className="relative">
           <div
-            className="w-16 h-16 border-4 rounded-full animate-spin-clockwise"
-            style={{
-              borderTopColor: 'transparent',
-              borderRightColor: '#0b3c5d',
-              borderBottomColor: '#08b4d8',
-              borderLeftColor: '#0b3c5d',
-              borderStyle: 'solid',
-              borderColor: '#0b3c5d'
-            }}
+            className="w-16 h-16 rounded-full border-4 border-t-transparent border-r-secondary border-b-brand border-l-secondary animate-spin"
           />
         </div>
         

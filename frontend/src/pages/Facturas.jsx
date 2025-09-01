@@ -29,8 +29,9 @@ export default function Facturas() {
     userHasSorted
   } = useStore();
   const [loading, setLoading] = useState(true);
-  const [sort, setSort] = useState({ field: 'date', dir: 'desc' });
-  const [currentPage, setCurrentPage] = useState(1);
+  const DEFAULTS = { field: 'date', dir: 'desc', page: 1 }
+  const [sort, setSort] = useState({ field: DEFAULTS.field, dir: DEFAULTS.dir });
+  const [currentPage, setCurrentPage] = useState(DEFAULTS.page);
   const [searchParams, setSearchParams] = useSearchParams()
   const pageSize = 10;
   // Sincroniza estado <- URL (y usa localStorage como fallback inicial)
@@ -56,8 +57,8 @@ export default function Facturas() {
     if (!Number.isNaN(spPage) && spPage > 0) {
       setCurrentPage((p) => (p !== spPage ? spPage : p))
     }
-  }, [searchParams])
-  // Persistir sort en localStorage y URL (solo si cambió)
+  }, [searchParams, DEFAULTS.field, DEFAULTS.dir])
+  // Persistir sort en localStorage y URL (solo si cambió). Ocultar valores por defecto.
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -65,20 +66,27 @@ export default function Facturas() {
       }
     } catch (e) { void e }
     const next = new URLSearchParams(searchParams)
-    let changed = false
-    if (next.get('sort') !== String(sort.field)) { next.set('sort', String(sort.field)); changed = true }
-    if (next.get('dir') !== String(sort.dir)) { next.set('dir', String(sort.dir)); changed = true }
-    if (changed) setSearchParams(next, { replace: true })
-  }, [sort, searchParams, setSearchParams])
+    // Si es el valor por defecto, quita los params para no ensuciar la URL
+    if (sort.field === DEFAULTS.field && sort.dir === DEFAULTS.dir) {
+      if (next.has('sort')) next.delete('sort')
+      if (next.has('dir')) next.delete('dir')
+    } else {
+      if (next.get('sort') !== String(sort.field)) next.set('sort', String(sort.field))
+      if (next.get('dir') !== String(sort.dir)) next.set('dir', String(sort.dir))
+    }
+    setSearchParams(next, { replace: true })
+  }, [sort, searchParams, setSearchParams, DEFAULTS.field, DEFAULTS.dir])
   // Persistir página seleccionada entre secciones
   useEffect(() => {
     try { if (typeof window !== 'undefined') window.localStorage.setItem('invoicePage', String(currentPage)) } catch (e) { void e }
     const next = new URLSearchParams(searchParams)
-    if (next.get('page') !== String(currentPage)) {
+    if (currentPage === DEFAULTS.page) {
+      if (next.has('page')) next.delete('page')
+    } else if (next.get('page') !== String(currentPage)) {
       next.set('page', String(currentPage))
-      setSearchParams(next, { replace: true })
     }
-  }, [currentPage, searchParams, setSearchParams])
+    setSearchParams(next, { replace: true })
+  }, [currentPage, searchParams, setSearchParams, DEFAULTS.page])
   // Helpers de redondeo/conversión (2 decimales máximo)
   const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
   const round4 = (n) => Math.round((Number(n) + Number.EPSILON) * 10000) / 10000;
