@@ -47,7 +47,7 @@ export default function Header({ children }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur bg-gray-900/80 border-b border-gray-800 shadow-sm">
+    <header className="sticky top-0 z-40 backdrop-blur bg-gray-900/80 border-b border-gray-800">
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
         <Link to="/" className="inline-flex items-center gap-2">
           <img src="/logo.png" alt="NIOXTEC" className="h-auto w-32 transform-gpu transition-transform duration-200 ease-out hover:scale-105 hover:animate-blurred-fade-in" />
