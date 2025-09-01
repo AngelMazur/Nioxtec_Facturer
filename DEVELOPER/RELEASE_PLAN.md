@@ -86,6 +86,28 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
 - Criterios: código dividido por capas, tests básicos verdes, sin migraciones en runtime.
 - Rollback: mantener `app.py` legacy como fallback temporal mientras se migran rutas.
 
+### Fase 3.2 — Productos e Inventario
+- Objetivo: gestionar catálogo y stock, integrándolo con el flujo de facturación.
+- Alcance:
+  - Modelo `Product` (DB): `id, name, sku(opc), stock_qty, tax_rate, price_net, features(JSON), created_at`.
+  - Endpoints API:
+    - `POST/GET /api/products`, `GET/PUT/DELETE /api/products/:id` con `limit/offset/q/sort/dir`.
+  - UI Productos:
+    - Página de listado/creación/edición. Precio mostrado con IVA incluido (derivado de `price_net` + `tax_rate`).
+    - Campos de características técnicas (medidas, tipo SW, vida útil, consumo, etc.).
+  - Facturas:
+    - `InvoiceItem` acepta `product_id` opcional; al seleccionar producto se precarga precio neto/impuestos y se bloquea precio si se desea (configurable).
+    - Descuento de `stock_qty` atómico al confirmar factura (validar `stock >= unidades`).
+    - Registro de movimiento: `StockMovement(product_id, qty, type: 'sale', invoice_id, created_at)`.
+- Criterios de aceptación:
+  - Crear/editar/borrar producto desde la UI; búsqueda y orden funcionan.
+  - Al guardar factura con producto, se descuenta stock y no se permite stock negativo.
+  - Precio en factura refleja el del producto (IVA incluido en UI, neto a backend).
+- Verificación local:
+  - Smoke: CRUD de productos + factura con producto + verificación de stock.
+  - Pruebas: endpoints products (lista, creación, update, borrado, búsqueda, orden).
+- Rollback: revertir migración de `Product` y `StockMovement`; reponer stock manual si es necesario.
+
 ### Fase 4 — Rendimiento y coste
 - Objetivo: acelerar reportes y asegurar integridad.
 - Alcance:

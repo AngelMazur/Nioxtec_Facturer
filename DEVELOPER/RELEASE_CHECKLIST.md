@@ -48,6 +48,13 @@ Frontend (UX/Animaciones)
 - [ ] Listados: fecha en formato DD‑MM‑AAAA
 - [ ] Facturas: URL limpia sin parámetros por defecto
 
+Productos e Inventario (Fase 3.2)
+- [ ] Migración Alembic `Product` + `StockMovement` aplicada
+- [ ] Endpoints `/api/products` operativos (CRUD, q/sort/dir/limit/offset)
+- [ ] UI Productos: crear/editar/borrar, precio con IVA incluido visible, features técnicas
+- [ ] Factura con producto: precarga precio, valida stock y descuenta al guardar
+- [ ] Movimientos de stock registrados y consultables (manual o endpoint)
+
 Limpieza tras cambio de fase
 - [ ] Eliminar scripts de verificación de fases previas (`DEVELOPER/scripts/check_phase*_local.sh`) y anotar la limpieza en `PHASES_HISTORY.md`
 
