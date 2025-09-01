@@ -33,24 +33,31 @@ export default function Facturas() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams()
   const pageSize = 10;
-  // Inicializar estado desde URL si existe (fallback a localStorage)
+  // Sincroniza estado <- URL (y usa localStorage como fallback inicial)
   useEffect(() => {
-    const spSort = searchParams.get('sort')
-    const spDir = searchParams.get('dir')
+    const spSort = searchParams.get('sort') || undefined
+    const spDir = searchParams.get('dir') || undefined
     const spPage = Number(searchParams.get('page') || '1')
-    if (spSort && spDir) setSort({ field: spSort, dir: spDir })
-    if (!Number.isNaN(spPage) && spPage > 0) setCurrentPage(spPage)
-    if (!spSort && !spDir) {
+
+    if (spSort && spDir) {
+      setSort((s) => (s.field !== spSort || s.dir !== spDir ? { field: spSort, dir: spDir } : s))
+    } else {
       try {
         const saved = typeof window !== 'undefined' ? window.localStorage.getItem('invoiceSort') : null
         if (saved) {
           const parsed = JSON.parse(saved)
-          if (parsed && parsed.field && parsed.dir) setSort({ field: parsed.field, dir: parsed.dir })
+          if (parsed && parsed.field && parsed.dir) {
+            setSort((s) => (s.field !== parsed.field || s.dir !== parsed.dir ? { field: parsed.field, dir: parsed.dir } : s))
+          }
         }
       } catch (e) { void e }
     }
-  }, [])
-  // Persistir sort en localStorage y URL
+
+    if (!Number.isNaN(spPage) && spPage > 0) {
+      setCurrentPage((p) => (p !== spPage ? spPage : p))
+    }
+  }, [searchParams])
+  // Persistir sort en localStorage y URL (solo si cambió)
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -58,17 +65,20 @@ export default function Facturas() {
       }
     } catch (e) { void e }
     const next = new URLSearchParams(searchParams)
-    next.set('sort', sort.field)
-    next.set('dir', sort.dir)
-    setSearchParams(next, { replace: true })
-  }, [sort])
+    let changed = false
+    if (next.get('sort') !== String(sort.field)) { next.set('sort', String(sort.field)); changed = true }
+    if (next.get('dir') !== String(sort.dir)) { next.set('dir', String(sort.dir)); changed = true }
+    if (changed) setSearchParams(next, { replace: true })
+  }, [sort, searchParams, setSearchParams])
   // Persistir página seleccionada entre secciones
   useEffect(() => {
     try { if (typeof window !== 'undefined') window.localStorage.setItem('invoicePage', String(currentPage)) } catch (e) { void e }
     const next = new URLSearchParams(searchParams)
-    next.set('page', String(currentPage))
-    setSearchParams(next, { replace: true })
-  }, [currentPage])
+    if (next.get('page') !== String(currentPage)) {
+      next.set('page', String(currentPage))
+      setSearchParams(next, { replace: true })
+    }
+  }, [currentPage, searchParams, setSearchParams])
   // Helpers de redondeo/conversión (2 decimales máximo)
   const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
   const round4 = (n) => Math.round((Number(n) + Number.EPSILON) * 10000) / 10000;
@@ -225,7 +235,7 @@ export default function Facturas() {
   };
   return (
     <main className="mx-auto max-w-6xl p-4 space-y-8">
-      <h2 className="text-2xl font-semibold tracking-tight text-white/90">Facturas / Proformas</h2>
+      <h2 className="text-2xl font-semibold tracking-tight text-white/90">Facturas</h2>
       
       {/* Botón Crear Factura */}
       <div className="flex justify-center">

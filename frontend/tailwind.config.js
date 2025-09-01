@@ -59,7 +59,9 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('tailwind-animations')
+  ],
   safelist: [
     'hover:scale-105',
     'hover:scale-110',
@@ -96,6 +98,7 @@ module.exports = {
     'animate-shimmer-vertical',
     'animate-shimmer-vertical-delayed',
     'animate-shimmer-bottom-up',
-    'animate-shimmer-bottom-up-delayed'
+    'animate-shimmer-bottom-up-delayed',
+    'animate-blurred-fade-in'
   ],
 }
