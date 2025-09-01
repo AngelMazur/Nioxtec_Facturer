@@ -21,6 +21,14 @@ Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inve
 - PR: `feat/fase-3-robustez` → `main`
 - Tag: `v0.2.2` (pendiente `v0.2.3` para bugfix PDF si procede)
 
+### 2025-09-01 — Validación local Fase 3
+- Resultados (macOS, backend 5001):
+  - `DEVELOPER/scripts/check_phase3_local.sh` (dev) → OK (`?token` aceptado en dev, CORS, login, listados, OpenAPI).
+  - `DEVELOPER/scripts/check_phase3_local.sh` (simulado prod con `ALLOW_QUERY_TOKEN=false`) → OK (`?token` rechazado, resto OK).
+  - `pytest tests/test_phase3_api.py` → 4 tests OK.
+- Rama creada: `release/v0.2.3` (incluye gating `?token`, listados homogéneos, script y tests; docs actualizadas).
+- Política: al cerrar Fase 3 y pasar a Fase 3.1/4 se eliminarán scripts `check_phase*_local.sh` obsoletos, dejando constancia en este histórico.
+
 ## 2025-08-31 — Fase 2 (Desplegada)
 - Alcance:
   - Documentación OpenAPI en `/openapi.json` y `/apidocs` (login, clientes, facturas).

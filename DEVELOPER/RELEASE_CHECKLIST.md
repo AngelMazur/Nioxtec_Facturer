@@ -38,6 +38,9 @@
 - [ ] Monitoreo/Sentry sin errores críticos
 - [x] Documentar en `PHASES_HISTORY.md` ✅
 
+Limpieza tras cambio de fase
+- [ ] Eliminar scripts de verificación de fases previas (`DEVELOPER/scripts/check_phase*_local.sh`) y anotar la limpieza en `PHASES_HISTORY.md`
+
 Rollback
 - [ ] `alembic downgrade -1`
 - [ ] Reiniciar servicio

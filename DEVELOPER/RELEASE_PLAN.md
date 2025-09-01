@@ -24,6 +24,10 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
   - Tagging: crear `vX.Y.Z` solo tras checks OK. El runner escribe `APP_VERSION` en `.env` para trazabilidad.
   - Validar siempre el mapping Cloudflare (API/APP) tras deploy.
 
+### Política de scripts de verificación por fase
+- Mantener un script `DEVELOPER/scripts/check_phase<N>_local.sh` por fase activa.
+- Al avanzar de fase (p. ej., de Fase 3 a 3.1/4), eliminar los scripts de fases anteriores (`check_phase2_local.sh`, `check_phase3_local.sh`, etc.) y registrar la limpieza en `PHASES_HISTORY.md`.
+
 ## Fases
 
 ### Fase 0 — Preparación (Baseline)
