@@ -325,11 +325,21 @@ def _add_cors_headers(response: Response) -> Response:
 
 # JWT
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'change-this-secret')
-# Aceptar token JWT por cabecera, query (?token=...) y cookies
-app.config['JWT_TOKEN_LOCATION'] = ['headers', 'query_string', 'cookies']
-app.config['JWT_QUERY_STRING_NAME'] = 'token'
 # Flag de debug (usado también para relajar X-Frame-Options solo en local)
 DEBUG_MODE = os.getenv('FLASK_DEBUG', 'true').lower() in ('1','true','yes')
+
+# Permitir token en query (?token=...) solo si está habilitado explícitamente.
+# En desarrollo: permitido por defecto; en producción: deshabilitado por defecto.
+allow_query_token = os.getenv(
+    'ALLOW_QUERY_TOKEN', 'true' if DEBUG_MODE else 'false'
+).lower() in ('1', 'true', 'yes')
+
+# Ubicaciones válidas del JWT según política anterior
+jwt_locations = ['headers', 'cookies']
+if allow_query_token:
+    jwt_locations.append('query_string')
+app.config['JWT_TOKEN_LOCATION'] = jwt_locations
+app.config['JWT_QUERY_STRING_NAME'] = 'token'
 # Cookies JWT: seguras en prod, flexibles en dev
 app.config['JWT_COOKIE_SECURE'] = not DEBUG_MODE
 app.config['JWT_COOKIE_SAMESITE'] = os.getenv('JWT_COOKIE_SAMESITE', 'Lax' if DEBUG_MODE else 'None')
@@ -822,14 +832,47 @@ def create_client():
 @app.route('/api/clients', methods=['GET'])
 @jwt_required()
 def list_clients():
-    """Return clients with optional pagination: limit, offset."""
-    limit = request.args.get('limit', type=int)
+    """Lista de clientes con paginación, búsqueda y orden.
+
+    Parámetros opcionales:
+      - limit (int): número máximo de elementos
+      - offset (int): desplazamiento
+      - q (str): término de búsqueda en nombre/cif/email/teléfono
+      - sort (str): campo de ordenación (id, name, created_at, email, phone)
+      - dir (str): dirección 'asc'|'desc' (por defecto 'desc')
+    """
+    limit = request.args.get('limit', type=int, default=10)
     offset = request.args.get('offset', type=int, default=0)
+    q = (request.args.get('q') or '').strip()
+    sort = (request.args.get('sort') or 'created_at').strip()
+    direction = (request.args.get('dir') or 'desc').strip().lower()
+
+    allowed_sort = {'id', 'name', 'created_at', 'email', 'phone'}
+    if sort not in allowed_sort:
+        sort = 'created_at'
+    if direction not in {'asc', 'desc'}:
+        direction = 'desc'
+
     query = Client.query
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            db.or_(
+                Client.name.ilike(like),
+                Client.cif.ilike(like),
+                Client.email.ilike(like),
+                Client.phone.ilike(like),
+            )
+        )
+
+    sort_col = getattr(Client, sort)
+    if direction == 'desc':
+        sort_col = sort_col.desc()
+    query = query.order_by(sort_col)
+
     total = query.count()
-    if limit:
-        query = query.offset(offset or 0).limit(limit)
-    clients = query.all()
+    clients = query.offset(offset).limit(limit).all()
+
     items = []
     for c in clients:
         items.append({
@@ -840,7 +883,7 @@ def list_clients():
             'email': c.email,
             'phone': c.phone,
             'iban': c.iban,
-            'created_at': c.created_at.isoformat() if hasattr(c, 'created_at') and c.created_at else None,
+            'created_at': c.created_at.isoformat() if getattr(c, 'created_at', None) else None,
         })
     return jsonify({'items': items, 'total': total})
 
@@ -930,26 +973,57 @@ def create_invoice():
 @app.route('/api/invoices', methods=['GET'])
 @jwt_required()
 def list_invoices():
-    """List invoices, optionally filtered by month and year, with pagination."""
+    """Listado de facturas/proformas con filtros, paginación, búsqueda y orden.
+
+    Parámetros opcionales:
+      - month, year (int): filtrar por mes/año
+      - limit (int), offset (int)
+      - q (str): búsqueda por número o nombre de cliente
+      - sort (str): id, date, total, tax_total, number
+      - dir (str): asc|desc (por defecto desc)
+    """
     month = request.args.get('month')
     year = request.args.get('year')
-    limit = request.args.get('limit', type=int)
+    limit = request.args.get('limit', type=int, default=10)
     offset = request.args.get('offset', type=int, default=0)
+    q = (request.args.get('q') or '').strip()
+    sort = (request.args.get('sort') or 'id').strip()
+    direction = (request.args.get('dir') or 'desc').strip().lower()
+
+    allowed_sort = {'id', 'date', 'total', 'tax_total', 'number'}
+    if sort not in allowed_sort:
+        sort = 'id'
+    if direction not in {'asc', 'desc'}:
+        direction = 'desc'
+
     query = Invoice.query
+
+    # Filtro por mes/año
     if month and year:
         try:
-            month = int(month)
-            year = int(year)
-            query = query.filter(db.extract('month', Invoice.date) == month)
-            query = query.filter(db.extract('year', Invoice.date) == year)
+            m = int(month)
+            y = int(year)
+            query = query.filter(db.extract('month', Invoice.date) == m)
+            query = query.filter(db.extract('year', Invoice.date) == y)
         except ValueError:
             return jsonify({'error': 'Month and year must be integers'}), 400
-    # Orden estable por defecto: id descendente (más recientes primero)
-    query = query.order_by(Invoice.id.desc())
+
+    # Búsqueda por número o nombre de cliente
+    if q:
+        like = f"%{q}%"
+        # Join para poder buscar por nombre de cliente
+        query = query.join(Client, Client.id == Invoice.client_id)
+        query = query.filter(db.or_(Invoice.number.ilike(like), Client.name.ilike(like)))
+
+    # Orden
+    sort_col = getattr(Invoice, sort)
+    if direction == 'desc':
+        sort_col = sort_col.desc()
+    query = query.order_by(sort_col)
+
     total = query.count()
-    if limit:
-        query = query.offset(offset or 0).limit(limit)
-    invoices = query.all()
+    invoices = query.offset(offset).limit(limit).all()
+
     items = []
     for inv in invoices:
         items.append({
@@ -1155,14 +1229,21 @@ def delete_client_document(client_id, doc_id):
 @jwt_required()
 def list_invoices_by_client(client_id):
     Client.query.get_or_404(client_id)
-    # Paginación opcional
-    limit = request.args.get('limit', type=int)
+    limit = request.args.get('limit', type=int, default=10)
     offset = request.args.get('offset', type=int, default=0)
-    q = Invoice.query.filter_by(client_id=client_id).order_by(Invoice.id.desc())
+    sort = (request.args.get('sort') or 'id').strip()
+    direction = (request.args.get('dir') or 'desc').strip().lower()
+    allowed_sort = {'id', 'date', 'total', 'tax_total', 'number'}
+    if sort not in allowed_sort:
+        sort = 'id'
+    if direction not in {'asc', 'desc'}:
+        direction = 'desc'
+    sort_col = getattr(Invoice, sort)
+    if direction == 'desc':
+        sort_col = sort_col.desc()
+    q = Invoice.query.filter_by(client_id=client_id).order_by(sort_col)
     total = q.count()
-    if limit:
-        q = q.offset(offset or 0).limit(limit)
-    invs = q.all()
+    invs = q.offset(offset).limit(limit).all()
     return jsonify({
         'items': [
             {

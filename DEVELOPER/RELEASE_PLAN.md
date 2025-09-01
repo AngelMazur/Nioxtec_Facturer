@@ -11,6 +11,19 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
  - Infra de deploy (Windows): venv por despliegue (`.venv_<timestamp>`), backend enlaza `PORT=8000`, el workflow escribe `APP_VERSION` y `VENV_DIR` en `.env` y reinicia tareas programadas (Backend/Frontend/Cloudflared).
  - Dominio público: Cloudflare Tunnel mapea `api.nioxtec.es` → `http://localhost:8000`.
 
+## Contexto de Producción y Reglas de Seguridad
+- Producción corre en Windows 10 con servicios locales:
+  - Backend: `http://localhost:8000` expuesto vía Cloudflare en `https://api.nioxtec.es`.
+  - Frontend: `http://localhost:8080` expuesto vía Cloudflare en `https://app.nioxtec.es`.
+- Todo desarrollo e integración se realiza en macOS local. Nada se despliega a prod hasta que se mergea a `main` (runner de deploy).
+- No hacer push directo a `main`. Reglas:
+  - PR obligatorio a `main` con CI verde (lint/tests/build) y verificación manual.
+  - Ejecutar checks locales antes de pedir merge:
+    - `DEVELOPER/scripts/check_phase2_local.sh` (fase 2) y `DEVELOPER/scripts/check_phase3_local.sh` (fase 3).
+    - En producción, asegurar `ALLOW_QUERY_TOKEN=false` (descargas y API deben autenticarse por cabecera/cookies, no por `?token`).
+  - Tagging: crear `vX.Y.Z` solo tras checks OK. El runner escribe `APP_VERSION` en `.env` para trazabilidad.
+  - Validar siempre el mapping Cloudflare (API/APP) tras deploy.
+
 ## Fases
 
 ### Fase 0 — Preparación (Baseline)
@@ -54,6 +67,7 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
   - Rate limiting por endpoint con Redis en prod (login, uploads, PDF/contratos, exportaciones).
   - Paginación y sort consistentes en listados (clientes, facturas, gastos) y respuestas uniformes.
 - Criterios: límites efectivos; formato uniforme de respuestas.
+- Verificación local: `DEVELOPER/scripts/check_phase3_local.sh` debe pasar con un usuario válido y comprobar CORS/login/listados/`?token` (según entorno).
 - Rollback: desactivar límites o revertir cambios.
 
 ### Fase 3.1 — Refactor modular (SOLID)

@@ -6,8 +6,10 @@
 - [ ] Variables de entorno correctas en runner (Windows):
   - [ ] DATABASE_URL
   - [ ] JWT_SECRET_KEY
+  - [ ] ALLOW_QUERY_TOKEN=false (en producción)
   - [ ] WKHTMLTOPDF_PATH
   - [ ] APP_ENV=production
+  - [ ] LIMITER_STORAGE_URI (ej. `redis://localhost:6379/0`, si aplica)
   - [ ] REDIS_URL (si aplica)
   - [ ] COMPANY_* (si no hay fila en BD): `COMPANY_NAME, COMPANY_CIF, COMPANY_ADDRESS, COMPANY_CITY, COMPANY_PROVINCE, COMPANY_EMAIL, COMPANY_PHONE, COMPANY_IBAN, COMPANY_WEBSITE`
 - [ ] Infra del runner (Windows):
@@ -31,7 +33,8 @@
 - [x] Validación: peticiones inválidas devuelven 400 con `{error, code}` ✅
 - [x] `/openapi.json` responde 200 y contiene campo `openapi` ✅
 - [x] Preflight CORS sobre endpoints clave (ej. `/api/auth/login`) devuelve cabeceras esperadas (`access-control-allow-origin`, métodos y headers) ✅
-- [ ] (Opcional) `DEVELOPER/scripts/check_phase2_local.sh` pasa contra la URL local de backend
+- [ ] `DEVELOPER/scripts/check_phase2_local.sh` pasa contra la URL local de backend
+- [ ] `DEVELOPER/scripts/check_phase3_local.sh` pasa (auth, CORS, listados, política `?token`)
 - [ ] Monitoreo/Sentry sin errores críticos
 - [x] Documentar en `PHASES_HISTORY.md` ✅
 

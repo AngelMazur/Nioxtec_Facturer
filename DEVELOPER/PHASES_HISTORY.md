@@ -9,9 +9,10 @@ Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inve
   - Integración Sentry opcional (activar con `SENTRY_DSN`).
   - Handler JSON para 429 (rate limit excedido).
   - Bugfix PDF: datos del emisor desde BD con fallback `.env`; dirección compuesta sin duplicar ciudad/provincia.
+  - Desactivar `?token=` en prod mediante flag `ALLOW_QUERY_TOKEN` (por defecto `false` en prod, `true` en dev). Cookies y cabecera siguen soportadas.
+  - Listados de Clientes y Facturas: paginación, búsqueda (`q`) y orden (`sort`, `dir`) homogéneos a Gastos.
 - Próximos pasos:
-  - Homogeneizar paginación/sort en listados de Clientes/Facturas (Gastos ya lo tiene).
-  - Desactivar `?token=` en prod (mantener solo cabecera/cookies) mediante flag.
+  - Homogeneizar respuesta y parámetros en endpoints secundarios (p. ej. facturas por cliente ya actualizado; revisar contratos si aplicase).
 - Notas de despliegue (2025-08-31):
   - Pipeline robustece deploy: venv por despliegue, escritura de `APP_VERSION` y `VENV_DIR` en `.env`, reinicio de tareas Backend/Frontend/Cloudflared.
   - Verificación pública con reintentos y tolerancia de 502 si la salud local (8000) está OK.
