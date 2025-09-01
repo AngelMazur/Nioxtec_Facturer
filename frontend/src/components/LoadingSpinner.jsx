@@ -6,17 +6,17 @@ const LoadingSpinner = () => {
       <div className="text-center space-y-4">
         {/* Spinner con gradiente del logo NIOXTEC (versión estable previa) */}
         <div className="relative">
-          <div className="w-16 h-16 border-4 border-gray-700 rounded-full animate-spin">
-            <div 
-              className="absolute inset-0 border-4 border-transparent rounded-full animate-spin"
-              style={{
-                borderTopColor: '#08b4d8',
-                borderRightColor: '#0b3c5d',
-                borderBottomColor: '#08b4d8',
-                borderLeftColor: '#0b3c5d',
-              }}
-            ></div>
-          </div>
+          <div
+            className="w-16 h-16 border-4 rounded-full animate-spin-clockwise"
+            style={{
+              borderTopColor: 'transparent',
+              borderRightColor: '#0b3c5d',
+              borderBottomColor: '#08b4d8',
+              borderLeftColor: '#0b3c5d',
+              borderStyle: 'solid',
+              borderColor: '#0b3c5d'
+            }}
+          />
         </div>
         
         {/* Texto de carga con gradiente */}

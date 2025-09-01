@@ -53,6 +53,10 @@ module.exports = {
           '60%': { opacity: '1', transform: 'scale(1.01)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
+        'spin-clockwise': {
+          'from': { transform: 'rotate(0deg)' },
+          'to': { transform: 'rotate(360deg)' },
+        },
       },
       animation: {
         shimmer: 'shimmer 2s infinite',
@@ -62,6 +66,7 @@ module.exports = {
         'shimmer-bottom-up': 'shimmer-bottom-up 2s infinite',
         'shimmer-bottom-up-delayed': 'shimmer-bottom-up-delayed 2s infinite',
         'soft-zoom-in': 'soft-zoom-in 300ms ease-out both',
+        'spin-clockwise': 'spin-clockwise 0.8s linear infinite',
       },
     },
   },
