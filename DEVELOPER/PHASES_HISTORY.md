@@ -42,6 +42,7 @@ Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inve
 
 Próximo objetivo
 - Fase 3.2 — Productos e Inventario: catálogo + stock y selección en factura con descuento automático. Rama sugerida: `feat/products-inventory`.
+ - Fase 3.1 — Refactor modular: en progreso parcial. Alembic-only ✅ y gating `?token` ✅; pendiente modularización de `app.py` y ampliar tests.
 
 ## 2025-08-31 — Fase 2 (Desplegada)
 - Alcance:

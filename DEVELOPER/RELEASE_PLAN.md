@@ -78,11 +78,11 @@ Mantén este archivo actualizado en cada fase y vincula PRs/tags.
 
 ### Fase 3.1 — Refactor modular (SOLID)
 - Objetivo: separar responsabilidades y preparar crecimiento.
-- Alcance:
-  - Extraer `app.py` en paquetes: `core/config.py`, `models.py`, `services/` (negocio), `routes/` (Blueprints), `utils/` (formatters, logging), `pdf/`.
-  - Sustituir migraciones ad-hoc en arranque por Alembic (scripts en `migrations/`), eliminando ALTERs en runtime. [COMPLETADO: `0002_phase3_schema`]
-  - Configurar `ALLOW_QUERY_TOKEN=false` por defecto en prod y condicionar `JWT_TOKEN_LOCATION` para evitar `?token=` (mantener cookies/cabecera).
-  - Añadir tests mínimos (pytest) para numeración, validación y endpoints clave (login, clientes, facturas, gastos).
+- Alcance (estado actual):
+  - [ ] Extraer `app.py` en paquetes: `core/config.py`, `models.py`, `services/` (negocio), `routes/` (Blueprints), `utils/` (formatters, logging), `pdf/`. (pendiente)
+  - [✅] Sustituir migraciones ad-hoc en arranque por Alembic (scripts en `migrations/`), eliminando ALTERs en runtime. (hecho en `0002_phase3_schema`)
+  - [✅] Configurar `ALLOW_QUERY_TOKEN=false` por defecto en prod y condicionar `JWT_TOKEN_LOCATION` para evitar `?token=`. (implementado en `app.config` y verificado en prod simulado)
+  - [🟡] Añadir tests mínimos (pytest) para numeración, validación y endpoints clave (login, clientes, facturas, gastos). (parcial: smoke OpenAPI + listados; pendiente numeración/gastos)
 - Criterios: código dividido por capas, tests básicos verdes, sin migraciones en runtime.
 - Rollback: mantener `app.py` legacy como fallback temporal mientras se migran rutas.
 
