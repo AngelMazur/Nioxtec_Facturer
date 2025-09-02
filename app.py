@@ -509,6 +509,7 @@ class InvoiceItem(db.Model):
     """Line items that belong to an invoice."""
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=True, index=True)
     description = db.Column(db.String(512), nullable=False)
     units = db.Column(db.Integer, nullable=False)
     unit_price = db.Column(db.Float, nullable=False)
@@ -516,6 +517,27 @@ class InvoiceItem(db.Model):
     subtotal = db.Column(db.Float, nullable=False)
     total = db.Column(db.Float, nullable=False)
     invoice = db.relationship('Invoice', backref=db.backref('items', lazy=True))
+
+
+class Product(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String(64), nullable=False, index=True)
+    model = db.Column(db.String(128), nullable=False, index=True)
+    sku = db.Column(db.String(64), unique=True)
+    stock_qty = db.Column(db.Integer, default=0)
+    price_net = db.Column(db.Float, nullable=False, default=0.0)
+    tax_rate = db.Column(db.Float, default=21.0)
+    features = db.Column(db.JSON)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class StockMovement(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False, index=True)
+    qty = db.Column(db.Integer, nullable=False)
+    type = db.Column(db.String(16), nullable=False)  # 'sale' | 'manual' | 'adjust'
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class User(db.Model):
@@ -851,9 +873,24 @@ def create_invoice():
     except IntegrityError:
         db.session.rollback()
         return jsonify({'error': 'El número de factura ya existe'}), 409
+    # Validar stock de productos (solo para facturas reales)
+    products_to_decrement = []  # (product, qty)
+    if invoice_type == 'factura':
+        for item in items_data:
+            pid = item.get('product_id')
+            if pid:
+                prod = Product.query.get(pid)
+                if not prod:
+                    return jsonify({'error': f'Producto {pid} no existe', 'code': 400}), 400
+                qty = int(item['units'])
+                if (prod.stock_qty or 0) < qty:
+                    return jsonify({'error': f'Sin stock suficiente para producto {pid}', 'code': 409}), 409
+                products_to_decrement.append((prod, qty))
+
     for item in items_data:
         line = InvoiceItem(
             invoice_id=invoice.id,
+            product_id=item.get('product_id'),
             description=item['description'],
             units=item['units'],
             unit_price=item['unit_price'],
@@ -862,6 +899,11 @@ def create_invoice():
             total=item['units'] * item['unit_price'] * (1 + item['tax_rate'] / 100)
         )
         db.session.add(line)
+    # Descontar stock y registrar movimiento (solo 'factura')
+    if invoice_type == 'factura':
+        for prod, qty in products_to_decrement:
+            prod.stock_qty = int(prod.stock_qty or 0) - int(qty)
+            db.session.add(StockMovement(product_id=prod.id, qty=-int(qty), type='sale', invoice_id=invoice.id))
     db.session.commit()
     return jsonify({
         'id': invoice.id,
@@ -879,6 +921,7 @@ def create_invoice():
                 'units': it.units,
                 'unit_price': it.unit_price,
                 'tax_rate': it.tax_rate,
+                'product_id': it.product_id,
                 'subtotal': it.subtotal,
                 'total': it.total,
             }
@@ -1004,6 +1047,13 @@ def get_invoice(invoice_id):
 @jwt_required()
 def delete_invoice(invoice_id):
     inv = Invoice.query.get_or_404(invoice_id)
+    # Política A: impedir borrar si hay ventas de productos asociadas
+    # Bloquea si la factura es real y tiene líneas con product_id o movimientos registrados
+    if inv.type == 'factura':
+        has_product_lines = any((it.product_id is not None) for it in inv.items)
+        has_stock_moves = StockMovement.query.filter_by(invoice_id=inv.id).count() > 0
+        if has_product_lines or has_stock_moves:
+            return jsonify({'error': 'No se puede eliminar: factura con productos vendidos'}), 409
     for it in list(inv.items):
         db.session.delete(it)
     db.session.delete(inv)
@@ -1196,6 +1246,184 @@ def list_contract_templates():
     ]
     return jsonify(templates)
 
+
+# -----------------------------
+# Products API
+# -----------------------------
+
+def _product_to_dict(p: 'Product') -> dict:
+    return {
+        'id': p.id,
+        'category': p.category,
+        'model': p.model,
+        'sku': p.sku,
+        'stock_qty': p.stock_qty,
+        'price_net': p.price_net,
+        'tax_rate': p.tax_rate,
+        'features': p.features or {},
+        'created_at': p.created_at.isoformat() if p.created_at else None,
+    }
+
+
+@app.route('/api/products', methods=['POST'])
+@jwt_required()
+def create_product():
+    data = request.get_json(force=True)
+    for field in ['category', 'model']:
+        if not data.get(field):
+            return jsonify({'error': f'{field} requerido'}), 400
+    try:
+        stock = int(data.get('stock_qty') or 0)
+        price_net = float(data.get('price_net') or 0)
+        tax_rate = float(data.get('tax_rate') or 21.0)
+    except Exception:
+        return jsonify({'error': 'stock_qty/price_net/tax_rate inválidos'}), 400
+    p = Product(
+        category=str(data['category']).strip(),
+        model=str(data['model']).strip(),
+        sku=(data.get('sku') or None),
+        stock_qty=max(0, stock),
+        price_net=max(0.0, price_net),
+        tax_rate=max(0.0, min(100.0, tax_rate)),
+        features=data.get('features') or {},
+    )
+    db.session.add(p)
+    db.session.commit()
+    return jsonify({'id': p.id}), 201
+
+
+@app.route('/api/products', methods=['GET'])
+@jwt_required()
+def list_products():
+    limit = request.args.get('limit', type=int, default=10)
+    offset = request.args.get('offset', type=int, default=0)
+    q = (request.args.get('q') or '').strip()
+    category = (request.args.get('category') or '').strip()
+    model = (request.args.get('model') or '').strip()
+    sort = (request.args.get('sort') or 'created_at').strip()
+    direction = (request.args.get('dir') or 'desc').strip().lower()
+    allowed_sort = {'id','category','model','sku','stock_qty','price_net','created_at'}
+    if sort not in allowed_sort: sort = 'created_at'
+    if direction not in {'asc','desc'}: direction = 'desc'
+    query = Product.query
+    if category:
+        query = query.filter(Product.category.ilike(category))
+    if model:
+        query = query.filter(Product.model.ilike(model))
+    if q:
+        like = f"%{q}%"
+        query = query.filter(db.or_(Product.model.ilike(like), Product.category.ilike(like), Product.sku.ilike(like)))
+    sort_col = getattr(Product, sort)
+    if direction == 'desc': sort_col = sort_col.desc()
+    query = query.order_by(sort_col)
+    total = query.count()
+    rows = query.offset(offset).limit(limit).all()
+    return jsonify({'items': [_product_to_dict(p) for p in rows], 'total': total})
+
+
+@app.route('/api/products/<int:pid>', methods=['GET'])
+@jwt_required()
+def get_product(pid):
+    p = Product.query.get_or_404(pid)
+    return jsonify(_product_to_dict(p))
+
+
+@app.route('/api/products/<int:pid>', methods=['PUT'])
+@jwt_required()
+def update_product(pid):
+    p = Product.query.get_or_404(pid)
+    data = request.get_json(force=True)
+    for field in ['category','model','sku','features']:
+        if field in data:
+            setattr(p, field, data[field])
+    if 'stock_qty' in data:
+        try:
+            p.stock_qty = max(0, int(data['stock_qty']))
+        except Exception:
+            return jsonify({'error': 'stock_qty inválido'}), 400
+    if 'price_net' in data:
+        try:
+            p.price_net = max(0.0, float(data['price_net']))
+        except Exception:
+            return jsonify({'error': 'price_net inválido'}), 400
+    if 'tax_rate' in data:
+        try:
+            tr = float(data['tax_rate'])
+            if tr < 0 or tr > 100: raise ValueError()
+            p.tax_rate = tr
+        except Exception:
+            return jsonify({'error': 'tax_rate inválido (0–100)'}), 400
+    db.session.commit()
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/products/<int:pid>', methods=['DELETE'])
+@jwt_required()
+def delete_product(pid):
+    p = Product.query.get_or_404(pid)
+    # Impedir borrar si tiene ventas o está referenciado en invoice items
+    ref_count = InvoiceItem.query.filter_by(product_id=p.id).count()
+    mov_count = StockMovement.query.filter_by(product_id=p.id).count()
+    if ref_count > 0 or mov_count > 0:
+        return jsonify({'error': 'No se puede borrar: referenciado en ventas o con movimientos'}), 409
+    db.session.delete(p)
+    db.session.commit()
+    return jsonify({'status': 'deleted'})
+
+
+@app.route('/api/products/summary')
+@jwt_required()
+def products_summary():
+    # Agregados por categoría y por modelo
+    cats = db.session.execute(text(
+        "SELECT category, COUNT(*) as total FROM product GROUP BY category ORDER BY category"
+    )).fetchall()
+    by_cat = {}
+    for c, t in cats:
+        rows = db.session.execute(text(
+            "SELECT model, COUNT(*) as cnt FROM product WHERE category = :c GROUP BY model ORDER BY model"
+        ), {'c': c}).fetchall()
+        by_cat[c] = {
+            'category': c,
+            'total': int(t or 0),
+            'models': [{'model': m, 'count': int(cnt or 0)} for m, cnt in rows]
+        }
+    return jsonify({'categories': list(by_cat.values())})
+
+
+@app.route('/api/products/<int:pid>/adjust_stock', methods=['POST'])
+@jwt_required()
+def adjust_product_stock(pid: int):
+    """Ajuste manual del stock de un producto.
+
+    Payload JSON:
+      - qty: int (positivo para entrada, negativo para salida)
+      - type: 'manual'|'adjust' (opcional, por defecto 'adjust')
+    Reglas:
+      - No permite dejar el stock en negativo.
+      - Registra un StockMovement con la cantidad indicada.
+    """
+    p = Product.query.get_or_404(pid)
+    data = request.get_json(force=True)
+    try:
+        qty = int(data.get('qty'))
+    except Exception:
+        return jsonify({'error': 'qty requerido (entero no nulo)'}), 400
+    if qty == 0:
+        return jsonify({'error': 'qty no puede ser 0'}), 400
+    mv_type = (data.get('type') or 'adjust').strip().lower()
+    if mv_type not in {'manual', 'adjust'}:
+        mv_type = 'adjust'
+
+    new_qty = int(p.stock_qty or 0) + qty
+    if new_qty < 0:
+        return jsonify({'error': 'stock resultante no puede ser negativo'}), 409
+
+    p.stock_qty = new_qty
+    db.session.add(StockMovement(product_id=p.id, qty=int(qty), type=mv_type))
+    db.session.commit()
+    return jsonify({'status': 'ok', 'stock_qty': p.stock_qty})
+
 @app.get('/api/contracts/templates/<template_id>/placeholders')
 @jwt_required()
 def get_template_placeholders(template_id):
@@ -1264,8 +1492,19 @@ def update_invoice(invoice_id):
         pm = (data.get('payment_method') or '').strip().lower()
         inv.payment_method = pm if inv.type == 'factura' and pm in {'efectivo','bizum','transferencia'} else (None if inv.type!='factura' else 'efectivo')
     inv.notes = data.get('notes', inv.notes)
-    # Replace items if provided
+    # Reglas de edición de líneas
     items_data = data.get('items')
+    # Política: si es factura y hay líneas vinculadas a productos, no permitir edición de líneas
+    if items_data is not None and inv.type == 'factura':
+        # Detectar si la factura actual tiene líneas con product_id
+        if any((it.product_id is not None) for it in inv.items):
+            return jsonify({'error': 'No se pueden editar las líneas: factura con productos vinculados'}), 409
+        # Además, impedir que el payload intente establecer product_id vía edición
+        try:
+            if any(('product_id' in (item or {})) for item in items_data):
+                return jsonify({'error': 'No se pueden vincular productos al editar una factura existente'}), 409
+        except Exception:
+            pass
     if items_data is not None:
         for it in list(inv.items):
             db.session.delete(it)
@@ -1299,10 +1538,25 @@ def convert_proforma(invoice_id):
     inv = Invoice.query.get_or_404(invoice_id)
     if inv.type == 'factura':
         return jsonify({'error': 'El documento ya es una factura'}), 400
-    # Asignar siguiente número de factura
+    # Validar stock para cada línea con product_id antes de convertir
+    items_with_product = [it for it in inv.items if getattr(it, 'product_id', None)]
+    products_and_qty: list[tuple[Product, int]] = []
+    for it in items_with_product:
+        prod = Product.query.get(it.product_id)
+        if not prod:
+            return jsonify({'error': f'Producto {it.product_id} no existe', 'code': 400}), 400
+        qty = int(it.units)
+        if int(prod.stock_qty or 0) < qty:
+            return jsonify({'error': f'Sin stock suficiente para producto {prod.id}', 'code': 409}), 409
+        products_and_qty.append((prod, qty))
+    # Asignar siguiente número de factura y fecha
     inv.type = 'factura'
     inv.number = _next_sequence_atomic('factura')
     inv.date = datetime.utcnow().date()
+    # Descontar stock y registrar movimientos
+    for prod, qty in products_and_qty:
+        prod.stock_qty = int(prod.stock_qty or 0) - int(qty)
+        db.session.add(StockMovement(product_id=prod.id, qty=-int(qty), type='sale', invoice_id=inv.id))
     try:
         db.session.commit()
     except IntegrityError:

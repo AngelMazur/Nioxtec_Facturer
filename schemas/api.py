@@ -21,6 +21,7 @@ class InvoiceItem(BaseModel):
     units: confloat(gt=0)
     unit_price: confloat(ge=0)
     tax_rate: confloat(ge=0, le=100)
+    product_id: Optional[int] = None
 
 
 class InvoiceCreateRequest(BaseModel):
