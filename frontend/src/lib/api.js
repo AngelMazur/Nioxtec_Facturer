@@ -36,7 +36,12 @@ function getHeaders(token) {
  */
 export async function apiGet(path, token) {
   const res = await fetch(`${API_BASE}/api${path}`, { headers: getHeaders(token), credentials: 'include' })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.json()
 }
 
@@ -56,7 +61,12 @@ export async function apiPost(path, body, token) {
     credentials: 'include',
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.json()
 }
 
@@ -70,7 +80,12 @@ export async function apiPost(path, body, token) {
  */
 export async function apiGetBlob(path, token) {
   const res = await fetch(`${API_BASE}/api${path}`, { headers: getHeaders(token), credentials: 'include' })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.blob()
 }
 
@@ -80,7 +95,12 @@ export async function apiDelete(path, token) {
     headers: getHeaders(token),
     credentials: 'include',
   })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.json()
 }
 
@@ -91,7 +111,12 @@ export async function apiPut(path, body, token) {
     credentials: 'include',
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.json()
 }
 
@@ -102,7 +127,12 @@ export async function apiPatch(path, body, token) {
     credentials: 'include',
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.json()
 }
 

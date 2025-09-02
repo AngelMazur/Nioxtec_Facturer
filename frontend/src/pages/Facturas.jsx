@@ -109,6 +109,7 @@ export default function Facturas() {
     payment_method: 'efectivo',
     items: [],
   });
+  const [products, setProducts] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
 
@@ -126,12 +127,15 @@ export default function Facturas() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [clientsData, invoicesData] = await Promise.all([
+      const [clientsData, invoicesData, productsData] = await Promise.all([
         apiGet('/clients?limit=50&offset=0', token),
         apiGet('/invoices?limit=50&offset=0', token),
+        // get a flat list of products so frontend can map and select
+        apiGet('/products?limit=200&offset=0', token),
       ]);
       setClients(clientsData.items || clientsData);
       setInvoices(invoicesData.items || invoicesData);
+      setProducts(productsData.items || productsData || []);
       setLoading(false);
       // Pre-cargar número siguiente para tipo por defecto
       fetchNextNumber('factura', new Date().toISOString().slice(0, 10))
@@ -148,6 +152,7 @@ export default function Facturas() {
       units: Number(it.units),
       unit_price: grossToNet(it.unit_price, it.tax_rate),
       tax_rate: Number(it.tax_rate),
+      ...(it.product_id ? { product_id: Number(it.product_id) } : {}),
     }));
     if (payload.type !== 'factura') {
       delete payload.payment_method;
@@ -170,8 +175,15 @@ export default function Facturas() {
       addInvoiceToTop(data);
               setCurrentPage(1);
         setShowCreateModal(false);
-    } catch {
-      toast.error('Error al crear');
+    } catch (err) {
+      // If backend returned a conflict (409), show server message
+      if (err && err.status === 409) {
+        toast.error(`Error: ${err.message}`)
+        console.warn('Invoice create conflict:', err.message)
+      } else {
+        toast.error('Error al crear')
+        console.error('Invoice create error', err)
+      }
     }
   };
 
@@ -191,6 +203,7 @@ export default function Facturas() {
            // Convertir neto del backend a bruto para el formulario (mostrar IVA incl.)
            unit_price: netToGross(it.unit_price, it.tax_rate),
           tax_rate: it.tax_rate,
+          ...(it.product_id ? { product_id: it.product_id } : {}),
         })),
       });
       // Cargar el próximo número según tipo del duplicado
@@ -477,6 +490,7 @@ export default function Facturas() {
         form={form}
         setForm={setForm}
         clients={clients}
+  products={products}
       />
     </main>
   );

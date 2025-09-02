@@ -19,6 +19,7 @@
   - [x] `scripts/start_backend.ps1` carga `.env` y usa `VENV_DIR`; backend enlaza `PORT=8000`. ✅
   - [x] Salud local: `http://localhost:8000/health` responde 200 en el servidor. ✅
 - [x] Backup de la base de datos completado ✅
+  - Path local de la copia verificada: `instance/app.db.backup_20250902_215833`
 - [x] `alembic upgrade head` sin errores ✅
 - [x] Servicio reiniciado (NSSM/IIS/Waitress) ✅
 - [x] `/health` = 200 y versión esperada ✅
@@ -48,15 +49,23 @@ Frontend (UX/Animaciones)
 - [ ] Listados: fecha en formato DD‑MM‑AAAA
 - [ ] Facturas: URL limpia sin parámetros por defecto
 
-Productos e Inventario (Fase 3.2)
-- [ ] Migración Alembic `Product` + `StockMovement` aplicada
-- [ ] Endpoints `/api/products` operativos (CRUD, q/sort/dir/limit/offset)
-- [ ] UI Productos: crear/editar/borrar, precio con IVA incluido visible, features técnicas
-- [ ] Factura con producto: precarga precio, valida stock y descuenta al guardar
-- [ ] Movimientos de stock registrados y consultables (manual o endpoint)
+ Productos e Inventario (Fase 3.2)
+ [x] Migración Alembic `Product` + `StockMovement` aplicada
+ [x] Endpoints `/api/products` operativos (CRUD, q/sort/dir/limit/offset)
+ [x] UI Productos: crear/editar/borrar, precio con IVA incluido visible, features técnicas
+ [x] Factura con producto: precarga precio, valida stock y descuenta al guardar
+ [x] Movimientos de stock registrados y consultables (manual o endpoint)
 
 Limpieza tras cambio de fase
 - [ ] Eliminar scripts de verificación de fases previas (`DEVELOPER/scripts/check_phase*_local.sh`) y anotar la limpieza en `PHASES_HISTORY.md`
+
+> Nota operativa:
+> - Durante la verificación local se aplicó un parche temporal: `ALTER TABLE invoice_item ADD COLUMN product_id INTEGER` para corregir un esquema desincronizado.
+> - Posteriormente se ejecutó `alembic upgrade head` y la revisión `0003_products_inventory` fue marcada como aplicada en la tabla `alembic_version`.
+> - Recomendación: no aplicar cambios ad-hoc en BD en entornos compartidos; convertir parches en migraciones idempotentes o adaptar `0003_products_inventory` para ser tolerante a objetos ya existentes.
+>
+> Fecha: 2025-09-02 — copia local: `instance/app.db.backup_20250902_215833`.
+> Se dejó un script de automatización para el flujo producto→factura en `scripts/run_product_invoice_flow.sh` (usar con token dev).
 
 Rollback
 - [ ] `alembic downgrade -1`

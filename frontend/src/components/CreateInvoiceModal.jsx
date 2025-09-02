@@ -1,7 +1,8 @@
 import React from 'react'
+import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients }) => {
+const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients, products = [] }) => {
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
@@ -154,7 +155,48 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients 
               >
                 <h4 className="font-semibold text-white">Líneas de factura</h4>
                 {form.items.map((item, index) => (
-                  <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
+                  <div key={index} className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
+                    <div>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-sm text-gray-500">Producto</span>
+                        <select
+                          className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                          value={item.product_id || ''}
+                          onChange={(e) => {
+                            const pid = e.target.value ? Number(e.target.value) : ''
+                            const newItems = [...form.items]
+                            newItems[index].product_id = pid
+                            if (pid) {
+                              const prod = (products || []).find(p => p.id === pid)
+                              if (prod) {
+                                // Prefill description, unit_price (show gross), and tax_rate
+                                const gross = (prod.price_net || 0) * (1 + (prod.tax_rate || 0) / 100)
+                                newItems[index].description = prod.model ? `${prod.model}${prod.sku ? ' - ' + prod.sku : ''}` : (prod.sku || '')
+                                newItems[index].unit_price = Number(gross.toFixed(2))
+                                newItems[index].tax_rate = prod.tax_rate || 21
+                                const stock = Number(prod.stock_qty || 0)
+                                if (stock <= 5) {
+                                  toast(stock <= 0 ? 'Producto sin stock' : `Stock bajo (${stock}) — considerar reponer`)
+                                }
+                              }
+                            }
+                            setForm(prev => ({ ...prev, items: newItems }))
+                          }}
+                        >
+                          <option value="">Seleccionar producto (opcional)</option>
+                          {Array.isArray(products) ? (
+                            products.map(prod => (
+                              <option key={prod.id} value={prod.id} disabled={Number(prod.stock_qty || 0) <= 0}>
+                                {prod.model ? `${prod.model}${prod.sku ? ' - ' + prod.sku : ''}` : (prod.sku || prod.id)}{typeof prod.stock_qty !== 'undefined' ? ` — stock: ${prod.stock_qty}` : ''}
+                              </option>
+                            ))
+                          ) : (
+                            // in case backend returned unexpected shape, avoid crashing
+                            (console && console.warn && console.warn('CreateInvoiceModal: products is not an array', products), null)
+                          )}
+                        </select>
+                      </label>
+                    </div>
                     <div>
                       <label className="flex flex-col gap-1">
                         <span className="text-sm text-gray-500">Descripción</span>

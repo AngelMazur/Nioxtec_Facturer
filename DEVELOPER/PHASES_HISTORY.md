@@ -30,6 +30,12 @@ Registra aquí cada fase con fecha, alcance, PR/tag y notas. Mantener orden inve
 - Política: al cerrar Fase 3 y pasar a Fase 3.1/4 se eliminarán scripts `check_phase*_local.sh` obsoletos, dejando constancia en este histórico.
  - Migraciones: añadido Alembic `0002_phase3_schema` (client.created_at, invoice.payment_method, company_config.city/province, doc_sequence year/month + unique).
 
+### 2025-09-02 — Migración Products/Inventory aplicada (nota operativa)
+- Durante la verificación local se detectó desincronía de esquema: faltaba la columna `product_id` en `invoice_item`.
+- Se aplicó temporalmente: `ALTER TABLE invoice_item ADD COLUMN product_id INTEGER` para restaurar funcionalidad en entorno dev.
+- Se ejecutó `alembic upgrade head`. La revisión `0003_products_inventory` fue marcada como aplicada en la tabla `alembic_version`.
+- Recomendación: consolidar el parche en una migración idempotente o adaptar `0003_products_inventory` para tolerar objetos ya existentes en entornos con datos.
+
 ## 2025-09-02 — UX y Animaciones (ajustes menores)
 - Frontend:
   - Formato de fecha DD‑MM‑AAAA en Facturas y Clientes.
