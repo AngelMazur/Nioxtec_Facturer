@@ -1,4 +1,6 @@
 import React from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { MOTION } from '../styles/motion'
 
 const DataCard = ({
   children,
@@ -40,8 +42,18 @@ const DataCard = ({
     return spanMap[cols] || 'md:col-span-6'
   }
 
+  const reduceMotion = useReducedMotion()
+
   return (
-    <div
+    <motion.div
+      variants={reduceMotion ? {
+        hidden: { opacity: 0 },
+        show: { opacity: 1 },
+      } : {
+        hidden: { opacity: 0, y: 8 },
+        show: { opacity: 1, y: 0 },
+      }}
+      transition={{ duration: MOTION.duration.base, ease: MOTION.ease.standard }}
       className={`
         bg-gray-800 border border-gray-700 rounded
         transition-all duration-200
@@ -107,7 +119,7 @@ const DataCard = ({
           </div>
         )}
       </div>
-    </div>
+  </motion.div>
   )
 }
 

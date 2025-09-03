@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api'
 import { useStore } from '../store/store'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
+import { MOTION } from '../styles/motion'
 import CustomSkeleton from "../components/CustomSkeleton"
 import CreateExpenseModal from "../components/CreateExpenseModal"
 import NeoGradientButton from "../components/NeoGradientButton"
@@ -26,6 +27,8 @@ export default function Gastos() {
   const [limit] = useState(10)
   const [showForm, setShowForm] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [forceHoverBtn, setForceHoverBtn] = useState(true)
+  const hoverTimeoutRef = useRef(null)
   const [editingExpense, setEditingExpense] = useState(null)
   const [formData, setFormData] = useState({
     date: '',
@@ -61,6 +64,9 @@ export default function Gastos() {
   useEffect(() => {
     loadExpenses()
   }, [loadExpenses])
+
+  // Limpieza del timeout del botón
+  useEffect(() => () => { if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current) }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -150,9 +156,10 @@ export default function Gastos() {
       <h2 className="text-2xl font-bold">Gastos</h2>
       
       {/* Botón Crear Gasto */}
-      <div className="flex justify-center">
+    <div className="flex justify-center">
         <NeoGradientButton
           onClick={() => setShowCreateModal(true)}
+      forceHover={forceHoverBtn}
           icon={
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14"/>
@@ -323,8 +330,23 @@ export default function Gastos() {
               <div>Acciones</div>
             </div>
 
-            {/* Cards responsive */}
-            <div className="space-y-2">
+            {/* Cards responsive con stagger */}
+            <motion.div
+              initial="hidden"
+              animate="show"
+              variants={{ hidden: { opacity: 1 }, show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.04 } } }}
+              className="space-y-2"
+              onAnimationStart={() => {
+                const staggerChildren = 0.08
+                const delayChildren = 0.04
+                const childDuration = MOTION?.duration?.base ?? 0.35
+                const itemsCount = expenses.length
+                const totalMs = Math.max(200, Math.round((delayChildren + Math.max(0, itemsCount - 1) * staggerChildren + childDuration) * 1000))
+                try { window.dispatchEvent(new CustomEvent('route-stagger', { detail: { totalMs } })) } catch { /* noop */ }
+                if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+                hoverTimeoutRef.current = setTimeout(() => setForceHoverBtn(false), totalMs)
+              }}
+            >
               {(() => {
                 // Obtener gastos en orden personalizado o aplicar ordenamiento manual
                 let sorted;
@@ -422,9 +444,9 @@ export default function Gastos() {
                       </div>
                     </div>
                   </DataCard>
-                ))
+        ))
               })()}
-            </div>
+      </motion.div>
           </motion.div>
         )}
       </section>

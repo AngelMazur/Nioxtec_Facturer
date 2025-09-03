@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/store';
 import {
@@ -15,6 +15,7 @@ import NeoGradientButton from "../components/NeoGradientButton";
 import DataCard from "../components/DataCard";
 import { formatDateES } from '../lib/format'
 import LoadingSpinner from "../components/LoadingSpinner";
+import { MOTION } from '../styles/motion'
 
 export default function Facturas() {
   const { 
@@ -112,6 +113,17 @@ export default function Facturas() {
   const [products, setProducts] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [forceHoverBtn, setForceHoverBtn] = useState(true);
+  const hoverTimeoutRef = useRef(null)
+
+  // Limpieza del timeout usado para forzar el "hover" del botón
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // Refresh products when the create modal opens so selector shows latest stock
   useEffect(() => {
@@ -277,9 +289,10 @@ export default function Facturas() {
       <h2 className="text-2xl font-semibold tracking-tight text-white/90">Facturas</h2>
       
       {/* Botón Crear Factura */}
-      <div className="flex justify-center">
+    <div className="flex justify-center">
         <NeoGradientButton
           onClick={() => setShowCreateModal(true)}
+      forceHover={forceHoverBtn}
           icon={
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14"/>
@@ -292,7 +305,7 @@ export default function Facturas() {
 
       <section>
         <h3 className="text-xl font-semibold mb-2">Listado</h3>
-        {loading ? (
+  {loading ? (
           <CustomSkeleton count={5} height={30} className="mb-2" />
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
@@ -328,6 +341,13 @@ export default function Facturas() {
               const safePage = Math.min(currentPage, totalPages);
               const start = (safePage - 1) * pageSize;
               const pageItems = sorted.slice(start, start + pageSize);
+
+              // Calcular duración total del stagger para sincronizar el logo y el botón
+              const staggerChildren = 0.08;
+              const delayChildren = 0.04;
+              const childDuration = MOTION?.duration?.base ?? 0.35;
+              const itemsCount = pageItems.length;
+              const totalMs = Math.max(200, Math.round((delayChildren + Math.max(0, itemsCount - 1) * staggerChildren + childDuration) * 1000));
 
               return (
                 <>
@@ -384,7 +404,27 @@ export default function Facturas() {
                   </div>
 
                   {/* Cards responsive */}
-                  <div className="space-y-2">
+                  <motion.div
+                    initial="hidden"
+                    animate="show"
+                    variants={{
+                      hidden: { opacity: 1 },
+                      show: {
+                        opacity: 1,
+                        transition: { staggerChildren: 0.08, delayChildren: 0.04 },
+                      },
+                    }}
+                    className="space-y-2"
+                    onAnimationStart={() => {
+                      // Sincronizar el logo del header con la duración estimada del stagger
+                      try {
+                        window.dispatchEvent(new CustomEvent('route-facturas-stagger', { detail: { totalMs } }))
+                      } catch { /* no-op */ }
+                      // Asegurar que el botón permanezca en “hover” hasta que termine el stagger (también si no hay items)
+                      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+                      hoverTimeoutRef.current = setTimeout(() => setForceHoverBtn(false), totalMs)
+                    }}
+                  >
                     {pageItems.map(inv=>{
                       const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
                       return (
@@ -430,10 +470,10 @@ export default function Facturas() {
                               <div className="text-xs text-gray-500 md:hidden">Total</div>
                               <div className="font-semibold text-gray-100">{(inv.total ?? 0).toFixed(2)} €</div>
                             </div>
-                          </DataCard>
+        </DataCard>
                       )
                     })}
-                  </div>
+      </motion.div>
                 </>
               )
             })()}

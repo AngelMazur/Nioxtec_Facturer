@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useStore } from '../store/store'
 import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api'
 import toast from 'react-hot-toast'
 import CustomSkeleton from '../components/CustomSkeleton'
 import NeoGradientButton from '../components/NeoGradientButton'
+import { MOTION } from '../styles/motion'
 
 // Página de gestión de productos e inventario
 export default function Productos() {
@@ -28,6 +29,8 @@ export default function Productos() {
     tax_rate: 21.0,
     features: {}
   })
+  const [forceHoverBtn, setForceHoverBtn] = useState(true)
+  const hoverTimeoutRef = useRef(null)
 
 
 
@@ -125,6 +128,9 @@ export default function Productos() {
     if (token) loadCategories()
   }, [token, loadCategories])
 
+  // Limpieza del timeout del botón
+  useEffect(() => () => { if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current) }, [])
+
   
 
   const handleCreateProduct = () => {
@@ -216,6 +222,7 @@ export default function Productos() {
         <h2 className="text-2xl font-bold">Productos</h2>
         <NeoGradientButton
           onClick={handleCreateProduct}
+          forceHover={forceHoverBtn}
           icon={
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14"/>
@@ -252,11 +259,26 @@ export default function Productos() {
             animate={{ opacity: 1 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4"
           >
+            <motion.div
+              initial="hidden"
+              animate="show"
+              variants={{ hidden: { opacity: 1 }, show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.04 } } }}
+              className="contents"
+              onAnimationStart={() => {
+                const itemsCount = filteredCategories.length
+                const staggerChildren = 0.08
+                const delayChildren = 0.04
+                const childDuration = MOTION?.duration?.base ?? 0.35
+                const totalMs = Math.max(200, Math.round((delayChildren + Math.max(0, itemsCount - 1) * staggerChildren + childDuration) * 1000))
+                try { window.dispatchEvent(new CustomEvent('route-stagger', { detail: { totalMs } })) } catch { /* noop */ }
+                if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+                hoverTimeoutRef.current = setTimeout(() => setForceHoverBtn(false), totalMs)
+              }}
+            >
             {filteredCategories.map((categoryData) => (
               <motion.div
                 key={categoryData.category}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
                 className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-200"
               >
                 <div className="mb-4">
@@ -318,6 +340,7 @@ export default function Productos() {
                 </div>
               </motion.div>
             ))}
+            </motion.div>
           </motion.div>
         )}
       </section>

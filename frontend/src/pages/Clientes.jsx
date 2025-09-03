@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { motion } from 'framer-motion'
+import { MOTION } from '../styles/motion'
 import { formatDateES } from '../lib/format'
 import { useStore } from '../store/store'
 import { apiGet, apiPost, apiDelete, apiGetBlob, apiPut } from '../lib/api'
@@ -40,6 +42,8 @@ export default function Clientes() {
   const imagesPageSize = 6
   const docsPageSize = 5
   const apiBase = (import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')
+  const [forceHoverBtn, setForceHoverBtn] = useState(true)
+  const hoverTimeoutRef = useRef(null)
 
   // Función para manejar el ordenamiento
   const handleSort = (field) => {
@@ -61,6 +65,9 @@ export default function Clientes() {
     }
     if (token) load()
   }, [setClients, token])
+
+  // Limpieza del timeout del botón
+  useEffect(() => () => { if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current) }, [])
 
   async function openClientModal(client) {
     setSelectedClient(client)
@@ -213,9 +220,10 @@ export default function Clientes() {
     <main className="mx-auto max-w-6xl p-4 space-y-8">
       <h2 className="text-2xl font-semibold tracking-tight text-white/90">Clientes</h2>
       {/* Botón Crear Cliente */}
-      <div className="flex justify-center">
+    <div className="flex justify-center">
         <NeoGradientButton
           onClick={() => setShowCreateModal(true)}
+      forceHover={forceHoverBtn}
           icon={
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14"/>
@@ -329,8 +337,27 @@ export default function Clientes() {
                     <div>Acciones</div>
                   </div>
 
-                  {/* Cards responsive */}
-                  <div className="space-y-2">
+                  {/* Cards responsive con stagger */}
+          <motion.div
+                    initial="hidden"
+                    animate="show"
+                    variants={{
+                      hidden: { opacity: 1 },
+                      show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
+                    }}
+                    className="space-y-2"
+                    onAnimationStart={() => {
+                      const staggerChildren = 0.08
+                      const delayChildren = 0.04
+                      const childDuration = MOTION?.duration?.base ?? 0.35
+                      const itemsCount = pageItems.length
+                      const totalMs = Math.max(200, Math.round((delayChildren + Math.max(0, itemsCount - 1) * staggerChildren + childDuration) * 1000))
+            // Informar al Header de la duración total para el logo
+                      try { window.dispatchEvent(new CustomEvent('route-stagger', { detail: { totalMs } })) } catch { /* noop */ }
+                      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+                      hoverTimeoutRef.current = setTimeout(() => setForceHoverBtn(false), totalMs)
+                    }}
+                  >
                      {pageItems.map((client) => (
                                               <DataCard
                          key={client.id}
@@ -370,7 +397,7 @@ export default function Clientes() {
                           </div>
                         </DataCard>
                      ))}
-                  </div>
+                  </motion.div>
 
                   <div className="flex items-center justify-between gap-2 mt-3">
                    {safePage > 1 ? (
