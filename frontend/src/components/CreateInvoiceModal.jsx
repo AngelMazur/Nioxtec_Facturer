@@ -3,9 +3,21 @@ import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients, products = [] }) => {
+  const [searchTerms, setSearchTerms] = React.useState({})
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
+
+  // Keep searchTerms in sync when items are removed/added
+  React.useEffect(() => {
+    const keys = Object.keys(searchTerms).map(k => Number(k))
+    const maxIndex = form.items.length - 1
+    const next = { ...searchTerms }
+    for (const k of keys) {
+      if (k > maxIndex) delete next[k]
+    }
+    if (Object.keys(next).length !== Object.keys(searchTerms).length) setSearchTerms(next)
+  }, [form.items.length, searchTerms])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -169,7 +181,6 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
                             if (pid) {
                               const prod = (products || []).find(p => p.id === pid)
                               if (prod) {
-                                // Prefill description, unit_price (show gross), and tax_rate
                                 const gross = (prod.price_net || 0) * (1 + (prod.tax_rate || 0) / 100)
                                 newItems[index].description = prod.model ? `${prod.model}${prod.sku ? ' - ' + prod.sku : ''}` : (prod.sku || '')
                                 newItems[index].unit_price = Number(gross.toFixed(2))
@@ -191,44 +202,49 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
                               </option>
                             ))
                           ) : (
-                            // in case backend returned unexpected shape, avoid crashing
                             (console && console.warn && console.warn('CreateInvoiceModal: products is not an array', products), null)
                           )}
                         </select>
                       </label>
                     </div>
                     <div>
-                      <label className="flex flex-col gap-1">
-                        <span className="text-sm text-gray-500">Descripción</span>
-                        <input
-                          type="text"
-                          className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-                          value={item.description}
-                          onChange={(e) => {
-                            const newItems = [...form.items]
-                            newItems[index].description = e.target.value
-                            setForm(prev => ({ ...prev, items: newItems }))
-                          }}
-                          required
-                        />
+                      <label className="flex items-center gap-2">
+                        <div className="flex-1 flex flex-col gap-1">
+                          <span className="text-sm text-gray-500">Descripción</span>
+                          <input
+                            type="text"
+                            className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                            value={item.description}
+                            onChange={(e) => {
+                              const newItems = [...form.items]
+                              newItems[index].description = e.target.value
+                              setForm(prev => ({ ...prev, items: newItems }))
+                            }}
+                            required
+                          />
+                        </div>
+                        {/* badge removed from here; it will be shown next to 'Unidades' to avoid duplicate visual elements */}
                       </label>
                     </div>
                     <div>
                       <label className="flex flex-col gap-1">
                         <span className="text-sm text-gray-500">Unidades</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-                          value={item.units}
-                          onChange={(e) => {
-                            const newItems = [...form.items]
-                            newItems[index].units = e.target.value
-                            setForm(prev => ({ ...prev, items: newItems }))
-                          }}
-                          required
-                        />
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="flex-1 border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                            value={item.units}
+                            onChange={(e) => {
+                              const newItems = [...form.items]
+                              newItems[index].units = e.target.value
+                              setForm(prev => ({ ...prev, items: newItems }))
+                            }}
+                            required
+                          />
+                          {/* stock badge removed from modal per request; Productos.jsx tendrá el badge */}
+                        </div>
                       </label>
                     </div>
                     <div>

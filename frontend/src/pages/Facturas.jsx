@@ -113,6 +113,24 @@ export default function Facturas() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  // Refresh products when the create modal opens so selector shows latest stock
+  useEffect(() => {
+    let mounted = true;
+    if (showCreateModal && token) {
+      (async () => {
+        try {
+          const productsData = await apiGet('/products?limit=200&offset=0', token)
+          if (!mounted) return
+          setProducts(productsData.items || productsData || [])
+        } catch (e) {
+          // non-blocking
+          console.warn('Could not refresh products on modal open', e)
+        }
+      })()
+    }
+    return () => { mounted = false }
+  }, [showCreateModal, token])
+
   const fetchNextNumber = useCallback(async (docType, atDate) => {
     try {
       const qs = new URLSearchParams({ type: docType, ...(atDate ? { date: atDate } : {}) })

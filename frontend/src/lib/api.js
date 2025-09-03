@@ -112,6 +112,11 @@ export async function apiPut(path, body, token) {
     body: JSON.stringify(body),
   })
   if (!res.ok) {
+    // Debug: log full response body (use clone so safeError can still read it)
+    try {
+      const bodyText = await res.clone().text()
+      if (typeof console !== 'undefined' && console.error) console.error('API PUT error response body:', bodyText)
+  } catch (__) { void __ }
     const msg = await safeError(res)
     const e = new Error(msg)
     e.status = res.status
@@ -145,6 +150,22 @@ export async function apiPatch(path, body, token) {
  * @returns {Promise<string>} Error message
  */
 async function safeError(res) {
-  try { const j = await res.json(); return j.error || res.statusText } catch { return res.statusText }
+  try {
+    // Try JSON first
+    const j = await res.json()
+    // If server provides structured error fields, prefer them
+    if (j && (j.error || j.message)) return j.error || j.message
+    // otherwise stringify the JSON
+    return JSON.stringify(j)
+  } catch {
+    try {
+      // fallback to plain text body
+      const txt = await res.text()
+      if (txt) return txt
+  } catch {
+      // ignore
+    }
+    return res.statusText
+  }
 }
 

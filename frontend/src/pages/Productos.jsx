@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useStore } from '../store/store'
 import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api'
@@ -14,6 +14,7 @@ export default function Productos() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedModel, setSelectedModel] = useState(null)
   const [products, setProducts] = useState([])
+  const [variantStockMap, setVariantStockMap] = useState({})
   const [showProductModal, setShowProductModal] = useState(false)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
@@ -28,13 +29,9 @@ export default function Productos() {
     features: {}
   })
 
-  useEffect(() => {
-    if (token) {
-      loadCategories()
-    }
-  }, [token])
 
-  const loadCategories = async () => {
+
+  const loadCategories = useCallback(async () => {
     try {
       setLoading(true)
       const data = await apiGet('/products/summary', token)
@@ -44,7 +41,7 @@ export default function Productos() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token])
 
   const loadProductsByModel = async (category, model) => {
     try {
@@ -57,6 +54,78 @@ export default function Productos() {
       toast.error('Error al cargar productos: ' + error.message)
     }
   }
+
+  // Helper: try to infer a variant/key (e.g. screen size like 55 or 65) from a product or model string
+  const inferVariant = (obj) => {
+    if (!obj) return 'default'
+    // check features object for common keys (case-insensitive)
+    const features = obj.features || {}
+    const featureKeys = Object.keys(features || {})
+    for (const k of featureKeys) {
+      const lk = String(k).toLowerCase()
+      if (['size', 'screen_size', 'screen', 'pulgadas', 'pulgada', 'inch', 'inches', 'tamaño', 'tamano'].includes(lk)) {
+        const val = features[k]
+  if (val !== undefined && val !== null) return String(val).replace(/\s+|"|inches|inch|pulgadas|pulgada/gi, '').trim()
+      }
+    }
+
+    // If there is a top-level explicit size-like field
+    for (const key of ['size', 'screen_size', 'pulgadas', 'stock_size', 'variant']) {
+      if (obj[key]) return String(obj[key]).replace(/\s+|"/g, '').trim()
+    }
+
+    // SKU may include the size (e.g. "TV-55", "55IN-TX")
+    if (obj.sku && typeof obj.sku === 'string') {
+      const m = obj.sku.match(/(\d{2,3})(?=\D|$)/)
+      if (m) return m[1]
+    }
+
+    // model string may contain the size (e.g. "Model X 55\"" or "Model-55" or "55in")
+    if (obj.model && typeof obj.model === 'string') {
+  const m = obj.model.match(/(?:^|\D)(\d{2,3})(?:"|inches|inch|in|pulgadas)?(?:\b|$)/i)
+      if (m) return m[1]
+    }
+
+    // fallback
+    return 'default'
+  }
+
+  // Load products for each category (once) to compute aggregate stock per model+variant.
+  // This is a client-side fallback when backend does not provide aggregated per-variant stock.
+  const loadVariantStocks = useCallback(async () => {
+    if (!token || !Array.isArray(categories) || categories.length === 0) return
+    const map = {}
+  await Promise.all(categories.map(async (cat) => {
+      try {
+        // fetch products for category (no model filter) - increase limit if needed
+        const res = await apiGet(`/products?category=${encodeURIComponent(cat.category)}&limit=1000`, token)
+        const items = res.items || []
+  items.forEach(p => {
+          const model = p.model || 'unknown'
+          const variant = inferVariant(p)
+          const key = `${model}::${variant}`
+          const qty = Number(p.stock_qty || p.stock_total || p.stock || 0)
+          map[key] = (map[key] || 0) + (Number.isFinite(qty) ? qty : 0)
+        })
+      } catch {
+        // ignore per-category errors
+      }
+    }))
+    setVariantStockMap(map)
+  }, [categories, token])
+
+  // Recompute variant stocks whenever categories or token change
+  useEffect(() => {
+    if (token && categories.length > 0) {
+      loadVariantStocks()
+    }
+  }, [token, categories, loadVariantStocks])
+
+  useEffect(() => {
+    if (token) loadCategories()
+  }, [token, loadCategories])
+
+  
 
   const handleCreateProduct = () => {
     setEditingProduct(null)
@@ -89,11 +158,19 @@ export default function Productos() {
   const handleSubmitProduct = async (e) => {
     e.preventDefault()
     try {
+      // Coerce numeric fields to proper types to avoid backend errors
+      const payload = {
+        ...productForm,
+        stock_qty: Number(productForm.stock_qty) || 0,
+        price_net: Number(productForm.price_net) || 0,
+        tax_rate: Number(productForm.tax_rate) || 0,
+      }
+  // debug logging removed
       if (editingProduct) {
-        await apiPut(`/products/${editingProduct.id}`, productForm, token)
+        await apiPut(`/products/${editingProduct.id}`, payload, token)
         toast.success('Producto actualizado')
       } else {
-        await apiPost('/products', productForm, token)
+        await apiPost('/products', payload, token)
         toast.success('Producto creado')
       }
       setShowProductModal(false)
@@ -102,7 +179,10 @@ export default function Productos() {
       }
       loadCategories()
     } catch (error) {
-      toast.error('Error: ' + error.message)
+  // errors will be surfaced to user via toast; no console logging
+  const userMsg = error && error.message ? error.message : 'Error desconocido'
+  const status = error && error.status ? ` (status ${error.status})` : ''
+  toast.error('Error: ' + userMsg + status)
     }
   }
 
@@ -161,7 +241,7 @@ export default function Productos() {
       <section>
         <h3 className="text-xl font-semibold mb-4">Inventario por Categorías</h3>
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
             {[1,2,3].map(i => (
               <CustomSkeleton key={i} height={200} className="rounded-lg" />
             ))}
@@ -170,7 +250,7 @@ export default function Productos() {
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4"
           >
             {filteredCategories.map((categoryData) => (
               <motion.div
@@ -189,18 +269,35 @@ export default function Productos() {
                 </div>
                 
                 <div className="space-y-3">
-                  {categoryData.models.slice(0, 3).map((modelData) => (
-                    <div
-                      key={modelData.model}
-                      onClick={() => loadProductsByModel(categoryData.category, modelData.model)}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                    >
-                      <span className="font-medium">{modelData.model}</span>
-                      <span className="text-sm bg-brand text-white px-2 py-1 rounded">
-                        {modelData.count}
-                      </span>
-                    </div>
-                  ))}
+                  {categoryData.models.slice(0, 3).map((modelData) => {
+                    // Prefer aggregated stock fields if available, otherwise fall back to count
+                    const stockVal = typeof modelData.stock_total !== 'undefined'
+                      ? Number(modelData.stock_total)
+                      : (typeof modelData.stock_qty !== 'undefined' ? Number(modelData.stock_qty) : (typeof modelData.stock !== 'undefined' ? Number(modelData.stock) : (typeof modelData.count !== 'undefined' ? Number(modelData.count) : 0)))
+                    const displayFromModel = Number.isFinite(stockVal) ? stockVal : (modelData.count || 0)
+                    // try variant override
+                    const variantKey = `${modelData.model}::${inferVariant(modelData)}`
+                    const override = typeof variantStockMap[variantKey] !== 'undefined' ? variantStockMap[variantKey] : null
+                    const display = override !== null ? override : displayFromModel
+                    return (
+                      <div
+                        key={modelData.model}
+                        onClick={() => loadProductsByModel(categoryData.category, modelData.model)}
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        <span className="font-medium">{modelData.model}</span>
+                        {(() => {
+                          const bg = display <= 2 ? '#FF512E' : (display <= 4 ? '#FFA500' : null)
+                          const style = bg ? { backgroundColor: bg } : undefined
+                          return (
+                            <span className="text-sm px-2 py-1 rounded bg-brand" style={style}>
+                              <span className={`tabular-nums text-white font-semibold`}>{display}</span>
+                            </span>
+                          )
+                        })()}
+                      </div>
+                    )
+                  })}
                   
                   {categoryData.models.length > 3 && (
                     <div className="text-center">
@@ -298,18 +395,33 @@ export default function Productos() {
               ) : (
                 // Mostrar todos los modelos de la categoría
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {categories.find(c => c.category === selectedCategory)?.models.map((modelData) => (
-                    <div
-                      key={modelData.model}
-                      onClick={() => loadProductsByModel(selectedCategory, modelData.model)}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                    >
-                      <span className="font-medium">{modelData.model}</span>
-                      <span className="text-sm bg-brand text-white px-2 py-1 rounded">
-                        {modelData.count}
-                      </span>
-                    </div>
-                  ))}
+                  {categories.find(c => c.category === selectedCategory)?.models.map((modelData) => {
+                    const stockVal = typeof modelData.stock_total !== 'undefined'
+                      ? Number(modelData.stock_total)
+                      : (typeof modelData.stock_qty !== 'undefined' ? Number(modelData.stock_qty) : (typeof modelData.stock !== 'undefined' ? Number(modelData.stock) : (typeof modelData.count !== 'undefined' ? Number(modelData.count) : 0)))
+                    const displayFromModel = Number.isFinite(stockVal) ? stockVal : (modelData.count || 0)
+                    const variantKey = `${modelData.model}::${inferVariant(modelData)}`
+                    const override = typeof variantStockMap[variantKey] !== 'undefined' ? variantStockMap[variantKey] : null
+                    const display = override !== null ? override : displayFromModel
+                    return (
+                      <div
+                        key={modelData.model}
+                        onClick={() => loadProductsByModel(selectedCategory, modelData.model)}
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        <span className="font-medium">{modelData.model}</span>
+                        {(() => {
+                          const bg = display <= 2 ? '#FF512E' : (display <= 5 ? '#FFF58A' : null)
+                          const style = bg ? { backgroundColor: bg } : undefined
+                          return (
+                            <span className="text-sm px-2 py-1 rounded bg-brand" style={style}>
+                              <span className={`tabular-nums text-white font-semibold`}>{display}</span>
+                            </span>
+                          )
+                        })()}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>

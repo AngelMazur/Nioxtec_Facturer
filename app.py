@@ -122,7 +122,7 @@ except Exception:
 
 
 # -------------------------------------------------------------
-# Company config helpers
+#  config helpers
 
 def _company_from_env() -> SimpleNamespace:
     """Build a company-like object from environment variables.
@@ -1333,9 +1333,19 @@ def get_product(pid):
 def update_product(pid):
     p = Product.query.get_or_404(pid)
     data = request.get_json(force=True)
-    for field in ['category','model','sku','features']:
+    # Update simple string fields, but treat SKU specially: empty -> NULL
+    for field in ['category', 'model', 'features']:
         if field in data:
             setattr(p, field, data[field])
+    if 'sku' in data:
+        # store NULL in DB when client sends empty/blank sku to avoid
+        # violating UNIQUE constraint for empty strings
+        sku = data.get('sku')
+        if isinstance(sku, str):
+            sku = sku.strip() or None
+        else:
+            sku = sku or None
+        p.sku = sku
     if 'stock_qty' in data:
         try:
             p.stock_qty = max(0, int(data['stock_qty']))
@@ -1353,7 +1363,12 @@ def update_product(pid):
             p.tax_rate = tr
         except Exception:
             return jsonify({'error': 'tax_rate inválido (0–100)'}), 400
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError as e:
+        # Likely a UNIQUE constraint on sku or similar
+        db.session.rollback()
+        return jsonify({'error': 'Integrity error updating product (possible duplicate SKU)'}), 409
     return jsonify({'status': 'ok'})
 
 
