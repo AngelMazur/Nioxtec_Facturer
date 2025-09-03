@@ -55,9 +55,9 @@ const DataCard = ({
       }}
       transition={{ duration: MOTION.duration.base, ease: MOTION.ease.standard }}
       className={`
-        bg-gray-800 border border-gray-700 rounded
-        transition-all duration-200
-        ${isClickable ? 'cursor-pointer hover:scale-[1.02] hover:bg-gray-800/80 active:scale-95 active:bg-gray-700' : ''}
+  niox-data-card bg-gray-800 border border-gray-700 rounded shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)]
+  transition-all duration-200 will-change-transform
+  ${isClickable ? 'cursor-pointer hover:scale-[1.02] hover:shadow-[0_20px_40px_-12px_rgba(24,180,216,0.25),_0_8px_24px_-10px_rgba(0,0,0,0.6)] hover:bg-gray-800/80 active:scale-95 active:bg-gray-700' : ''}
         ${className}
         
         /* Responsive padding */

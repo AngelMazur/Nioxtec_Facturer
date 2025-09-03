@@ -24,6 +24,7 @@ export default function Header({ children }) {
   const [logoReady, setLogoReady] = useState(false)
   const [logoDuration, setLogoDuration] = useState(0.8)
   const fallbackTimerRef = useRef(null)
+  const [atTop, setAtTop] = useState(true)
 
   // Al cambiar de ruta, retrasar el render del logo hasta recibir un evento de sincronización
   useEffect(() => {
@@ -60,6 +61,14 @@ export default function Header({ children }) {
     }
   }, [])
 
+  // Actualiza el estado atTop para ocultar halo cuando no hay scroll
+  useEffect(() => {
+    const onScroll = () => setAtTop(window.scrollY <= 1)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   // Función para cerrar el menú móvil
   const closeMobileMenu = () => setOpen(false)
 
@@ -89,7 +98,7 @@ export default function Header({ children }) {
   }
 
   return (
-    <header className="sticky top-0 z-50 relative overflow-hidden bg-[rgba(16,20,26,0.45)] supports-[backdrop-filter]:bg-[rgba(16,20,26,0.35)] backdrop-blur-[10px] border-b border-white/10 shadow-[0_5px_50px_-5px_rgba(255,255,255,0.1),_0_0_0_1px_rgba(255,255,255,0.1)]">
+    <header className={`sticky top-0 z-50 relative overflow-hidden bg-[rgba(16,20,26,0.45)] supports-[backdrop-filter]:bg-[rgba(16,20,26,0.35)] backdrop-blur-[10px] border-b border-white/10 ${atTop ? 'shadow-none' : 'shadow-[0_5px_50px_-5px_rgba(255,255,255,0.1),_0_0_0_1px_rgba(255,255,255,0.1)]'} transition-shadow`}>
       {/* Capa de brillo superior muy sutil */}
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0)_60%)]" />
       <div className="relative mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
