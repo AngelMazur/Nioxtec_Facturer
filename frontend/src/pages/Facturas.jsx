@@ -442,7 +442,7 @@ export default function Facturas() {
                             inv.type === 'proforma'
                               ? {
                                   label: 'Editar',
-                                  className: 'bg-gray-950 text-gray-100 border border-gray-800 hover:!bg-gray-900 focus:ring-gray-900',
+                                  className: 'text-indigo-400 hover:text-indigo-300 focus:ring-indigo-500',
                                   onClick: () => editProforma(inv)
                                 }
                               : {
