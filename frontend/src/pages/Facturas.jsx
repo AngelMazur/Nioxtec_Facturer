@@ -6,6 +6,7 @@ import {
   apiPost,
   apiGetBlob,
   apiDelete,
+  apiPatch,
 } from '../lib/api';
 import toast from 'react-hot-toast';
 import CustomSkeleton from "../components/CustomSkeleton"
@@ -111,6 +112,8 @@ export default function Facturas() {
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingInvoiceId, setEditingInvoiceId] = useState(null);
 
   const fetchNextNumber = useCallback(async (docType, atDate) => {
     try {
@@ -212,6 +215,16 @@ export default function Facturas() {
       toast.error('No se pudo eliminar');
     }
   };
+  // Eliminar la factura actual desde la modal de edición
+  const deleteCurrentInvoice = async () => {
+    if (!editingInvoiceId) return;
+    const inv = invoices.find(i => i.id === editingInvoiceId);
+    if (!inv) return;
+    await deleteInvoice(inv);
+    setShowCreateModal(false);
+    setEditMode(false);
+    setEditingInvoiceId(null);
+  }
   const [preview, setPreview] = useState(null);
 
   const downloadInvoice = async (id, number) => {
@@ -226,6 +239,61 @@ export default function Facturas() {
       link.remove();
     } catch {
       toast.error('Error al descargar PDF');
+    }
+  };
+  // Cargar proforma en modo edición
+  const editProforma = async (inv) => {
+    try {
+      const details = await apiGet(`/invoices/${inv.id}`, token);
+      setForm({
+        number: details.number || '',
+        date: details.date || new Date().toISOString().slice(0, 10),
+        type: details.type,
+        client_id: String(details.client_id || ''),
+        payment_method: details.payment_method || 'efectivo',
+        items: (details.items || []).map((it) => ({
+          description: it.description,
+          units: it.units,
+          // Convertir neto a bruto para edición
+          unit_price: netToGross(it.unit_price, it.tax_rate),
+          tax_rate: it.tax_rate,
+        })),
+      });
+      setEditingInvoiceId(inv.id);
+      setEditMode(true);
+      setShowCreateModal(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch {
+      toast.error('No se pudo cargar la proforma');
+    }
+  };
+
+  // Guardar cambios de edición
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!editingInvoiceId) return;
+    const payload = { ...form, client_id: Number(form.client_id) };
+    payload.items = (payload.items || []).map((it) => ({
+      description: it.description,
+      units: Number(it.units),
+      unit_price: grossToNet(it.unit_price, it.tax_rate),
+      tax_rate: Number(it.tax_rate),
+    }));
+    if (payload.type !== 'factura') {
+      delete payload.payment_method;
+    } else if (!payload.payment_method) {
+      payload.payment_method = 'efectivo';
+    }
+    try {
+      const updated = await apiPatch(`/invoices/${editingInvoiceId}`, payload, token);
+      // Reemplazar en lista manteniendo orden
+      setInvoices((prev) => prev.map((i) => (i.id === editingInvoiceId ? { ...i, ...updated } : i)));
+      toast.success('Cambios guardados');
+      setShowCreateModal(false);
+      setEditMode(false);
+      setEditingInvoiceId(null);
+    } catch {
+      toast.error('No se pudo actualizar');
     }
   };
 
@@ -371,11 +439,17 @@ export default function Facturas() {
                               className: 'focus:ring-gray-500',
                               onClick: () => duplicateInvoice(inv)
                             },
-                            {
-                              label: 'Eliminar',
-                              className: 'text-red-600 focus:ring-red-500',
-                              onClick: () => deleteInvoice(inv)
-                            }
+                            inv.type === 'proforma'
+                              ? {
+                                  label: 'Editar',
+                                  className: 'focus:ring-gray-500',
+                                  onClick: () => editProforma(inv)
+                                }
+                              : {
+                                  label: 'Eliminar',
+                                  className: 'text-red-600 focus:ring-red-500',
+                                  onClick: () => deleteInvoice(inv)
+                                }
                           ]}
                           columns={5}
                           >
@@ -469,14 +543,16 @@ export default function Facturas() {
         );
       })()}
 
-      {/* Modal para crear factura */}
+      {/* Modal para crear/editar factura */}
       <CreateInvoiceModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSubmit={handleSubmit}
+        onSubmit={editMode ? handleUpdate : handleSubmit}
         form={form}
         setForm={setForm}
         clients={clients}
+        mode={editMode ? 'edit' : 'create'}
+        onDelete={editMode ? deleteCurrentInvoice : undefined}
       />
     </main>
   );

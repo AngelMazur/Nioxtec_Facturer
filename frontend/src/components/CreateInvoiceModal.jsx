@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients }) => {
+const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients, mode = 'create', onDelete }) => {
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
@@ -31,7 +31,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients 
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Crear Nueva Factura</h3>
+              <h3 className="text-xl font-semibold text-white">{mode === 'edit' ? 'Editar Documento' : 'Crear Nueva Factura'}</h3>
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-gray-800 rounded-lg"
@@ -152,15 +152,15 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients 
                 transition={{ delay: 0.6 }}
                 className="space-y-4"
               >
-                <h4 className="font-semibold text-white">Líneas de factura</h4>
+                <h4 className="font-semibold text-white">Líneas de {form.type === 'proforma' ? 'proforma' : 'factura'}</h4>
                 {form.items.map((item, index) => (
                   <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
                     <div>
                       <label className="flex flex-col gap-1">
                         <span className="text-sm text-gray-500">Descripción</span>
-                        <input
-                          type="text"
-                          className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                        <textarea
+                          rows={3}
+                          className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand resize-y"
                           value={item.description}
                           onChange={(e) => {
                             const newItems = [...form.items]
@@ -270,8 +270,17 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients 
                   type="submit"
                   className="flex-1 bg-primary hover:bg-primary/90 active:scale-95 focus:scale-105 transition-all duration-200 text-white px-6 py-3 rounded-lg font-medium focus:ring-2 focus:ring-brand focus:ring-opacity-50"
                 >
-                  Crear Factura
+                  {mode === 'edit' ? 'Guardar cambios' : 'Crear Factura'}
                 </button>
+                {mode === 'edit' && onDelete && (
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    className="px-6 py-3 border border-red-600 text-red-400 hover:text-white hover:bg-red-600/20 active:scale-95 transition-all duration-200 rounded-lg font-medium"
+                  >
+                    Eliminar
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={onClose}
