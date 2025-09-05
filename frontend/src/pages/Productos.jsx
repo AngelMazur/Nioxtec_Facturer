@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useStore } from '../store/store'
 import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api'
@@ -33,19 +33,45 @@ export default function Productos() {
   const [forceHoverBtn, setForceHoverBtn] = useState(true)
   const hoverTimeoutRef = useRef(null)
 
+  // Default categories and images mapping
+  const DEFAULT_CATEGORIES = useMemo(() => ([
+    { category: 'Pantallas', total: 0, models: [] },
+    { category: 'TPVs', total: 0, models: [] },
+  ]), [])
+  const CATEGORY_IMAGES = useMemo(() => ({
+    pantallas: { src: '/PantallasLogo.jpg', alt: 'Pantallas' },
+    tpvs: { src: '/TPV-15-con-logo.png', alt: 'TPVs' },
+    tpv: { src: '/TPV-15-con-logo.png', alt: 'TPV' },
+  }), [])
+  const imageForCategory = useCallback((name) => {
+    if (!name) return null
+    const key = String(name).trim().toLowerCase()
+    return CATEGORY_IMAGES[key] || null
+  }, [CATEGORY_IMAGES])
+
 
 
   const loadCategories = useCallback(async () => {
     try {
       setLoading(true)
       const data = await apiGet('/products/summary', token)
-      setCategories(data.categories || [])
+      const incoming = Array.isArray(data?.categories) ? data.categories : []
+      // Ensure default categories exist (Pantallas, TPVs)
+      const hasCat = (arr, name) => arr.some(c => String(c.category || '').toLowerCase() === String(name).toLowerCase())
+      const merged = [...incoming]
+      DEFAULT_CATEGORIES.forEach(def => {
+        if (!hasCat(merged, def.category)) {
+          // Add missing default category at the beginning to highlight it
+          merged.unshift({ ...def })
+        }
+      })
+      setCategories(merged)
     } catch (error) {
       toast.error('Error al cargar categorías: ' + error.message)
     } finally {
       setLoading(false)
     }
-  }, [token])
+  }, [token, DEFAULT_CATEGORIES])
 
   const loadProductsByModel = async (category, model) => {
     try {
@@ -283,7 +309,27 @@ export default function Productos() {
                 key={categoryData.category}
                 variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
               >
-                <ProductCard className="h-full">
+                <ProductCard className="group h-full">
+                {/* Category image banner (if defined) */}
+                {(() => {
+                  const img = imageForCategory(categoryData.category)
+                  if (!img) return null
+                  return (
+                    <div className="relative mb-4 rounded-xl overflow-hidden border border-gray-700/60">
+                      <img
+                        src={img.src}
+                        alt={img.alt}
+                        className="w-full h-40 object-cover select-none pointer-events-none transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                        draggable={false}
+                      />
+                      {/* Top vignette */}
+                      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_60%)]" />
+                      {/* Bottom gradient for contrast, similar to the reference */}
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
+                    </div>
+                  )
+                })()}
+
                 <div className="mb-4">
                   <h4 className="text-lg font-semibold text-brand capitalize mb-2">
                     {categoryData.category}
