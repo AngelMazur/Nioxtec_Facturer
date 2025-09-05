@@ -1,4 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
+// STYLE: Añadimos animaciones de apertura/cierre accesibles
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useStore } from '../../../store/store'
 import { generateContractPDF, downloadContractPDF, saveContractAsClientDocument } from '../services/contractService'
 import ContractForm from './ContractForm'
@@ -225,11 +227,29 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
     }
   }
 
-  if (!isOpen) return null
+  const reduceMotion = useReducedMotion()
 
-    return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 z-50">
-      <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl">
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          // Overlay fade
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 z-50"
+          onClick={handleClose}
+        >
+          <motion.div
+            // STYLE: Panel entra con zoom suave; en reduceMotion solo fade
+            initial={reduceMotion ? { opacity: 0 } : { scale: 0.96, opacity: 0, y: 12 }}
+            animate={reduceMotion ? { opacity: 1 } : { scale: 1, opacity: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { scale: 0.96, opacity: 0, y: 12 }}
+            transition={reduceMotion ? { duration: 0.15 } : { type: 'spring', damping: 26, stiffness: 320 }}
+            className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog" aria-modal="true" aria-labelledby="contract-generator-title"
+          >
         {/* Header */}
         <div className="flex items-center justify-between p-3 lg:p-4 border-b border-gray-700">
           <div className="flex items-center gap-3">
@@ -245,7 +265,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
               </button>
             )}
             <div>
-              <h2 className="text-lg lg:text-xl font-semibold">Generador de Contratos</h2>
+              <h2 id="contract-generator-title" className="text-lg lg:text-xl font-semibold">Generador de Contratos</h2>
               {selectedTemplate && (
                 <p className="text-sm text-gray-400 mt-1">{selectedTemplate.name}</p>
               )}
@@ -300,56 +320,65 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
               </div>
             )}
 
-            {/* Form Panel */}
+            {/* Animated Panels: Form / Preview */}
             {selectedTemplate && (
-              <div className={`w-full p-2 lg:p-3 overflow-y-auto ${activeTab === 'form' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(90vh - 220px)' }}>
-                {/* Custom Filename Input */}
-                <div className="mb-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Nombre del archivo
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={customFilename}
-                      onChange={(e) => setCustomFilename(e.target.value)}
-                      placeholder={generateFilename()}
-                      className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setCustomFilename('')}
-                      className="px-2 py-2 text-gray-400 hover:text-white transition-colors"
-                      title="Usar nombre automático"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Deja vacío para usar el nombre automático: {generateFilename()}
-                  </p>
-                </div>
-                
-                <ContractForm
-                  onFormDataChange={handleFormDataChange}
-                  onActiveFieldsChange={setActiveFields}
-                  selectedClient={selectedClient}
-                  selectedTemplate={selectedTemplate}
-                  resetKey={resetKey}
-                />
-              </div>
-            )}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="w-full p-3 lg:p-4 overflow-y-auto"
+                  style={{ maxHeight: 'calc(90vh - 220px)' }}
+                >
+                  {activeTab === 'form' ? (
+                    <>
+                      {/* Custom Filename Input */}
+                      <div className="mb-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Nombre del archivo
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={customFilename}
+                            onChange={(e) => setCustomFilename(e.target.value)}
+                            placeholder={generateFilename()}
+                            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setCustomFilename('')}
+                            className="px-2 py-2 text-gray-400 hover:text-white transition-colors"
+                            title="Usar nombre automático"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Deja vacío para usar el nombre automático: {generateFilename()}
+                        </p>
+                      </div>
 
-            {/* Preview Panel */}
-            {selectedTemplate && (
-              <div className={`w-full p-3 lg:p-4 overflow-y-auto ${activeTab === 'preview' ? 'block' : 'hidden'}`} style={{ maxHeight: 'calc(90vh - 220px)' }}>
-                <ContractPreview
-                  formData={formData}
-                  loading={!formData || Object.keys(formData).length === 0}
-                />
-              </div>
+                      <ContractForm
+                        onFormDataChange={handleFormDataChange}
+                        onActiveFieldsChange={setActiveFields}
+                        selectedClient={selectedClient}
+                        selectedTemplate={selectedTemplate}
+                        resetKey={resetKey}
+                      />
+                    </>
+                  ) : (
+                    <ContractPreview
+                      formData={formData}
+                      loading={!formData || Object.keys(formData).length === 0}
+                    />
+                  )}
+                </motion.div>
+              </AnimatePresence>
             )}
           </div>
         </div>
@@ -394,7 +423,9 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
             </div>
           </div>
         )}
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
