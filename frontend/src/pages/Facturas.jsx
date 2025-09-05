@@ -6,7 +6,7 @@ import {
   apiPost,
   apiGetBlob,
   apiDelete,
-  apiPatch,
+  apiPut,
 } from '../lib/api';
 import toast from 'react-hot-toast';
 import CustomSkeleton from "../components/CustomSkeleton"
@@ -285,9 +285,10 @@ export default function Facturas() {
       payload.payment_method = 'efectivo';
     }
     try {
-      const updated = await apiPatch(`/invoices/${editingInvoiceId}`, payload, token);
-      // Reemplazar en lista manteniendo orden
-      setInvoices((prev) => prev.map((i) => (i.id === editingInvoiceId ? { ...i, ...updated } : i)));
+      await apiPut(`/invoices/${editingInvoiceId}`, payload, token);
+      // Refrescar datos de la factura editada y reemplazar en lista
+      const details = await apiGet(`/invoices/${editingInvoiceId}`, token);
+      setInvoices((prev) => prev.map((i) => (i.id === editingInvoiceId ? { ...i, ...details } : i)));
       toast.success('Cambios guardados');
       setShowCreateModal(false);
       setEditMode(false);
@@ -405,18 +406,33 @@ export default function Facturas() {
                     </table>
                   </div>
 
-                  {/* Labels externos solo en desktop */}
+                  {/* Labels externos solo en desktop (clickables para ordenar) */}
                   <div className={`
                     hidden md:grid md:grid-cols-6
                     gap-2 sm:gap-3 md:gap-4
                     mb-2 sm:mb-2.5 md:mb-3
                     text-xs text-gray-500 font-medium
                   `}>
-                    <div>Número</div>
-                    <div>Cliente</div>
-                    <div>Fecha</div>
-                    <div>Tipo</div>
-                    <div>Total</div>
+                    <button
+                      className="text-left hover:underline"
+                      onClick={() => { setSort(s => ({ field: 'number', dir: s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
+                    >Número</button>
+                    <button
+                      className="text-left hover:underline"
+                      onClick={() => { setSort(s => ({ field: 'client_id', dir: s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
+                    >Cliente</button>
+                    <button
+                      className="text-left hover:underline"
+                      onClick={() => { setSort(s => ({ field: 'date', dir: s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
+                    >Fecha</button>
+                    <button
+                      className="text-left hover:underline"
+                      onClick={() => { setSort(s => ({ field: 'type', dir: s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
+                    >Tipo</button>
+                    <button
+                      className="text-left hover:underline"
+                      onClick={() => { setSort(s => ({ field: 'total', dir: s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
+                    >Total</button>
                     <div>Acciones</div>
                   </div>
 
