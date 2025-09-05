@@ -1,5 +1,5 @@
-import React, { useRef } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import React from 'react'
+import { motion, useReducedMotion, useMotionValue, useSpring } from 'framer-motion'
 import { MOTION } from '../styles/motion'
 
 const DataCard = ({
@@ -43,35 +43,26 @@ const DataCard = ({
   }
 
   const reduceMotion = useReducedMotion()
-  const ref = useRef(null)
 
+  // Subtle horizontal tilt (rotateY) following pointer X. Disabled if reduced motion.
+  const tiltY = useMotionValue(0)
+  const tiltYSpring = useSpring(tiltY, { stiffness: 200, damping: 20, mass: 0.4 })
+
+  const maxTilt = 2 // degrees
   const handlePointerMove = (e) => {
-    const el = ref.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const mx = e.clientX - rect.left
-    const my = e.clientY - rect.top
-    el.style.setProperty('--mx', `${mx}px`)
-    el.style.setProperty('--my', `${my}px`)
-    if (!reduceMotion) {
-      const cx = rect.width / 2
-      const cy = rect.height / 2
-      const rx = ((my - cy) / cy) * -3 // rotateX
-      const ry = ((mx - cx) / cx) * 3  // rotateY
-      el.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg)`
-    }
+    if (reduceMotion) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const pctX = (x / rect.width - 0.5) * 2 // -1 .. 1
+    tiltY.set(pctX * maxTilt)
   }
+
   const handlePointerLeave = () => {
-    const el = ref.current
-    if (!el) return
-    el.style.removeProperty('--mx')
-    el.style.removeProperty('--my')
-    el.style.transform = ''
+    tiltY.set(0)
   }
 
   return (
     <motion.div
-      ref={ref}
       variants={reduceMotion ? {
         hidden: { opacity: 0 },
         show: { opacity: 1 },
@@ -80,6 +71,7 @@ const DataCard = ({
         show: { opacity: 1, y: 0 },
       }}
       transition={{ duration: MOTION.duration.base, ease: MOTION.ease.standard }}
+      style={reduceMotion ? undefined : { rotateY: tiltYSpring, transformPerspective: 800 }}
       className={`
   niox-data-card bg-gray-800 border border-gray-700 rounded shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)]
   transition-all duration-200 will-change-transform
@@ -89,9 +81,9 @@ const DataCard = ({
         /* Responsive padding */
         p-2 sm:p-3 md:p-4
       `}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={handlePointerLeave}
       onClick={isClickable ? onClick : undefined}
+      onPointerMove={isClickable ? handlePointerMove : undefined}
+      onPointerLeave={isClickable ? handlePointerLeave : undefined}
     >
       {/* Grid principal: contenido + acciones */}
       <div className={`
