@@ -3,6 +3,7 @@ import { Suspense, lazy } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { useStore } from './store/store'
 import Header from './components/Header'
+import TopProgressBar from './components/TopProgressBar'
 import LoadingSpinner from './components/LoadingSpinner'
 import { AnimatePresence } from 'framer-motion'
 import PageTransition from './components/PageTransition'
@@ -34,15 +35,42 @@ function AnimatedRoutes({ token, logout }) {
   return (
     <>
       {token && (
-        <Header>
-            <Link className="text-sm font-medium hover:text-brand transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98]" to="/facturas">Facturas</Link>
-            <Link className="text-sm font-medium hover:text-brand transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98]" to="/clientes">Clientes</Link>
-            <Link className="text-sm font-medium hover:text-brand transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98]" to="/productos">Productos</Link>
-            <Link className="text-sm font-medium hover:text-brand transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98]" to="/gastos">Gastos</Link>
-            <Link className="text-sm font-medium hover:text-brand transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98]" to="/reportes">Reportes</Link>
-            <button className="text-sm text-red-600 transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98]" onClick={logout}>Salir</button>
+        <Header
+          rightSlot={(
+            <button className="text-sm text-red-600 transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98] inline-flex items-center gap-1.5" onClick={logout}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Salir
+            </button>
+          )}
+          rightMobileSlot={(
+            <button className="block w-full text-left py-2 px-3 rounded-md hover:bg-gray-800 transition-colors text-red-500" onClick={logout}>
+              Salir
+            </button>
+          )}
+        >
+            <Link className="text-sm font-medium hover:text-brand transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98] inline-flex items-center gap-1.5" to="/facturas">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-6-4z"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h4"/></svg>
+              Facturas
+            </Link>
+            <Link className="text-sm font-medium hover:text-brand transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98] inline-flex items-center gap-1.5" to="/clientes">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Clientes
+            </Link>
+            <Link className="text-sm font-medium hover:text-brand transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98] inline-flex items-center gap-1.5" to="/productos">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              Productos
+            </Link>
+            <Link className="text-sm font-medium hover:text-brand transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98] inline-flex items-center gap-1.5" to="/gastos">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Gastos
+            </Link>
+            <Link className="text-sm font-medium hover:text-brand transition-[opacity,transform] duration-300 ease-out hover:scale-[1.02] active:scale-[.98] inline-flex items-center gap-1.5" to="/reportes">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 13h3v5H7z"/><path d="M12 8h3v10h-3z"/><path d="M17 11h3v7h-3z"/></svg>
+              Reportes
+            </Link>
         </Header>
       )}
+  {token && <TopProgressBar />}
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<Navigate to={token ? '/facturas' : '/login'} />} />

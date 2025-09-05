@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients, products = [] }) => {
   const [searchTerms, setSearchTerms] = React.useState({})
+  const dialogRef = React.useRef(null)
+  const lastActiveRef = React.useRef(null)
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
@@ -24,6 +26,32 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
     onSubmit(e)
   }
 
+  // Focus trap + Escape key + restore focus
+  React.useEffect(() => {
+    if (!isOpen) return
+    lastActiveRef.current = document.activeElement
+    const dialogEl = dialogRef.current
+    if (!dialogEl) return
+    const selectors = ['a[href]','button:not([disabled])','textarea:not([disabled])','input:not([disabled])','select:not([disabled])','[tabindex]:not([tabindex="-1"])']
+    const q = () => Array.from(dialogEl.querySelectorAll(selectors.join(',')))
+    const focusFirst = () => { const f = q(); if (f.length) f[0].focus() }
+    focusFirst()
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
+      if (e.key === 'Tab') {
+        const f = q(); if (!f.length) return
+        const first = f[0], last = f[f.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      if (lastActiveRef.current?.focus) lastActiveRef.current.focus()
+    }
+  }, [isOpen, onClose])
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -40,11 +68,15 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-invoice-title"
+            ref={dialogRef}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Crear Nueva Factura</h3>
+              <h3 id="create-invoice-title" className="text-xl font-semibold text-white">Crear Nueva Factura</h3>
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-gray-800 rounded-lg"

@@ -5,6 +5,7 @@ import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api'
 import toast from 'react-hot-toast'
 import CustomSkeleton from '../components/CustomSkeleton'
 import NeoGradientButton from '../components/NeoGradientButton'
+import ProductCard from '../components/ProductCard'
 import { MOTION } from '../styles/motion'
 
 // Página de gestión de productos e inventario
@@ -218,23 +219,25 @@ export default function Productos() {
 
   return (
     <main className="mx-auto max-w-6xl p-4 space-y-8">
-      <div className="flex items-center justify-between">
+      <div>
         <h2 className="text-2xl font-bold">Productos</h2>
-        <NeoGradientButton
-          onClick={handleCreateProduct}
-          forceHover={forceHoverBtn}
-          icon={
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          }
-        >
-          Crear Producto
-        </NeoGradientButton>
+        <div className="mt-4 flex justify-center">
+          <NeoGradientButton
+            onClick={handleCreateProduct}
+            forceHover={forceHoverBtn}
+            icon={
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            }
+          >
+            Crear Producto
+          </NeoGradientButton>
+        </div>
       </div>
 
-      {/* Búsqueda */}
-      <div className="flex gap-2 items-center">
+      {/* Búsqueda oculta para igualar layout con otras páginas */}
+      <div className="hidden gap-2 items-center">
         <input
           type="text"
           placeholder="Buscar categorías o modelos..."
@@ -279,8 +282,8 @@ export default function Productos() {
               <motion.div
                 key={categoryData.category}
                 variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-200"
               >
+                <ProductCard className="h-full">
                 <div className="mb-4">
                   <h4 className="text-lg font-semibold text-brand capitalize mb-2">
                     {categoryData.category}
@@ -305,7 +308,7 @@ export default function Productos() {
                       <div
                         key={modelData.model}
                         onClick={() => loadProductsByModel(categoryData.category, modelData.model)}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                        className="niox-model-row flex items-center justify-between p-3 cursor-pointer"
                       >
                         <span className="font-medium">{modelData.model}</span>
                         {(() => {
@@ -338,6 +341,7 @@ export default function Productos() {
                     </div>
                   )}
                 </div>
+                </ProductCard>
               </motion.div>
             ))}
             </motion.div>
@@ -430,7 +434,7 @@ export default function Productos() {
                       <div
                         key={modelData.model}
                         onClick={() => loadProductsByModel(selectedCategory, modelData.model)}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                        className="niox-model-row flex items-center justify-between p-3 cursor-pointer"
                       >
                         <span className="font-medium">{modelData.model}</span>
                         {(() => {

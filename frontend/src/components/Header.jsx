@@ -17,7 +17,7 @@ import { MOTION } from '../styles/motion'
  * @param {React.ReactNode} props.children - Navigation items to render
  * @returns {JSX.Element} Header component
  */
-export default function Header({ children }) {
+export default function Header({ children, rightSlot = null, rightMobileSlot = null }) {
   const [open, setOpen] = useState(false)
   const location = useLocation()
   const reduceMotion = useReducedMotion()
@@ -98,10 +98,10 @@ export default function Header({ children }) {
   }
 
   return (
-    <header className={`sticky top-0 z-50 relative overflow-hidden bg-[rgba(16,20,26,0.45)] supports-[backdrop-filter]:bg-[rgba(16,20,26,0.35)] backdrop-blur-[10px] border-b border-white/10 ${atTop ? 'shadow-none' : 'shadow-[0_5px_50px_-5px_rgba(255,255,255,0.1),_0_0_0_1px_rgba(255,255,255,0.1)]'} transition-shadow`}>
+    <header className={`sticky top-0 z-50 relative overflow-hidden ${atTop ? 'bg-transparent border-b-0' : 'bg-[rgba(16,20,26,0.45)] supports-[backdrop-filter]:bg-[rgba(16,20,26,0.35)] border-b border-white/10'} backdrop-blur-[10px] ${atTop ? 'shadow-none' : 'shadow-[0_5px_50px_-5px_rgba(255,255,255,0.1),_0_0_0_1px_rgba(255,255,255,0.1)]'} transition-[box-shadow,background-color,border-color]`}>
       {/* Capa de brillo superior muy sutil */}
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0)_60%)]" />
-      <div className="relative mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
+  <div className="relative container-page py-3 flex items-center gap-4">
         <Link to="/" className="inline-flex items-center gap-2">
           {logoReady && (
             <motion.img
@@ -122,15 +122,29 @@ export default function Header({ children }) {
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-700 dark:text-gray-200"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </button>
-        <nav className="ml-auto hidden sm:flex items-center gap-4">
-          {children}
+        {/* Nav centrado absoluto en desktop */}
+        <nav className="hidden sm:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
+          {Children.map(children, (child) => {
+            if (child?.type === Link) {
+              const isActive = child.props.to && location.pathname.startsWith(child.props.to)
+              return cloneElement(child, {
+                className: `${child.props.className || ''} nav-underline ${isActive ? 'nav-underline--active' : ''}`.trim()
+              })
+            }
+            return null
+          })}
         </nav>
+        {/* Slot derecho solo desktop */}
+        <div className="hidden sm:flex items-center gap-3 ml-auto">
+          {rightSlot}
+        </div>
       </div>
-      {/* Menú móvil */}
-      {open && (
+    {/* Menú móvil */}
+  {open && (
         <div className="sm:hidden border-t border-white/10 bg-[rgba(16,20,26,0.65)] supports-[backdrop-filter]:bg-[rgba(16,20,26,0.55)] backdrop-blur-[10px]">
           <div className="mx-auto max-w-6xl px-4 py-2 flex flex-col gap-1">
             {createMobileNavItems()}
+      {rightMobileSlot}
           </div>
         </div>
       )}

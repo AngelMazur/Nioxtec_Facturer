@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { MOTION } from '../styles/motion'
 
@@ -43,9 +43,35 @@ const DataCard = ({
   }
 
   const reduceMotion = useReducedMotion()
+  const ref = useRef(null)
+
+  const handlePointerMove = (e) => {
+    const el = ref.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    el.style.setProperty('--mx', `${mx}px`)
+    el.style.setProperty('--my', `${my}px`)
+    if (!reduceMotion) {
+      const cx = rect.width / 2
+      const cy = rect.height / 2
+      const rx = ((my - cy) / cy) * -3 // rotateX
+      const ry = ((mx - cx) / cx) * 3  // rotateY
+      el.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg)`
+    }
+  }
+  const handlePointerLeave = () => {
+    const el = ref.current
+    if (!el) return
+    el.style.removeProperty('--mx')
+    el.style.removeProperty('--my')
+    el.style.transform = ''
+  }
 
   return (
     <motion.div
+      ref={ref}
       variants={reduceMotion ? {
         hidden: { opacity: 0 },
         show: { opacity: 1 },
@@ -63,6 +89,8 @@ const DataCard = ({
         /* Responsive padding */
         p-2 sm:p-3 md:p-4
       `}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
       onClick={isClickable ? onClick : undefined}
     >
       {/* Grid principal: contenido + acciones */}

@@ -170,8 +170,8 @@ export default function Gastos() {
         </NeoGradientButton>
       </div>
 
-      {/* Búsqueda */}
-      <div className="flex gap-2 items-center">
+  {/* Filtros */}
+  <div className="gap-2 items-center flex">
         <input
           type="text"
           placeholder="Buscar en descripción, proveedor o categoría..."
@@ -188,7 +188,7 @@ export default function Gastos() {
           <CustomSkeleton count={5} height={30} className="mb-2" />
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
-            {/* Desktop table - hidden, using responsive cards instead */}
+            {/* Desktop table - mantenido oculto, se usa DataCard unificado */}
             <div className="hidden">
               <table className="w-full table-fixed border-separate border-spacing-y-2">
                 <thead>
@@ -220,7 +220,7 @@ export default function Gastos() {
                 </thead>
                 <tbody>
                   {expenses.map((expense) => (
-                    <tr key={expense.id} className="cursor-pointer group hover:scale-[1.02] transition-all duration-200">
+                    <tr key={expense.id} className="group">
                       <td className="px-2 py-2 bg-gray-800 group-hover:bg-gray-800/80 transition-colors rounded-l-lg whitespace-nowrap">
                         {new Date(expense.date).toLocaleDateString('es-ES')}
                       </td>
@@ -353,34 +353,34 @@ export default function Gastos() {
                 if (userHasSortedExpenses) {
                   // Si el usuario ha ordenado manualmente, aplicar ese ordenamiento con desempate estable por ID
                   sorted = expenses.slice().sort((a, b) => {
-                    const dir = dir === 'asc' ? 1 : -1
+                    const dirFactor = dir === 'asc' ? 1 : -1
                     const aId = a?.id || 0
                     const bId = b?.id || 0
-                    const fallback = (aId - bId) * dir
+                    const fallback = (aId - bId) * dirFactor
                     if (sort === 'date') {
                       const cmp = String(a.date || '').localeCompare(String(b.date || ''))
-                      return cmp !== 0 ? cmp * dir : fallback
+                      return cmp !== 0 ? cmp * dirFactor : fallback
                     }
                     if (sort === 'total') {
                       const diff = ((a.total ?? 0) - (b.total ?? 0))
-                      return diff !== 0 ? diff * dir : fallback
+                      return diff !== 0 ? diff * dirFactor : fallback
                     }
                     if (sort === 'category') {
                       const cmp = String(a.category || '').localeCompare(String(b.category || ''), 'es', { numeric: true })
-                      return cmp !== 0 ? cmp * dir : fallback
+                      return cmp !== 0 ? cmp * dirFactor : fallback
                     }
                     if (sort === 'description') {
                       const cmp = String(a.description || '').localeCompare(String(b.description || ''), 'es', { numeric: true })
-                      return cmp !== 0 ? cmp * dir : fallback
+                      return cmp !== 0 ? cmp * dirFactor : fallback
                     }
                     if (sort === 'supplier') {
                       const cmp = String(a.supplier || '').localeCompare(String(b.supplier || ''), 'es', { numeric: true })
-                      return cmp !== 0 ? cmp * dir : fallback
+                      return cmp !== 0 ? cmp * dirFactor : fallback
                     }
                     const av = a[sort]
                     const bv = b[sort]
                     const cmp = String(av ?? '').localeCompare(String(bv ?? ''), 'es', { numeric: true })
-                    return cmp !== 0 ? cmp * dir : fallback
+                    return cmp !== 0 ? cmp * dirFactor : fallback
                   })
                 } else {
                   // Usar orden personalizado del store (nuevos gastos al final)
