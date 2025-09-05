@@ -133,8 +133,10 @@ export default function Facturas() {
         apiGet('/clients?limit=50&offset=0', token),
         apiGet('/invoices?limit=50&offset=0', token),
       ]);
-      setClients(clientsData.items || clientsData);
-      setInvoices(invoicesData.items || invoicesData);
+  const nextClients = Array.isArray(clientsData?.items) ? clientsData.items : (Array.isArray(clientsData) ? clientsData : []);
+  const nextInvoices = Array.isArray(invoicesData?.items) ? invoicesData.items : (Array.isArray(invoicesData) ? invoicesData : []);
+  setClients(nextClients);
+  setInvoices(nextInvoices);
       setLoading(false);
       // Pre-cargar número siguiente para tipo por defecto
       fetchNextNumber('factura', new Date().toISOString().slice(0, 10))
@@ -288,7 +290,9 @@ export default function Facturas() {
       await apiPut(`/invoices/${editingInvoiceId}`, payload, token);
       // Refrescar datos de la factura editada y reemplazar en lista
       const details = await apiGet(`/invoices/${editingInvoiceId}`, token);
-      setInvoices((prev) => prev.map((i) => (i.id === editingInvoiceId ? { ...i, ...details } : i)));
+  // Nota: setInvoices no acepta función; construir el nuevo array aquí
+  const next = (Array.isArray(invoices) ? invoices : []).map((i) => (i.id === editingInvoiceId ? { ...i, ...details } : i));
+  setInvoices(next);
       toast.success('Cambios guardados');
       setShowCreateModal(false);
       setEditMode(false);
@@ -336,10 +340,11 @@ export default function Facturas() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
             {(() => {
               // Obtener facturas en orden personalizado o aplicar ordenamiento manual
+              const baseInvoices = Array.isArray(invoices) ? invoices : [];
               let sorted;
               if (userHasSorted) {
                 // Si el usuario ha ordenado manualmente, aplicar ese ordenamiento con desempate estable por ID
-                sorted = invoices.slice().sort((a, b) => {
+                sorted = baseInvoices.slice().sort((a, b) => {
                   const dir = sort.dir === 'asc' ? 1 : -1
                   const aId = a?.id || 0
                   const bId = b?.id || 0
@@ -359,13 +364,14 @@ export default function Facturas() {
                 })
               } else {
                 // Usar orden personalizado del store (nuevas facturas al principio)
-                sorted = getOrderedInvoices();
+                const got = getOrderedInvoices();
+                sorted = Array.isArray(got) ? got : [];
               }
               
-              const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+              const totalPages = Math.max(1, Math.ceil((Array.isArray(sorted) ? sorted.length : 0) / pageSize));
               const safePage = Math.min(currentPage, totalPages);
               const start = (safePage - 1) * pageSize;
-              const pageItems = sorted.slice(start, start + pageSize);
+              const pageItems = (Array.isArray(sorted) ? sorted : []).slice(start, start + pageSize);
 
               return (
                 <>
@@ -530,7 +536,8 @@ export default function Facturas() {
         </div>
       )}
       {(() => {
-        const totalPages = Math.max(1, Math.ceil(invoices.length / pageSize));
+  const baseInvoices = Array.isArray(invoices) ? invoices : [];
+  const totalPages = Math.max(1, Math.ceil(baseInvoices.length / pageSize));
         const safePage = Math.min(currentPage, totalPages);
         return (
           <div className="flex items-center justify-between gap-2 mt-3">
