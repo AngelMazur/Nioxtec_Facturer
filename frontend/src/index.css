@@ -68,8 +68,8 @@ body {
 /* asegurar contenido encima */
 .niox-data-card > *{ position: relative; z-index: 1; }
 
-/* Mostrar spotlight al hover/focus-visible */
-.niox-data-card:hover::before, .niox-data-card:focus-within::before{ opacity: 1; }
+/* STYLE: Spotlight desactivado por solicitud; mantenemos el pseudo-elemento oculto */
+/* .niox-data-card:hover::before, .niox-data-card:focus-within::before{ opacity: 1; } */
 
 /* Subrayado animado para navegación */
 .nav-underline{ position: relative; }

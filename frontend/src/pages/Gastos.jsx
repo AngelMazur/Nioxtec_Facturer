@@ -390,7 +390,8 @@ export default function Gastos() {
                 return sorted.map((expense) => (
                                 <DataCard
                   key={expense.id}
-                  isClickable={false}
+                  // STYLE: Hacer la tarjeta clickeable para abrir edición y habilitar hover
+                  onClick={() => handleEdit(expense)}
                   actions={[
                     {
                       label: 'Editar',

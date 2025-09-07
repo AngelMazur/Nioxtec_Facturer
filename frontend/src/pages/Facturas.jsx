@@ -10,7 +10,7 @@ import {
 } from '../lib/api';
 import toast from 'react-hot-toast';
 import CustomSkeleton from "../components/CustomSkeleton"
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import CreateInvoiceModal from "../components/CreateInvoiceModal";
 import NeoGradientButton from "../components/NeoGradientButton";
 import DataCard from "../components/DataCard";
@@ -271,6 +271,7 @@ export default function Facturas() {
     setEditingInvoiceId(null);
   }
   const [preview, setPreview] = useState(null);
+  const reduceMotion = useReducedMotion();
 
   const downloadInvoice = async (id, number) => {
     try {
@@ -577,35 +578,45 @@ export default function Facturas() {
         )}
       </section>
 
-      {(preview || previewLoading) && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center p-4"
-          onClick={() => !previewLoading && setPreview(null)}
-        >
-          <div
-            className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden shadow-xl max-w-4xl w-full h-[80vh]"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {(preview || previewLoading) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 flex items-center justify-center p-4"
+            onClick={() => !previewLoading && setPreview(null)}
           >
-            <div className="flex justify-between items-center p-2 border-b border-gray-200 dark:border-gray-800">
-              <span className="font-medium">Vista previa</span>
-              <button
-                className="text-sm text-red-600"
-                onClick={() => !previewLoading && setPreview(null)}
-                disabled={previewLoading}
-              >
-                Cerrar
-              </button>
-            </div>
-            {previewLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <LoadingSpinner />
+            <motion.div
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 12 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 12 }}
+              transition={reduceMotion ? { duration: 0.15 } : { type: 'spring', damping: 26, stiffness: 320 }}
+              className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden shadow-xl max-w-4xl w-full h-[80vh]"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog" aria-modal="true" aria-labelledby="invoice-preview-title"
+            >
+              <div className="flex justify-between items-center p-2 border-b border-gray-200 dark:border-gray-800">
+                <span id="invoice-preview-title" className="font-medium">Vista previa</span>
+                <button
+                  className="text-sm text-red-600"
+                  onClick={() => !previewLoading && setPreview(null)}
+                  disabled={previewLoading}
+                >
+                  Cerrar
+                </button>
               </div>
-            ) : (
-              <iframe title="preview" src={preview} className="w-full h-full" />
-            )}
-          </div>
-        </div>
-      )}
+              {previewLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <LoadingSpinner />
+                </div>
+              ) : (
+                <iframe title="preview" src={preview} className="w-full h-full" />
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {(() => {
   const baseInvoices = Array.isArray(invoices) ? invoices : [];
   const totalPages = Math.max(1, Math.ceil(baseInvoices.length / pageSize));

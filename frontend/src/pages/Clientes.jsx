@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { MOTION } from '../styles/motion'
 import { formatDateES } from '../lib/format'
 import { useStore } from '../store/store'
@@ -44,6 +44,7 @@ export default function Clientes() {
   const apiBase = (import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')
   const [forceHoverBtn, setForceHoverBtn] = useState(true)
   const hoverTimeoutRef = useRef(null)
+  const reduceMotion = useReducedMotion()
 
   // Función para manejar el ordenamiento
   const handleSort = (field) => {
@@ -427,13 +428,28 @@ export default function Clientes() {
            })()}
           </>
         )}
-      </section>
-      {selectedClient && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={()=>setSelectedClient(null)}>
-          <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
+  </section>
+  <AnimatePresence>
+        {selectedClient && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={()=>setSelectedClient(null)}
+          >
+            <motion.div
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 12 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 12 }}
+              transition={reduceMotion ? { duration: 0.15 } : { type: 'spring', damping: 26, stiffness: 320 }}
+              className="bg-gray-900 border border-gray-700 rounded-lg p-4 w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+              onClick={e=>e.stopPropagation()}
+              role="dialog" aria-modal="true" aria-labelledby="client-details-title"
+            >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h4 className="text-xl font-semibold">{selectedClient.name}</h4>
+                  <h4 id="client-details-title" className="text-xl font-semibold">{selectedClient.name}</h4>
                 <div className="text-gray-400 text-sm">{selectedClient.cif}</div>
               </div>
               <button className="text-gray-400 hover:text-white" onClick={()=>setSelectedClient(null)}>Cerrar</button>
@@ -460,215 +476,225 @@ export default function Clientes() {
                 Documentacion
               </button>
             </div>
-            {tab==='facturas' && (
-              <div className="mt-4">
-                {clientInvoices.loading ? <CustomSkeleton count={3} height={24} /> : (
-                  clientInvoices.items.length ? (
-                    <>
-                      <ul className="divide-y divide-gray-800">
-                        {(() => {
-                          const totalPages = Math.max(1, Math.ceil(clientInvoices.items.length / invoicesPageSize))
-                          const safePage = Math.min(invoicesPage, totalPages)
-                          const start = (safePage - 1) * invoicesPageSize
-                          const pageItems = clientInvoices.items.slice(start, start + invoicesPageSize)
-                          return pageItems.map(inv => (
-                            <li key={inv.id} onClick={()=>downloadClientInvoice(inv)} className="py-2 flex items-center justify-between rounded px-2 hover:bg-gray-800/80 cursor-pointer hover:scale-[1.02] transition-all duration-200">
-                              <div className="space-x-3">
-                                <span className="font-medium">{inv.number}</span>
-                                <span className="text-gray-400">{formatDateES(inv.date)}</span>
-                                <span className="text-gray-400">{inv.type}</span>
-                                <span className="text-gray-400 tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={tab}
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                transition={{ duration: reduceMotion ? 0.12 : 0.22, ease: 'easeOut' }}
+              >
+                {tab==='facturas' ? (
+                  <div className="mt-4">
+                    {clientInvoices.loading ? <CustomSkeleton count={3} height={24} /> : (
+                      clientInvoices.items.length ? (
+                        <>
+                          <ul className="divide-y divide-gray-800">
+                            {(() => {
+                              const totalPages = Math.max(1, Math.ceil(clientInvoices.items.length / invoicesPageSize))
+                              const safePage = Math.min(invoicesPage, totalPages)
+                              const start = (safePage - 1) * invoicesPageSize
+                              const pageItems = clientInvoices.items.slice(start, start + invoicesPageSize)
+                              return pageItems.map(inv => (
+                                <li key={inv.id} onClick={()=>downloadClientInvoice(inv)} className="py-2 flex items-center justify-between rounded px-2 hover:bg-gray-800/80 cursor-pointer hover:scale-[1.02] transition-all duration-200">
+                                  <div className="space-x-3">
+                                    <span className="font-medium">{inv.number}</span>
+                                    <span className="text-gray-400">{formatDateES(inv.date)}</span>
+                                    <span className="text-gray-400">{inv.type}</span>
+                                    <span className="text-gray-400 tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
+                                  </div>
+                                  <div className="text-brand text-sm">Descargar</div>
+                                </li>
+                              ))
+                            })()}
+                          </ul>
+                          {(() => {
+                            const totalPages = Math.max(1, Math.ceil(clientInvoices.items.length / invoicesPageSize))
+                            const safePage = Math.min(invoicesPage, totalPages)
+                            return totalPages > 1 ? (
+                              <div className="flex items-center justify-center gap-2 mt-4">
+                                <button
+                                  onClick={() => setInvoicesPage(Math.max(1, safePage - 1))}
+                                  disabled={safePage <= 1}
+                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                >
+                                  Anterior
+                                </button>
+                                {[...Array(totalPages)].map((_, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => setInvoicesPage(i + 1)}
+                                    className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
+                                      safePage === i + 1 
+                                        ? 'bg-brand text-white' 
+                                        : 'bg-gray-700 text-white hover:bg-gray-600'
+                                    }`}
+                                  >
+                                    {i + 1}
+                                  </button>
+                                ))}
+                                <button
+                                  onClick={() => setInvoicesPage(Math.min(totalPages, safePage + 1))}
+                                  disabled={safePage >= totalPages}
+                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                >
+                                  Siguiente
+                                </button>
                               </div>
-                              <div className="text-brand text-sm">Descargar</div>
-                            </li>
-                          ))
-                        })()}
-                      </ul>
-                      {(() => {
-                        const totalPages = Math.max(1, Math.ceil(clientInvoices.items.length / invoicesPageSize))
-                        const safePage = Math.min(invoicesPage, totalPages)
-                        return totalPages > 1 ? (
-                          <div className="flex items-center justify-center gap-2 mt-4">
-                            <button
-                              onClick={() => setInvoicesPage(Math.max(1, safePage - 1))}
-                              disabled={safePage <= 1}
-                              className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                            >
-                              Anterior
-                            </button>
-                            {[...Array(totalPages)].map((_, i) => (
-                              <button
-                                key={i}
-                                onClick={() => setInvoicesPage(i + 1)}
-                                className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
-                                  safePage === i + 1 
-                                    ? 'bg-brand text-white' 
-                                    : 'bg-gray-700 text-white hover:bg-gray-600'
-                                }`}
-                              >
-                                {i + 1}
-                              </button>
-                            ))}
-                            <button
-                              onClick={() => setInvoicesPage(Math.min(totalPages, safePage + 1))}
-                              disabled={safePage >= totalPages}
-                              className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                            >
-                              Siguiente
-                            </button>
-                          </div>
-                        ) : null
-                      })()}
-                    </>
-                  ) : <div className="text-gray-400">Sin facturas</div>
+                            ) : null
+                          })()}
+                        </>
+                      ) : <div className="text-gray-400">Sin facturas</div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-6">
+                    <div>
+                      <h5 className="font-semibold mb-2">Documentos <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='document').length}</span></h5>
+                      {clientDocs.loading ? <CustomSkeleton count={2} height={20} /> : (
+                        <>
+                          {(() => {
+                            const documents = clientDocs.items.filter(d=>d.category==='document')
+                            const totalPages = Math.max(1, Math.ceil(documents.length / docsPageSize))
+                            const safePage = Math.min(docsPage, totalPages)
+                            const start = (safePage - 1) * docsPageSize
+                            const pageItems = documents.slice(start, start + docsPageSize)
+                            return (
+                              <>
+                                <div className="space-y-2">
+                                  {pageItems.map(d => (
+                                    <div key={d.id} className="flex items-center justify-between">
+                                      <a className="underline text-brand hover:scale-105 transition-all duration-200 inline-block" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer">{d.filename}</a>
+                                      <button className="text-red-500 underline hover:scale-105 transition-transform duration-200 inline-block" onClick={async()=>{
+                                        if(!window.confirm('¿Eliminar documento?')) return;
+                                        try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                                      }}>Eliminar</button>
+                                    </div>
+                                  ))}
+                                                              <div className="flex gap-2 mt-2">
+                                  <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200">
+                                    <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
+                                    Subir PDF
+                                  </label>
+                                  <button
+                                    onClick={() => openContractModal(selectedClient)}
+                                    className="inline-flex items-center gap-2 bg-primary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200"
+                                  >
+                                    Crear Contrato
+                                  </button>
+                                </div>
+                                </div>
+                                {totalPages > 1 && (
+                                  <div className="flex items-center justify-center gap-2 mt-4">
+                                    <button
+                                      onClick={() => setDocsPage(Math.max(1, safePage - 1))}
+                                      disabled={safePage <= 1}
+                                      className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                    >
+                                      Anterior
+                                    </button>
+                                    {[...Array(totalPages)].map((_, i) => (
+                                      <button
+                                        key={i}
+                                        onClick={() => setDocsPage(i + 1)}
+                                        className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
+                                          safePage === i + 1 
+                                            ? 'bg-brand text-white' 
+                                            : 'bg-gray-700 text-white hover:bg-gray-600'
+                                        }`}
+                                      >
+                                        {i + 1}
+                                      </button>
+                                    ))}
+                                    <button
+                                      onClick={() => setDocsPage(Math.min(totalPages, safePage + 1))}
+                                      disabled={safePage >= totalPages}
+                                      className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                    >
+                                      Siguiente
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
+                        </>
+                      )}
+                    </div>
+                    <div>
+                      <h5 className="font-semibold mb-2">Imagenes <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='image').length}</span></h5>
+                      {clientDocs.loading ? <CustomSkeleton count={2} height={20} /> : (
+                        <>
+                          {(() => {
+                            const images = clientDocs.items.filter(d=>d.category==='image')
+                            const totalPages = Math.max(1, Math.ceil(images.length / imagesPageSize))
+                            const safePage = Math.min(imagesPage, totalPages)
+                            const start = (safePage - 1) * imagesPageSize
+                            const pageItems = images.slice(start, start + imagesPageSize)
+                            return (
+                              <>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                  {pageItems.map(d => (
+                                    <div key={d.id} className="group relative">
+                                      <a href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300">
+                                        <img src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} alt={d.filename} className="w-full h-32 object-cover rounded border border-gray-700" />
+                                      </a>
+                                      <button className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 hover:scale-105 transition-all duration-200" onClick={async()=>{
+                                        if(!window.confirm('¿Eliminar imagen?')) return;
+                                        try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                                      }}>Eliminar</button>
+                                    </div>
+                                  ))}
+                                </div>
+                                {totalPages > 1 && (
+                                  <div className="flex items-center justify-center gap-2 mt-4">
+                                    <button
+                                      onClick={() => setImagesPage(Math.max(1, safePage - 1))}
+                                      disabled={safePage <= 1}
+                                      className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                    >
+                                      Anterior
+                                    </button>
+                                    {[...Array(totalPages)].map((_, i) => (
+                                      <button
+                                        key={i}
+                                        onClick={() => setImagesPage(i + 1)}
+                                        className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
+                                          safePage === i + 1 
+                                            ? 'bg-brand text-white' 
+                                            : 'bg-gray-700 text-white hover:bg-gray-600'
+                                        }`}
+                                      >
+                                        {i + 1}
+                                      </button>
+                                    ))}
+                                    <button
+                                      onClick={() => setImagesPage(Math.min(totalPages, safePage + 1))}
+                                      disabled={safePage >= totalPages}
+                                      className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                    >
+                                      Siguiente
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
+                          <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-4 hover:scale-105 transition-all duration-200">
+                            <input type="file" accept="image/*" className="hidden" onChange={(e)=>handleUpload(e,'image')} disabled={uploading} />
+                            Subir imagen
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 )}
-              </div>
-            )}
-            {tab==='documentos' && (
-              <div className="mt-4 space-y-6">
-                <div>
-                  <h5 className="font-semibold mb-2">Documentos <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='document').length}</span></h5>
-                  {clientDocs.loading ? <CustomSkeleton count={2} height={20} /> : (
-                    <>
-                      {(() => {
-                        const documents = clientDocs.items.filter(d=>d.category==='document')
-                        const totalPages = Math.max(1, Math.ceil(documents.length / docsPageSize))
-                        const safePage = Math.min(docsPage, totalPages)
-                        const start = (safePage - 1) * docsPageSize
-                        const pageItems = documents.slice(start, start + docsPageSize)
-                        return (
-                          <>
-                            <div className="space-y-2">
-                              {pageItems.map(d => (
-                                <div key={d.id} className="flex items-center justify-between">
-                                  <a className="underline text-brand hover:scale-105 transition-all duration-200 inline-block" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer">{d.filename}</a>
-                                  <button className="text-red-500 underline hover:scale-105 transition-transform duration-200 inline-block" onClick={async()=>{
-                                    if(!window.confirm('¿Eliminar documento?')) return;
-                                    try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
-                                  }}>Eliminar</button>
-                                </div>
-                              ))}
-                                                          <div className="flex gap-2 mt-2">
-                              <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200">
-                                <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
-                                Subir PDF
-                              </label>
-                              <button
-                                onClick={() => openContractModal(selectedClient)}
-                                className="inline-flex items-center gap-2 bg-primary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200"
-                              >
-                                Crear Contrato
-                              </button>
-                            </div>
-                            </div>
-                            {totalPages > 1 && (
-                              <div className="flex items-center justify-center gap-2 mt-4">
-                                <button
-                                  onClick={() => setDocsPage(Math.max(1, safePage - 1))}
-                                  disabled={safePage <= 1}
-                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                                >
-                                  Anterior
-                                </button>
-                                {[...Array(totalPages)].map((_, i) => (
-                                  <button
-                                    key={i}
-                                    onClick={() => setDocsPage(i + 1)}
-                                    className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
-                                      safePage === i + 1 
-                                        ? 'bg-brand text-white' 
-                                        : 'bg-gray-700 text-white hover:bg-gray-600'
-                                    }`}
-                                  >
-                                    {i + 1}
-                                  </button>
-                                ))}
-                                <button
-                                  onClick={() => setDocsPage(Math.min(totalPages, safePage + 1))}
-                                  disabled={safePage >= totalPages}
-                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                                >
-                                  Siguiente
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        )
-                      })()}
-                    </>
-                  )}
-                </div>
-                <div>
-                  <h5 className="font-semibold mb-2">Imagenes <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='image').length}</span></h5>
-                  {clientDocs.loading ? <CustomSkeleton count={2} height={20} /> : (
-                    <>
-                      {(() => {
-                        const images = clientDocs.items.filter(d=>d.category==='image')
-                        const totalPages = Math.max(1, Math.ceil(images.length / imagesPageSize))
-                        const safePage = Math.min(imagesPage, totalPages)
-                        const start = (safePage - 1) * imagesPageSize
-                        const pageItems = images.slice(start, start + imagesPageSize)
-                        return (
-                          <>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                              {pageItems.map(d => (
-                                <div key={d.id} className="group relative">
-                                  <a href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300">
-                                    <img src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} alt={d.filename} className="w-full h-32 object-cover rounded border border-gray-700" />
-                                  </a>
-                                  <button className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 hover:scale-105 transition-all duration-200" onClick={async()=>{
-                                    if(!window.confirm('¿Eliminar imagen?')) return;
-                                    try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
-                                  }}>Eliminar</button>
-                                </div>
-                              ))}
-                            </div>
-                            {totalPages > 1 && (
-                              <div className="flex items-center justify-center gap-2 mt-4">
-                                <button
-                                  onClick={() => setImagesPage(Math.max(1, safePage - 1))}
-                                  disabled={safePage <= 1}
-                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                                >
-                                  Anterior
-                                </button>
-                                {[...Array(totalPages)].map((_, i) => (
-                                  <button
-                                    key={i}
-                                    onClick={() => setImagesPage(i + 1)}
-                                    className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
-                                      safePage === i + 1 
-                                        ? 'bg-brand text-white' 
-                                        : 'bg-gray-700 text-white hover:bg-gray-600'
-                                    }`}
-                                  >
-                                    {i + 1}
-                                  </button>
-                                ))}
-                                <button
-                                  onClick={() => setImagesPage(Math.min(totalPages, safePage + 1))}
-                                  disabled={safePage >= totalPages}
-                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                                >
-                                  Siguiente
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        )
-                      })()}
-                      <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-4 hover:scale-105 transition-all duration-200">
-                        <input type="file" accept="image/*" className="hidden" onChange={(e)=>handleUpload(e,'image')} disabled={uploading} />
-                        Subir imagen
-                      </label>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+              </motion.div>
+            </AnimatePresence>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Contract Generator Modal */}
       <ContractGeneratorModal

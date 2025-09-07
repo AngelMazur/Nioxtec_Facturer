@@ -34,6 +34,7 @@ export default function Productos() {
   const hoverTimeoutRef = useRef(null)
 
   // Default categories and images mapping
+  // Tarjetas por defecto con imágenes (Pantallas, TPVs)
   const DEFAULT_CATEGORIES = useMemo(() => ([
     { category: 'Pantallas', total: 0, models: [] },
     { category: 'TPVs', total: 0, models: [] },
@@ -41,7 +42,6 @@ export default function Productos() {
   const CATEGORY_IMAGES = useMemo(() => ({
     pantallas: { src: '/PantallasLogo.jpg', alt: 'Pantallas' },
     tpvs: { src: '/TPV-15-con-logo.png', alt: 'TPVs' },
-    tpv: { src: '/TPV-15-con-logo.png', alt: 'TPV' },
   }), [])
   const imageForCategory = useCallback((name) => {
     if (!name) return null
@@ -56,13 +56,12 @@ export default function Productos() {
       setLoading(true)
       const data = await apiGet('/products/summary', token)
       const incoming = Array.isArray(data?.categories) ? data.categories : []
-      // Ensure default categories exist (Pantallas, TPVs)
-      const hasCat = (arr, name) => arr.some(c => String(c.category || '').toLowerCase() === String(name).toLowerCase())
+      const existingLower = new Set(incoming.map(c => String(c.category).toLowerCase()))
+      // Asegurar que categorías por defecto existen solo si backend no las provee
       const merged = [...incoming]
       DEFAULT_CATEGORIES.forEach(def => {
-        if (!hasCat(merged, def.category)) {
-          // Add missing default category at the beginning to highlight it
-          merged.unshift({ ...def })
+        if (!existingLower.has(def.category.toLowerCase())) {
+          merged.unshift(def)
         }
       })
       setCategories(merged)
@@ -174,6 +173,24 @@ export default function Productos() {
     setShowProductModal(true)
   }
 
+  // Crear producto directamente para una categoría (sin modelo aún)
+  const handleCreateForCategory = (category) => {
+    if (!category) return
+    setSelectedCategory(category)
+    setSelectedModel(null)
+    setEditingProduct(null)
+    setProductForm({
+      category,
+      model: '',
+      sku: '',
+      stock_qty: 0,
+      price_net: 0,
+      tax_rate: 21.0,
+      features: {}
+    })
+    setShowProductModal(true)
+  }
+
   const handleEditProduct = (product) => {
     setEditingProduct(product)
     setProductForm({
@@ -202,14 +219,24 @@ export default function Productos() {
       if (editingProduct) {
         await apiPut(`/products/${editingProduct.id}`, payload, token)
         toast.success('Producto actualizado')
+        // Refresh current model list if context present
+        if (selectedCategory && selectedModel) {
+          loadProductsByModel(selectedCategory, selectedModel)
+        }
       } else {
         await apiPost('/products', payload, token)
         toast.success('Producto creado')
+        // If we came from an empty category card (no selectedModel yet), show the new model list
+        if (selectedCategory && !selectedModel && payload.model) {
+          try {
+            await loadProductsByModel(selectedCategory, payload.model)
+          } catch {/* ignore */}
+        } else if (selectedCategory && selectedModel) {
+          loadProductsByModel(selectedCategory, selectedModel)
+        }
       }
       setShowProductModal(false)
-      if (selectedCategory && selectedModel) {
-        loadProductsByModel(selectedCategory, selectedModel)
-      }
+      // Always refresh categories summary
       loadCategories()
     } catch (error) {
   // errors will be surfaced to user via toast; no console logging
@@ -309,85 +336,98 @@ export default function Productos() {
                 key={categoryData.category}
                 variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
               >
-                <ProductCard className="group h-full">
-                {/* Category image banner (if defined) */}
                 {(() => {
-                  const img = imageForCategory(categoryData.category)
-                  if (!img) return null
+                  const isEmpty = !categoryData.models || categoryData.models.length === 0
                   return (
-                    <div className="relative mb-4 rounded-xl overflow-hidden border border-gray-700/60">
-                      <img
-                        src={img.src}
-                        alt={img.alt}
-                        className="w-full h-40 object-cover select-none pointer-events-none transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                        draggable={false}
-                      />
-                      {/* Top vignette */}
-                      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_60%)]" />
-                      {/* Bottom gradient for contrast, similar to the reference */}
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
-                    </div>
+                    <ProductCard
+                      className={`group h-full cursor-pointer ring-offset-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/60`}
+                      onClick={() => handleCreateForCategory(categoryData.category)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCreateForCategory(categoryData.category) } }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Crear nuevo producto en ${categoryData.category}`}
+                    >
+                      {(() => {
+                        const img = imageForCategory(categoryData.category)
+                        if (!img) return null
+                        return (
+                          <div className="relative mb-4 rounded-xl overflow-hidden border border-gray-700/60">
+                            <img
+                              src={img.src}
+                              alt={img.alt}
+                              className="w-full h-40 object-cover select-none pointer-events-none transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                              draggable={false}
+                            />
+                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_60%)]" />
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
+                          </div>
+                        )
+                      })()}
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <div>
+                          <h4 className="text-lg font-semibold text-brand capitalize mb-2">
+                            {categoryData.category}
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            Total: {categoryData.total} productos
+                          </p>
+                        </div>
+                        {/* Botón de añadir eliminado: ahora la tarjeta completa dispara la creación si está vacía */}
+                      </div>
+                      {isEmpty ? (
+                        <div className="p-4 rounded-lg border border-dashed border-gray-600 text-sm text-gray-400 text-center">
+                          Haz clic aquí o pulsa Enter para crear el primer modelo
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {categoryData.models.slice(0, 3).map((modelData) => {
+                            const stockVal = typeof modelData.stock_total !== 'undefined'
+                              ? Number(modelData.stock_total)
+                              : (typeof modelData.stock_qty !== 'undefined' ? Number(modelData.stock_qty) : (typeof modelData.stock !== 'undefined' ? Number(modelData.stock) : (typeof modelData.count !== 'undefined' ? Number(modelData.count) : 0)))
+                            const displayFromModel = Number.isFinite(stockVal) ? stockVal : (modelData.count || 0)
+                            const variantKey = `${modelData.model}::${inferVariant(modelData)}`
+                            const override = typeof variantStockMap[variantKey] !== 'undefined' ? variantStockMap[variantKey] : null
+                            const display = override !== null ? override : displayFromModel
+                            return (
+                              <div
+                                key={modelData.model}
+                                onClick={(e) => { e.stopPropagation(); loadProductsByModel(categoryData.category, modelData.model) }}
+                                className="niox-model-row flex items-center justify-between p-3 cursor-pointer"
+                              >
+                                <span className="font-medium">{modelData.model}</span>
+                                {(() => {
+                                  const bg = display <= 2 ? '#FF512E' : (display <= 4 ? '#FFA500' : null)
+                                  const style = bg ? { backgroundColor: bg } : undefined
+                                  return (
+                                    <span className="text-sm px-2 py-1 rounded bg-brand" style={style}>
+                                      <span className={`tabular-nums text-white font-semibold`}>{display}</span>
+                                    </span>
+                                  )
+                                })()}
+                              </div>
+                            )
+                          })}
+                          {categoryData.models.length > 3 && (
+                            <div className="text-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedCategory(categoryData.category)
+                                  setSelectedModel(null)
+                                  setProducts([])
+                                  setShowCategoryModal(true)
+                                }}
+                                className="text-brand text-sm hover:underline"
+                              >
+                                Ver todos los modelos ({categoryData.models.length})
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </ProductCard>
                   )
                 })()}
-
-                <div className="mb-4">
-                  <h4 className="text-lg font-semibold text-brand capitalize mb-2">
-                    {categoryData.category}
-                  </h4>
-                  <p className="text-sm text-gray-500">
-                    Total: {categoryData.total} productos
-                  </p>
-                </div>
-                
-                <div className="space-y-3">
-                  {categoryData.models.slice(0, 3).map((modelData) => {
-                    // Prefer aggregated stock fields if available, otherwise fall back to count
-                    const stockVal = typeof modelData.stock_total !== 'undefined'
-                      ? Number(modelData.stock_total)
-                      : (typeof modelData.stock_qty !== 'undefined' ? Number(modelData.stock_qty) : (typeof modelData.stock !== 'undefined' ? Number(modelData.stock) : (typeof modelData.count !== 'undefined' ? Number(modelData.count) : 0)))
-                    const displayFromModel = Number.isFinite(stockVal) ? stockVal : (modelData.count || 0)
-                    // try variant override
-                    const variantKey = `${modelData.model}::${inferVariant(modelData)}`
-                    const override = typeof variantStockMap[variantKey] !== 'undefined' ? variantStockMap[variantKey] : null
-                    const display = override !== null ? override : displayFromModel
-                    return (
-                      <div
-                        key={modelData.model}
-                        onClick={() => loadProductsByModel(categoryData.category, modelData.model)}
-                        className="niox-model-row flex items-center justify-between p-3 cursor-pointer"
-                      >
-                        <span className="font-medium">{modelData.model}</span>
-                        {(() => {
-                          const bg = display <= 2 ? '#FF512E' : (display <= 4 ? '#FFA500' : null)
-                          const style = bg ? { backgroundColor: bg } : undefined
-                          return (
-                            <span className="text-sm px-2 py-1 rounded bg-brand" style={style}>
-                              <span className={`tabular-nums text-white font-semibold`}>{display}</span>
-                            </span>
-                          )
-                        })()}
-                      </div>
-                    )
-                  })}
-                  
-                  {categoryData.models.length > 3 && (
-                    <div className="text-center">
-                      <button 
-                        onClick={() => {
-                          // Mostrar todos los modelos de esta categoría
-                          setSelectedCategory(categoryData.category)
-                          setSelectedModel(null)
-                          setProducts([])
-                          setShowCategoryModal(true)
-                        }}
-                        className="text-brand text-sm hover:underline"
-                      >
-                        Ver todos los modelos ({categoryData.models.length})
-                      </button>
-                    </div>
-                  )}
-                </div>
-                </ProductCard>
               </motion.div>
             ))}
             </motion.div>
