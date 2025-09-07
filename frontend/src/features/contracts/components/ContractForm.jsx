@@ -54,7 +54,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
             // Mapeo para template de renting
             'nombre_de_la_empresa_o_persona': selectedClient.name,
             'nombre_representante': selectedClient.name,
-            'iban': selectedClient.iban || '',
+            // El IBAN se establecerá con la configuración de la empresa más abajo
           }
           setFormData(clientData)
         }
@@ -69,8 +69,8 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
             'domicilio_proveedor': companyConfig.address,
             'ciudad': companyConfig.city,
             'ciudad_provincia': companyConfig.province,
-            // IBAN por defecto: empresa si el cliente no tiene
-            'iban': (prev.iban && String(prev.iban).trim()) ? prev.iban : (companyConfig.iban || '')
+            // IBAN siempre de la empresa (donde el cliente debe pagar)
+            'iban': companyConfig.iban || ''
           }))
         } catch (error) {
           console.error('Error loading company config:', error)
@@ -84,7 +84,9 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
           const yyyy = String(today.getFullYear())
           const todayStr = `${dd}-${mm}-${yyyy}`
           setFormData(prev => ({ ...prev, 'fecha_formato_dd_mm_aaaa': todayStr }))
-        } catch {}
+        } catch {
+          // Ignorar errores de fecha, no es crítico
+        }
         
         onTemplateLoaded?.(result)
       } catch (error) {
