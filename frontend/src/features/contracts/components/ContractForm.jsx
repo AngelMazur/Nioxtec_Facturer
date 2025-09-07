@@ -58,7 +58,7 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
           }
           setFormData(clientData)
         }
-        
+
         // Auto-fill provider data from company config
         try {
           const companyConfig = await loadCompanyConfig(token)
@@ -68,11 +68,23 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
             'nif_proveedor': companyConfig.cif,
             'domicilio_proveedor': companyConfig.address,
             'ciudad': companyConfig.city,
-            'ciudad_provincia': companyConfig.province
+            'ciudad_provincia': companyConfig.province,
+            // IBAN por defecto: empresa si el cliente no tiene
+            'iban': (prev.iban && String(prev.iban).trim()) ? prev.iban : (companyConfig.iban || '')
           }))
         } catch (error) {
           console.error('Error loading company config:', error)
         }
+
+        // Auto-fill current date for new placeholder if present
+        try {
+          const today = new Date()
+          const dd = String(today.getDate()).padStart(2, '0')
+          const mm = String(today.getMonth() + 1).padStart(2, '0')
+          const yyyy = String(today.getFullYear())
+          const todayStr = `${dd}-${mm}-${yyyy}`
+          setFormData(prev => ({ ...prev, 'fecha_formato_dd_mm_aaaa': todayStr }))
+        } catch {}
         
         onTemplateLoaded?.(result)
       } catch (error) {
@@ -227,6 +239,8 @@ export default function ContractForm({ onFormDataChange, onTemplateLoaded, selec
       'plataforma de pago': 'plataforma_de_pago',
       'IBAN': 'iban',
       'importe ajustado': 'importe_ajustado',
+      // Fecha actual DD-MM-AAAA
+      'FECHA FORMATO DD-MM-AAAA': 'fecha_formato_dd_mm_aaaa',
     }
     
     return mapping[placeholder] || placeholder

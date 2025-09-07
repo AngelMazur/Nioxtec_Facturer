@@ -133,6 +133,8 @@ export default function Clientes() {
     }
   }
 
+  // (Comportamiento anterior preservado) Abrimos con enlaces directos gestionados por el navegador
+
   async function handleUpload(e, kind) { // kind: 'document'|'image'
     if (!selectedClient) return
     const file = e.target.files?.[0]

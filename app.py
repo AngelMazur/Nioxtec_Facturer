@@ -334,8 +334,13 @@ allow_query_token = os.getenv(
     'ALLOW_QUERY_TOKEN', 'true' if DEBUG_MODE else 'false'
 ).lower() in ('1', 'true', 'yes')
 
-# Ubicaciones válidas del JWT según política anterior
-jwt_locations = ['headers', 'cookies']
+# Opción para desactivar cookies JWT completamente (mejor interoperabilidad móvil)
+disable_jwt_cookies = os.getenv('JWT_DISABLE_COOKIES', 'false').lower() in ('1','true','yes')
+
+# Ubicaciones válidas del JWT
+jwt_locations = ['headers']
+if not disable_jwt_cookies:
+    jwt_locations.append('cookies')
 if allow_query_token:
     jwt_locations.append('query_string')
 app.config['JWT_TOKEN_LOCATION'] = jwt_locations
@@ -1295,20 +1300,70 @@ def update_invoice(invoice_id):
 @app.route('/api/invoices/<int:invoice_id>/convert', methods=['PATCH'])
 @jwt_required()
 def convert_proforma(invoice_id):
-    """Convierte una proforma en factura asignando número automáticamente."""
+    """Crea una nueva factura a partir de una proforma y conserva la proforma.
+
+    - Asigna número secuencial nuevo a la factura
+    - Copia líneas/items
+    - La proforma original NO se modifica ni elimina
+    """
     inv = Invoice.query.get_or_404(invoice_id)
     if inv.type == 'factura':
         return jsonify({'error': 'El documento ya es una factura'}), 400
-    # Asignar siguiente número de factura
-    inv.type = 'factura'
-    inv.number = _next_sequence_atomic('factura')
-    inv.date = datetime.utcnow().date()
+
+    data = request.get_json(silent=True) or {}
+    # Método de pago opcional en la conversión
+    allowed_pm = {'efectivo', 'bizum', 'transferencia'}
+    pm = (data.get('payment_method') or 'efectivo').strip().lower()
+    payment_method = pm if pm in allowed_pm else 'efectivo'
+
+    # Crear factura nueva
+    number = _next_sequence_atomic('factura')
+    new_inv = Invoice(
+        number=number,
+        date=datetime.utcnow().date(),
+        type='factura',
+        client_id=inv.client_id,
+        notes=inv.notes,
+        payment_method=payment_method,
+        total=inv.total,
+        tax_total=inv.tax_total,
+    )
+    db.session.add(new_inv)
+    db.session.flush()
+
+    # Copiar items
+    for it in inv.items:
+        line_subtotal = it.units * it.unit_price
+        line_total = line_subtotal * (1 + it.tax_rate / 100)
+        db.session.add(InvoiceItem(
+            invoice_id=new_inv.id,
+            description=it.description,
+            units=it.units,
+            unit_price=it.unit_price,
+            tax_rate=it.tax_rate,
+            subtotal=line_subtotal,
+            total=line_total,
+        ))
     try:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
         return jsonify({'error': 'El número de factura ya existe'}), 409
-    return jsonify({'status': 'ok', 'number': inv.number})
+
+    return jsonify({
+        'status': 'ok',
+        'number': new_inv.number,
+        'invoice': {
+            'id': new_inv.id,
+            'number': new_inv.number,
+            'date': new_inv.date.isoformat(),
+            'client_id': new_inv.client_id,
+            'type': new_inv.type,
+            'payment_method': new_inv.payment_method,
+            'total': new_inv.total,
+            'tax_total': new_inv.tax_total,
+        }
+    })
 
 
 @app.route('/api/reports/summary')
@@ -1997,10 +2052,12 @@ def login():
         return jsonify({'error': 'Credenciales inválidas', 'code': 401}), 401
     token = create_access_token(identity=username)
     resp = jsonify({'access_token': token})
-    try:
-        set_access_cookies(resp, token)
-    except Exception:
-        pass
+    # Solo establecer cookies si no están deshabilitadas explícitamente
+    if not disable_jwt_cookies:
+        try:
+            set_access_cookies(resp, token)
+        except Exception:
+            pass
     return resp
 
 
@@ -2126,7 +2183,17 @@ def generate_contract_pdf():
             'plataforma de pago': 'plataforma_de_pago',
             'IBAN': 'iban',
             'importe ajustado': 'importe_ajustado',
+            # Fecha actual en formato DD-MM-AAAA (nueva etiqueta en plantillas)
+            'FECHA FORMATO DD-MM-AAAA': 'fecha_formato_dd_mm_aaaa',
         }
+
+        # Asegurar fecha actual si la plantilla la requiere y no viene en el formulario
+        form_data = dict(form_data or {})
+        if 'fecha_formato_dd_mm_aaaa' not in form_data:
+            try:
+                form_data['fecha_formato_dd_mm_aaaa'] = datetime.now().strftime('%d-%m-%Y')
+            except Exception:
+                form_data['fecha_formato_dd_mm_aaaa'] = ''
         
         # Interest table mapping based on number of installments
         def get_interest_text(num_plazos):
@@ -2462,7 +2529,17 @@ def save_contract_as_document():
             'plataforma de pago': 'plataforma_de_pago',
             'IBAN': 'iban',
             'importe ajustado': 'importe_ajustado',
+            # Fecha actual en formato DD-MM-AAAA (nueva etiqueta en plantillas)
+            'FECHA FORMATO DD-MM-AAAA': 'fecha_formato_dd_mm_aaaa',
         }
+
+        # Asegurar fecha actual si la plantilla la requiere y no viene en el formulario
+        form_data = dict(form_data or {})
+        if 'fecha_formato_dd_mm_aaaa' not in form_data:
+            try:
+                form_data['fecha_formato_dd_mm_aaaa'] = datetime.now().strftime('%d-%m-%Y')
+            except Exception:
+                form_data['fecha_formato_dd_mm_aaaa'] = ''
         
         # Interest table mapping based on number of installments
         def get_interest_text(num_plazos):
