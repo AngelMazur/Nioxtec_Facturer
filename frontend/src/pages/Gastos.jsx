@@ -74,8 +74,8 @@ export default function Gastos() {
       // Convert numeric fields to proper types before sending
       const submitData = {
         ...formData,
-        base_amount: parseFloat(formData.base_amount),
-        tax_rate: parseFloat(formData.tax_rate)
+  base_amount: formData.base_amount === '' ? 0 : parseFloat(String(formData.base_amount).replace(',', '.')),
+  tax_rate: formData.tax_rate === '' ? 0 : parseFloat(String(formData.tax_rate).replace(',', '.'))
       }
       
       if (editingExpense) {
@@ -568,7 +568,7 @@ export default function Gastos() {
                     required
                     min="0"
                     step="0.01"
-                    value={formData.base_amount}
+                    value={String(formData.base_amount ?? '')}
                     onChange={(e) => setFormData({...formData, base_amount: e.target.value})}
                     className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
                   />
@@ -581,8 +581,8 @@ export default function Gastos() {
                     min="0"
                     max="100"
                     step="0.1"
-                    value={formData.tax_rate}
-                    onChange={(e) => setFormData({...formData, tax_rate: parseFloat(e.target.value) || 0})}
+                    value={String(formData.tax_rate ?? '')}
+                    onChange={(e) => setFormData({...formData, tax_rate: e.target.value})}
                     className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </label>

@@ -4,9 +4,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
   const dialogRef = React.useRef(null)
   const lastActiveRef = React.useRef(null)
+  // Keep a stable reference to onClose to avoid re-running effects on each render
+  const onCloseRef = React.useRef(onClose)
+  React.useEffect(() => { onCloseRef.current = onClose }, [onClose])
+  // Debounced change handler to prevent rapid re-renders that can steal focus
+  const changeTimeout = React.useRef(null)
   const handleChange = (e) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    const { name, type, value, checked } = e.target
+    const newVal = type === 'checkbox' ? checked : value
+    if (changeTimeout.current) clearTimeout(changeTimeout.current)
+    changeTimeout.current = setTimeout(() => {
+      setForm(prev => ({ ...prev, [name]: newVal }))
+    }, 0)
   }
+  React.useEffect(() => () => { if (changeTimeout.current) clearTimeout(changeTimeout.current) }, [])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -24,7 +35,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
     const focusFirst = () => { const f = q(); if (f.length) f[0].focus() }
     focusFirst()
     const onKeyDown = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
+      if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current?.(); return }
       if (e.key === 'Tab') {
         const f = q(); if (!f.length) return
         const first = f[0], last = f[f.length - 1]
@@ -37,7 +48,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
       document.removeEventListener('keydown', onKeyDown)
       if (lastActiveRef.current?.focus) lastActiveRef.current.focus()
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   return (
     <AnimatePresence>
@@ -47,7 +58,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={onClose}
+          // Do not close on backdrop click to avoid accidental input blur/close while typing
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -65,7 +76,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
             <div className="flex items-center justify-between mb-6">
               <h3 id="create-expense-title" className="text-xl font-semibold text-white">Crear Nuevo Gasto</h3>
               <button
-                onClick={onClose}
+                onClick={() => onCloseRef.current?.()}
                 className="text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-gray-800 rounded-lg"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +177,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                       min="0"
                       step="0.01"
                       name="base_amount"
-                      value={form.base_amount}
+                      value={String(form.base_amount ?? '')}
                       onChange={handleChange}
                       className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
                     />
@@ -186,7 +197,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                       max="100"
                       step="0.1"
                       name="tax_rate"
-                      value={form.tax_rate}
+                      value={String(form.tax_rate ?? '')}
                       onChange={handleChange}
                       className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
                     />
@@ -232,7 +243,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => onCloseRef.current?.()}
                   className="bg-gray-600 hover:bg-gray-700 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
                 >
                   Cancelar

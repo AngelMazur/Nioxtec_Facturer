@@ -27,6 +27,8 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
   }
 
   // Focus trap + Escape key + restore focus
+  const onCloseRef = React.useRef(onClose)
+  React.useEffect(() => { onCloseRef.current = onClose }, [onClose])
   React.useEffect(() => {
     if (!isOpen) return
     lastActiveRef.current = document.activeElement
@@ -37,7 +39,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
     const focusFirst = () => { const f = q(); if (f.length) f[0].focus() }
     focusFirst()
     const onKeyDown = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
+      if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current?.(); return }
       if (e.key === 'Tab') {
         const f = q(); if (!f.length) return
         const first = f[0], last = f[f.length - 1]
@@ -50,7 +52,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
       document.removeEventListener('keydown', onKeyDown)
       if (lastActiveRef.current?.focus) lastActiveRef.current.focus()
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   return (
     <AnimatePresence>
@@ -60,7 +62,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={onClose}
+          onClick={() => onCloseRef.current?.()}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -78,7 +80,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
             <div className="flex items-center justify-between mb-6">
               <h3 id="create-invoice-title" className="text-xl font-semibold text-white">{mode === 'edit' ? 'Editar Documento' : 'Crear Nueva Factura'}</h3>
               <button
-                onClick={onClose}
+                onClick={() => onCloseRef.current?.()}
                 className="text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-gray-800 rounded-lg"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -373,7 +375,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
                 )}
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => onCloseRef.current?.()}
                   className="px-6 py-3 border border-gray-600 text-gray-300 hover:text-white hover:bg-gray-800 active:scale-95 transition-all duration-200 rounded-lg font-medium"
                 >
                   Cancelar

@@ -14,6 +14,10 @@ const CreateClientModal = ({ isOpen, onClose, onSubmit, form, setForm, isEditing
     onSubmit(form)
   }
 
+  // Keep stable onClose reference to avoid re-running the effect on each render
+  const onCloseRef = React.useRef(onClose)
+  React.useEffect(() => { onCloseRef.current = onClose }, [onClose])
+
   // Focus trap + Escape to close + return focus to trigger
   React.useEffect(() => {
     if (!isOpen) return
@@ -32,7 +36,7 @@ const CreateClientModal = ({ isOpen, onClose, onSubmit, form, setForm, isEditing
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault()
-        onClose()
+    onCloseRef.current?.()
         return
       }
       if (e.key === 'Tab') {
@@ -54,7 +58,7 @@ const CreateClientModal = ({ isOpen, onClose, onSubmit, form, setForm, isEditing
         lastActiveRef.current.focus()
       }
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   return (
     <AnimatePresence>
@@ -64,7 +68,7 @@ const CreateClientModal = ({ isOpen, onClose, onSubmit, form, setForm, isEditing
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={onClose}
+          onClick={() => onCloseRef.current?.()}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -82,7 +86,7 @@ const CreateClientModal = ({ isOpen, onClose, onSubmit, form, setForm, isEditing
             <div className="flex items-center justify-between mb-6">
               <h3 id="create-client-title" className="text-xl font-semibold text-white">{isEditing ? 'Editar Cliente' : 'Crear Nuevo Cliente'}</h3>
               <button
-                onClick={onClose}
+                onClick={() => onCloseRef.current?.()}
                 className="text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-gray-800 rounded-lg"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +218,7 @@ const CreateClientModal = ({ isOpen, onClose, onSubmit, form, setForm, isEditing
                 </button>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => onCloseRef.current?.()}
                   className="px-6 py-3 border border-gray-600 text-gray-300 hover:text-white hover:bg-gray-800 active:scale-95 transition-all duration-200 rounded-lg font-medium"
                 >
                   Cancelar
