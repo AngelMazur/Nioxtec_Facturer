@@ -534,6 +534,8 @@ class Product(db.Model):
     tax_rate = db.Column(db.Float, default=21.0)
     features = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Soft-delete / archive flag
+    is_active = db.Column(db.Boolean, default=True, index=True)
 
 
 class StockMovement(db.Model):
@@ -735,6 +737,17 @@ def _generate_pdf_fallback(invoice: 'Invoice', client: 'Client', company: 'Compa
 with app.app_context():
     # Crear tablas base si no existen (para desarrollo). En producción usar Alembic.
     db.create_all()
+    # Migración ligera: añadir columna is_active a product si falta (SQLite compatible)
+    try:
+        insp = inspect(db.engine)
+        cols = [c['name'] for c in insp.get_columns('product')]
+        if 'is_active' not in cols:
+            db.session.execute(text("ALTER TABLE product ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+            db.session.commit()
+    except Exception:
+        # No bloquear arranque si falla la migración ligera
+        db.session.rollback()
+        pass
     # Usuario admin inicial opcional
     admin_user = os.getenv('ADMIN_USERNAME')
     admin_pass = os.getenv('ADMIN_PASSWORD')
@@ -1267,6 +1280,7 @@ def _product_to_dict(p: 'Product') -> dict:
         'tax_rate': p.tax_rate,
         'features': p.features or {},
         'created_at': p.created_at.isoformat() if p.created_at else None,
+    'is_active': bool(getattr(p, 'is_active', True)),
     }
 
 
@@ -1307,6 +1321,7 @@ def list_products():
     model = (request.args.get('model') or '').strip()
     sort = (request.args.get('sort') or 'created_at').strip()
     direction = (request.args.get('dir') or 'desc').strip().lower()
+    active_param = (request.args.get('active') or '').strip()
     allowed_sort = {'id','category','model','sku','stock_qty','price_net','created_at'}
     if sort not in allowed_sort: sort = 'created_at'
     if direction not in {'asc','desc'}: direction = 'desc'
@@ -1318,6 +1333,11 @@ def list_products():
     if q:
         like = f"%{q}%"
         query = query.filter(db.or_(Product.model.ilike(like), Product.category.ilike(like), Product.sku.ilike(like)))
+    # Por defecto devolver solo activos; si active=0 devuelve archivados; si active=1 activos
+    if active_param in {'0','1'}:
+        query = query.filter(Product.is_active == (active_param == '1'))
+    else:
+        query = query.filter(Product.is_active == True)  # noqa: E712
     sort_col = getattr(Product, sort)
     if direction == 'desc': sort_col = sort_col.desc()
     query = query.order_by(sort_col)
@@ -1368,6 +1388,11 @@ def update_product(pid):
             p.tax_rate = tr
         except Exception:
             return jsonify({'error': 'tax_rate inválido (0–100)'}), 400
+    if 'is_active' in data:
+        try:
+            p.is_active = bool(data['is_active'])
+        except Exception:
+            return jsonify({'error': 'is_active inválido'}), 400
     try:
         db.session.commit()
     except IntegrityError as e:
@@ -1394,15 +1419,17 @@ def delete_product(pid):
 @app.route('/api/products/summary')
 @jwt_required()
 def products_summary():
-    # Agregados por categoría y por modelo
+    # Agregados por categoría y por modelo, filtrando por activos/archivados
+    active_param = (request.args.get('active') or '1').strip()
+    where_clause = "WHERE is_active = :active" if active_param in {'0','1'} else "WHERE is_active = 1"
     cats = db.session.execute(text(
-        "SELECT category, COUNT(*) as total FROM product GROUP BY category ORDER BY category"
-    )).fetchall()
+        f"SELECT category, COUNT(*) as total FROM product {where_clause} GROUP BY category ORDER BY category"
+    ), {'active': 1 if active_param != '0' else 0}).fetchall()
     by_cat = {}
     for c, t in cats:
         rows = db.session.execute(text(
-            "SELECT model, COUNT(*) as cnt FROM product WHERE category = :c GROUP BY model ORDER BY model"
-        ), {'c': c}).fetchall()
+            f"SELECT model, COUNT(*) as cnt FROM product {where_clause} AND category = :c GROUP BY model ORDER BY model"
+        ), {'c': c, 'active': 1 if active_param != '0' else 0}).fetchall()
         by_cat[c] = {
             'category': c,
             'total': int(t or 0),
@@ -1424,6 +1451,9 @@ def adjust_product_stock(pid: int):
       - Registra un StockMovement con la cantidad indicada.
     """
     p = Product.query.get_or_404(pid)
+    # No permitir ajustes si está archivado
+    if not getattr(p, 'is_active', True):
+        return jsonify({'error': 'Producto archivado: no se puede ajustar stock'}), 409
     data = request.get_json(force=True)
     try:
         qty = int(data.get('qty'))

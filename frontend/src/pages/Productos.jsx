@@ -13,6 +13,7 @@ export default function Productos() {
   const { token } = useStore()
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState([])
+  const [activeTab, setActiveTab] = useState('activos') // 'activos' | 'archivados'
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedModel, setSelectedModel] = useState(null)
   const [products, setProducts] = useState([])
@@ -54,7 +55,8 @@ export default function Productos() {
   const loadCategories = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await apiGet('/products/summary', token)
+      const activeParam = activeTab === 'archivados' ? '0' : '1'
+      const data = await apiGet(`/products/summary?active=${activeParam}`, token)
       const incoming = Array.isArray(data?.categories) ? data.categories : []
       const existingLower = new Set(incoming.map(c => String(c.category).toLowerCase()))
       // Asegurar que categorías por defecto existen solo si backend no las provee
@@ -70,11 +72,12 @@ export default function Productos() {
     } finally {
       setLoading(false)
     }
-  }, [token, DEFAULT_CATEGORIES])
+  }, [token, DEFAULT_CATEGORIES, activeTab])
 
   const loadProductsByModel = async (category, model) => {
     try {
-      const data = await apiGet(`/products?category=${encodeURIComponent(category)}&model=${encodeURIComponent(model)}&limit=50`, token)
+      const activeParam = activeTab === 'archivados' ? '0' : '1'
+      const data = await apiGet(`/products?category=${encodeURIComponent(category)}&model=${encodeURIComponent(model)}&limit=50&active=${activeParam}`, token)
       setProducts(data.items || [])
       setSelectedCategory(category)
       setSelectedModel(model)
@@ -127,7 +130,8 @@ export default function Productos() {
   await Promise.all(categories.map(async (cat) => {
       try {
         // fetch products for category (no model filter) - increase limit if needed
-        const res = await apiGet(`/products?category=${encodeURIComponent(cat.category)}&limit=1000`, token)
+    const activeParam = activeTab === 'archivados' ? '0' : '1'
+    const res = await apiGet(`/products?category=${encodeURIComponent(cat.category)}&limit=1000&active=${activeParam}`, token)
         const items = res.items || []
   items.forEach(p => {
           const model = p.model || 'unknown'
@@ -141,7 +145,7 @@ export default function Productos() {
       }
     }))
     setVariantStockMap(map)
-  }, [categories, token])
+  }, [categories, token, activeTab])
 
   // Recompute variant stocks whenever categories or token change
   useEffect(() => {
@@ -286,6 +290,24 @@ export default function Productos() {
           >
             Crear Producto
           </NeoGradientButton>
+        </div>
+      </div>
+
+      {/* Tabs Activos/Archivados */}
+      <div className="flex justify-center">
+        <div className="inline-flex rounded-lg border border-gray-700 overflow-hidden">
+          <button
+            className={`px-4 py-2 text-sm ${activeTab === 'activos' ? 'bg-brand text-white' : 'bg-transparent text-gray-300 hover:bg-gray-800'}`}
+            onClick={() => setActiveTab('activos')}
+          >
+            Activos
+          </button>
+          <button
+            className={`px-4 py-2 text-sm ${activeTab === 'archivados' ? 'bg-brand text-white' : 'bg-transparent text-gray-300 hover:bg-gray-800'}`}
+            onClick={() => setActiveTab('archivados')}
+          >
+            Archivados
+          </button>
         </div>
       </div>
 
@@ -482,18 +504,55 @@ export default function Productos() {
                             </td>
                             <td className="p-2 text-right tabular-nums">{product.stock_qty}</td>
                             <td className="p-2 text-center space-x-2">
-                              <button
-                                onClick={() => handleEditProduct(product)}
-                                className="text-blue-600 hover:underline text-xs"
-                              >
-                                Editar
-                              </button>
-                              <button
-                                onClick={() => handleDeleteProduct(product.id)}
-                                className="text-red-600 hover:underline text-xs"
-                              >
-                                Eliminar
-                              </button>
+                              {product.is_active ? (
+                                <>
+                                  <button
+                                    onClick={() => handleEditProduct(product)}
+                                    className="text-blue-600 hover:underline text-xs"
+                                  >
+                                    Editar
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        await apiPut(`/products/${product.id}`, { is_active: false }, token)
+                                        toast.success('Producto archivado')
+                                        loadProductsByModel(selectedCategory, selectedModel)
+                                        loadCategories()
+                                      } catch {
+                                        toast.error('Error al archivar')
+                                      }
+                                    }}
+                                    className="text-yellow-600 hover:underline text-xs"
+                                  >
+                                    Archivar
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteProduct(product.id)}
+                                    className="text-red-600 hover:underline text-xs"
+                                  >
+                                    Eliminar
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        await apiPut(`/products/${product.id}`, { is_active: true }, token)
+                                        toast.success('Producto restaurado')
+                                        loadProductsByModel(selectedCategory, selectedModel)
+                                        loadCategories()
+                                      } catch {
+                                        toast.error('Error al restaurar')
+                                      }
+                                    }}
+                                    className="text-green-600 hover:underline text-xs"
+                                  >
+                                    Restaurar
+                                  </button>
+                                </>
+                              )}
                             </td>
                           </tr>
                         ))}
