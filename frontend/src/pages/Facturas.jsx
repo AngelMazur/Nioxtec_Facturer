@@ -7,6 +7,7 @@ import {
   apiGetBlob,
   apiDelete,
   apiPut,
+  apiPatch,
 } from '../lib/api';
 import toast from 'react-hot-toast';
 import CustomSkeleton from "../components/CustomSkeleton"
@@ -118,6 +119,7 @@ export default function Facturas() {
   const hoverTimeoutRef = useRef(null)
   const [editMode, setEditMode] = useState(false);
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
+  const [pmModal, setPmModal] = useState({ open: false, invoice: null, method: 'efectivo' })
 
   // Limpieza del timeout usado para forzar el "hover" del botón
   useEffect(() => {
@@ -287,6 +289,22 @@ export default function Facturas() {
       toast.error('Error al descargar PDF');
     }
   };
+  // Convertir proforma → factura
+  const convertProformaToInvoice = async (inv, method = 'efectivo') => {
+    try {
+      const res = await apiPatch(`/invoices/${inv.id}/convert`, { payment_method: method }, token)
+      const created = res?.invoice
+      if (created && created.id) {
+        // Añadir la nueva factura arriba sin borrar la proforma
+        addInvoiceToTop(created)
+        toast.success(`Convertida a factura ${created.number}`)
+      } else {
+        toast.success(`Convertida a factura ${res?.number || ''}`)
+      }
+    } catch (e) {
+      toast.error(e?.message || 'No se pudo convertir')
+    }
+  }
   // Cargar proforma en modo edición
   const editProforma = async (inv) => {
     try {
@@ -454,7 +472,14 @@ export default function Facturas() {
                                 <div className="flex flex-col items-end gap-1">
                                   <button onClick={(e)=>{e.stopPropagation(); downloadInvoice(inv.id, inv.number);}} className="text-brand underline">PDF</button>
                                   <button onClick={(e)=>{e.stopPropagation(); duplicateInvoice(inv);}} className="underline">Duplicar</button>
-                                  <button onClick={(e)=>{e.stopPropagation(); deleteInvoice(inv);}} className="text-red-600 underline">Eliminar</button>
+                                  {inv.type === 'proforma' ? (
+                                    <>
+                                      <button onClick={(e)=>{e.stopPropagation(); editProforma(inv);}} className="text-indigo-400 underline">Editar</button>
+                                      <button onClick={(e)=>{e.stopPropagation(); setPmModal({ open: true, invoice: inv, method: 'efectivo' });}} className="text-green-500 underline">Convertir</button>
+                                    </>
+                                  ) : (
+                                    <button onClick={(e)=>{e.stopPropagation(); deleteInvoice(inv);}} className="text-red-600 underline">Eliminar</button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -533,17 +558,26 @@ export default function Facturas() {
                               className: 'focus:ring-gray-500',
                               onClick: () => duplicateInvoice(inv)
                             },
-                            inv.type === 'proforma'
-                              ? {
-                                  label: 'Editar',
-                                  className: 'text-indigo-400 hover:text-indigo-300 focus:ring-indigo-500',
-                                  onClick: () => editProforma(inv)
-                                }
-                              : {
+                            ...(inv.type === 'proforma'
+                              ? [
+                                  {
+                                    label: 'Editar',
+                                    className: 'text-indigo-400 hover:text-indigo-300 focus:ring-indigo-500',
+                                    onClick: () => editProforma(inv)
+                                  },
+                                  {
+                                    label: 'Convertir',
+                                    className: 'text-green-500 hover:text-green-400 focus:ring-green-500',
+                                    onClick: () => setPmModal({ open: true, invoice: inv, method: 'efectivo' })
+                                  }
+                                ]
+                              : [
+                                {
                                   label: 'Eliminar',
                                   className: 'text-red-600 focus:ring-red-500',
                                   onClick: () => deleteInvoice(inv)
                                 }
+                              ]),
                           ]}
                           columns={5}
                           >
@@ -660,6 +694,33 @@ export default function Facturas() {
         mode={editMode ? 'edit' : 'create'}
         onDelete={editMode ? deleteCurrentInvoice : undefined}
       />
+
+      {/* Modal seleccionar método de pago para conversión */}
+      {pmModal.open && pmModal.invoice && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setPmModal({ open: false, invoice: null, method: 'efectivo' })}>
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h4 className="text-lg font-semibold mb-3">Método de pago</h4>
+            <select
+              value={pmModal.method}
+              onChange={(e) => setPmModal(s => ({ ...s, method: e.target.value }))}
+              className="w-full border border-gray-600 bg-gray-800 text-white rounded p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-brand"
+            >
+              <option value="efectivo">Efectivo</option>
+              <option value="transferencia">Transferencia</option>
+              <option value="bizum">Bizum</option>
+            </select>
+            <div className="flex gap-2 justify-end">
+              <button className="px-3 py-2 border border-gray-600 rounded" onClick={() => setPmModal({ open: false, invoice: null, method: 'efectivo' })}>Cancelar</button>
+              <button className="px-3 py-2 bg-primary text-white rounded" onClick={async()=>{
+                const inv = pmModal.invoice
+                const method = pmModal.method
+                setPmModal({ open: false, invoice: null, method: 'efectivo' })
+                await convertProformaToInvoice(inv, method)
+              }}>Convertir</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
