@@ -362,7 +362,7 @@ export default function Productos() {
                   const isEmpty = !categoryData.models || categoryData.models.length === 0
                   return (
                     <ProductCard
-                      className={`group h-full cursor-pointer ring-offset-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/60`}
+                      className={`group h-full md:min-h-dvh cursor-pointer ring-offset-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/60`}
                       onClick={() => handleCreateForCategory(categoryData.category)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCreateForCategory(categoryData.category) } }}
                       role="button"
@@ -373,15 +373,13 @@ export default function Productos() {
                         const img = imageForCategory(categoryData.category)
                         if (!img) return null
                         return (
-                          <div className="relative mb-4 rounded-xl overflow-hidden border border-gray-700/60">
+                          <div className="relative mb-4 rounded-xl overflow-hidden border border-gray-700/60 h-40 md:h-64 lg:h-80 xl:h-96">
                             <img
                               src={img.src}
                               alt={img.alt}
-                              className="w-full h-40 object-cover select-none pointer-events-none transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                              className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-500 ease-out group-hover:scale-[1.03]"
                               draggable={false}
                             />
-                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_60%)]" />
-                            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
                           </div>
                         )
                       })()}
