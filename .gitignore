@@ -30,6 +30,7 @@ logs/
 .idea/
 .vscode/
 .history/
+~$*
 
 # Env/Secrets
 .env
