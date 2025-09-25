@@ -43,6 +43,14 @@ const DataCard = ({
   }
 
   const reduceMotion = useReducedMotion()
+  const hasActions = actions.length > 0
+  const containerGridCols = getGridCols(hasActions ? columns + 1 : columns)
+  const contentGridCols = getGridCols(columns)
+  const contentColSpan = [
+    'col-span-1',
+    columns > 1 ? 'sm:col-span-2' : '',
+    getColSpan(columns),
+  ].filter(Boolean).join(' ')
 
   // Subtle horizontal tilt (rotateY) following pointer X. Disabled if reduced motion.
   const tiltY = useMotionValue(0)
@@ -71,7 +79,7 @@ const DataCard = ({
         show: { opacity: 1, y: 0 },
       }}
       transition={{ duration: MOTION.duration.base, ease: MOTION.ease.standard }}
-      style={reduceMotion ? undefined : { rotateY: tiltYSpring, transformPerspective: 800 }}
+      style={reduceMotion || !isClickable ? undefined : { rotateY: tiltYSpring, transformPerspective: 800 }}
       className={`
   niox-data-card bg-gray-800 border border-gray-700 rounded shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)]
   transition-all duration-200 will-change-transform
@@ -88,27 +96,24 @@ const DataCard = ({
       {/* Grid principal: contenido + acciones */}
       <div className={`
         /* Móvil: 1 columna */
-        /* Tablet: 2 columnas */
-        /* Desktop: contenido + 1 columna para acciones */
-        grid grid-cols-1 sm:grid-cols-2 ${getGridCols(columns + 1)}
+        grid grid-cols-1 ${containerGridCols}
         gap-2 sm:gap-3 md:gap-4
         items-start md:items-center
       `}>
         {/* Contenido principal - se expande en todas las columnas excepto la última en desktop */}
         <div className={`
           /* Móvil: 1 columna */
-          /* Tablet: 2 columnas */
-          /* Desktop: todas las columnas excepto la última */
-          grid grid-cols-1 sm:grid-cols-2 ${getGridCols(columns)}
+          /* Tablet/Desktop: según columnas configuradas */
+          grid grid-cols-1 ${columns > 1 ? 'sm:grid-cols-2' : ''} ${contentGridCols}
           gap-2 sm:gap-3 md:gap-4
           items-start md:items-center
-          col-span-1 sm:col-span-2 ${getColSpan(columns)}
+          ${contentColSpan}
         `}>
           {children}
         </div>
 
         {/* Sección de acciones */}
-        {actions.length > 0 && (
+        {hasActions && (
           <div 
             className={`
               /* Móvil/tablet: debajo del contenido en fila horizontal */

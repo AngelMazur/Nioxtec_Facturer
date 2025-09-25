@@ -38,6 +38,7 @@ export default function Clientes() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedClientForContract, setSelectedClientForContract] = useState(null)
   const [selectedClientForEdit, setSelectedClientForEdit] = useState(null)
+  const [openMenuId, setOpenMenuId] = useState(null)
   const invoicesPageSize = 10
   const imagesPageSize = 6
   const docsPageSize = 5
@@ -69,6 +70,25 @@ export default function Clientes() {
 
   // Limpieza del timeout del botón
   useEffect(() => () => { if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current) }, [])
+
+  // Cerrar menú contextual al hacer clic fuera o presionar Escape
+  useEffect(() => {
+    if (!openMenuId) return
+    const handlePointerDown = (event) => {
+      const menuRoot = event.target.closest('[data-client-menu-root]')
+      if (menuRoot?.dataset?.clientMenuRoot === String(openMenuId)) return
+      setOpenMenuId(null)
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setOpenMenuId(null)
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [openMenuId])
 
   async function openClientModal(client) {
     setSelectedClient(client)
@@ -305,102 +325,162 @@ export default function Clientes() {
                     </ul>
                   </div>
 
-                  {/* Labels externos solo en desktop */}
-                  <div className={`
-                    hidden md:grid md:grid-cols-5
-                    gap-2 sm:gap-3 md:gap-4
-                    mb-2 sm:mb-2.5 md:mb-3
-                    text-xs text-gray-500 font-medium
-                  `}>
-                    <div>
-                      <button 
-                        className="hover:underline cursor-pointer" 
+                  <div className="mx-auto w-full max-w-4xl">
+                    {/* Labels externos solo en desktop */}
+                    <div className={`
+                      hidden md:grid
+                      md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_104px]
+                      items-center
+                      gap-2 sm:gap-3 md:gap-4
+                      mb-2 sm:mb-2.5 md:mb-3
+                      text-xs text-gray-500 font-medium
+                    `}>
+                      <button
+                        className="text-left pl-4 hover:underline"
                         onClick={() => handleSort('name')}
                       >
                         Nombre {sort.field === 'name' && (sort.dir === 'asc' ? '↑' : '↓')}
                       </button>
-                    </div>
-                    <div>
-                      <button 
-                        className="hover:underline cursor-pointer" 
-                        onClick={() => handleSort('cif')}
-                      >
-                        CIF/NIF {sort.field === 'cif' && (sort.dir === 'asc' ? '↑' : '↓')}
-                      </button>
-                    </div>
-                    <div>Contacto</div>
-                    <div>
-                      <button 
-                        className="hover:underline cursor-pointer" 
+                      <button
+                        className="justify-self-center text-center hover:underline"
                         onClick={() => handleSort('created_at')}
                       >
                         Creado {sort.field === 'created_at' && (sort.dir === 'asc' ? '↑' : '↓')}
                       </button>
+                      <div className="text-right pr-4">Acciones</div>
                     </div>
-                    <div>Acciones</div>
-                  </div>
 
-                  {/* Cards responsive con stagger */}
-          <motion.div
-                    initial="hidden"
-                    animate="show"
-                    variants={{
-                      hidden: { opacity: 1 },
-                      show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
-                    }}
-                    className="space-y-2"
-                    onAnimationStart={() => {
-                      const staggerChildren = 0.08
-                      const delayChildren = 0.04
-                      const childDuration = MOTION?.duration?.base ?? 0.35
-                      const itemsCount = pageItems.length
-                      const totalMs = Math.max(200, Math.round((delayChildren + Math.max(0, itemsCount - 1) * staggerChildren + childDuration) * 1000))
-            // Informar al Header de la duración total para el logo
-                      try { window.dispatchEvent(new CustomEvent('route-stagger', { detail: { totalMs } })) } catch { /* noop */ }
-                      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
-                      hoverTimeoutRef.current = setTimeout(() => setForceHoverBtn(false), totalMs)
-                    }}
-                  >
-                     {pageItems.map((client) => (
-                                              <DataCard
-                         key={client.id}
-                         onClick={()=>openClientModal(client)}
-                                                 actions={[
-                          {
-                            label: 'Editar',
-                            className: 'text-brand focus:ring-brand',
-                            onClick: () => openEditModal(client)
-                          },
-                          {
-                            label: 'Eliminar',
-                            className: 'text-red-600 focus:ring-red-500',
-                            onClick: () => deleteClient(client)
-                          }
-                        ]}
-                        columns={4}
-                        >
-                          <div>
-                            <div className="text-xs text-gray-500 md:hidden">Nombre</div>
-                            <div className="font-medium text-left">{client.name}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500 md:hidden">CIF/NIF</div>
-                            <div className="text-gray-300">{client.cif}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500 md:hidden">Contacto</div>
-                            <div className="text-sm text-gray-400 break-words">
-                              <div>{client.email}</div>
-                              <div>{client.phone}</div>
+                    {/* Cards responsive con stagger */}
+                    <motion.div
+                      initial="hidden"
+                      animate="show"
+                      variants={{
+                        hidden: { opacity: 1 },
+                        show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
+                      }}
+                      className="space-y-2"
+                      onAnimationStart={() => {
+                        const staggerChildren = 0.08
+                        const delayChildren = 0.04
+                        const childDuration = MOTION?.duration?.base ?? 0.35
+                        const itemsCount = pageItems.length
+                        const totalMs = Math.max(200, Math.round((delayChildren + Math.max(0, itemsCount - 1) * staggerChildren + childDuration) * 1000))
+              // Informar al Header de la duración total para el logo
+                        try { window.dispatchEvent(new CustomEvent('route-stagger', { detail: { totalMs } })) } catch { /* noop */ }
+                        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+                        hoverTimeoutRef.current = setTimeout(() => setForceHoverBtn(false), totalMs)
+                      }}
+                    >
+                      {pageItems.map((client) => {
+                        const menuOpen = openMenuId === client.id
+                        return (
+                          <DataCard
+                            key={client.id}
+                            isClickable={false}
+                            columns={1}
+                            className={`relative overflow-visible !px-4 !py-3 md:!px-4 md:!py-3 ${menuOpen ? 'z-50' : 'z-0'}`}
+                            style={menuOpen ? { isolation: 'isolate' } : undefined}
+                          >
+                            <div className="grid grid-cols-1 gap-3 text-center md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_104px] md:items-center md:gap-4">
+                              <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:text-left sm:gap-3 md:text-left min-w-0">
+                                <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand/30 bg-[radial-gradient(circle_at_30%_30%,rgba(8,180,216,0.22),rgba(11,60,93,0.12),rgba(11,60,93,0.05))] shadow-[0_10px_26px_-14px_rgba(8,180,216,0.45)]">
+                                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Z" />
+                                    <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+                                  </svg>
+                                  <span className="absolute inset-0 rounded-full bg-brand/15 blur-[12px]"></span>
+                                </div>
+                                <div className="min-w-0 md:max-w-[280px]">
+                                  <div className="mb-0.5 text-xs text-gray-500 md:hidden">Nombre</div>
+                                  <p className="truncate font-semibold leading-tight text-gray-100">
+                                    {client.name}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col items-center justify-center gap-0.5 text-center md:w-full md:flex md:flex-col md:items-center md:justify-center md:justify-self-center md:text-center">
+                                <div className="text-xs text-gray-500 md:hidden">Creado</div>
+                                <p className="text-sm text-gray-300 md:leading-tight">
+                                  {client.created_at ? formatDateES(client.created_at) : ''}
+                                </p>
+                              </div>
+
+                              <div
+                                className="relative flex items-center justify-center gap-2 md:justify-end md:justify-self-end"
+                                data-client-menu-root={String(client.id)}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null)
+                                    openClientModal(client)
+                                  }}
+                                  className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-700/70 bg-gray-900/60 text-gray-200 transition-all duration-200 hover:border-brand/60 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+                                  aria-label={`Ver detalles de ${client.name}`}
+                                >
+                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M1.5 12s3.5-7 10.5-7 10.5 7 10.5 7-3.5 7-10.5 7-10.5-7-10.5-7Z" />
+                                    <circle cx="12" cy="12" r="3.5" />
+                                  </svg>
+                                </button>
+                                <div className="relative z-50">
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenMenuId(menuOpen ? null : client.id)}
+                                    className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-700/70 bg-gray-900/60 text-gray-200 transition-all duration-200 hover:border-brand/60 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${menuOpen ? 'border-brand/60 text-brand' : ''}`}
+                                    aria-haspopup="menu"
+                                    aria-expanded={menuOpen}
+                                    aria-label={`Más acciones para ${client.name}`}
+                                  >
+                                    <span className="flex flex-col gap-0.5">
+                                      <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                      <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                      <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                    </span>
+                                  </button>
+                                  {menuOpen && (
+                                    <div className="absolute right-0 top-10 z-[60] w-40 rounded-lg border border-gray-700/70 bg-gray-900/95 shadow-[0_18px_36px_-12px_rgba(8,180,216,0.45)] backdrop-blur-sm">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenMenuId(null)
+                                          openEditModal(client)
+                                        }}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-200 transition-colors hover:bg-gray-800/80 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+                                      >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="m12 20h9" />
+                                          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                        </svg>
+                                        Editar
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenMenuId(null)
+                                          deleteClient(client)
+                                        }}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-500 transition-colors hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                                      >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M3 6h18" />
+                                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                          <path d="M10 11v6" />
+                                          <path d="M14 11v6" />
+                                          <path d="M5 6h14l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2Z" />
+                                        </svg>
+                                        Eliminar
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500 md:hidden">Creado</div>
-                            <div className="text-gray-300">{client.created_at ? formatDateES(client.created_at) : ''}</div>
-                          </div>
-                        </DataCard>
-                     ))}
-                  </motion.div>
+                          </DataCard>
+                        )
+                      })}
+                    </motion.div>
+                  </div>
 
                   <div className="flex items-center justify-between gap-2 mt-3">
                    {safePage > 1 ? (
