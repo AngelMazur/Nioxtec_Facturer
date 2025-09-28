@@ -407,7 +407,7 @@ export default function Facturas() {
     try {
       await apiPatch(`/invoices/${inv.id}/paid`, { paid: nextPaid }, token)
       toast.success(nextPaid ? 'Factura marcada como pagada' : 'Factura marcada como pendiente')
-    } catch (error) {
+    } catch {
       updateInvoicePaid(inv.id, previous)
       toast.error('No se pudo actualizar el estado de pago')
     } finally {
@@ -625,11 +625,11 @@ export default function Facturas() {
                       </div>
                       <div className="text-center">Pagado</div>
                       <button
-                        className="text-left hover:underline"
+                        className="text-center hover:underline"
                         onClick={() => { setSort(s => ({ field: 'date', dir: s.field === 'date' && s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
                       >Fecha</button>
                       <button
-                        className="text-right hover:underline"
+                        className="text-center hover:underline"
                         onClick={() => { setSort(s => ({ field: 'total', dir: s.field === 'total' && s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
                       >Total</button>
                       <div className="text-right pr-4">Acciones</div>
@@ -712,14 +712,14 @@ export default function Facturas() {
                               </span>
                             </div>
 
-                            <div className="flex flex-col items-center justify-center gap-0.5 text-center md:items-start md:text-left">
+                            <div className="flex flex-col items-center justify-center gap-0.5 text-center md:items-center md:text-left">
                               <div className="text-xs text-gray-500 md:hidden">Fecha</div>
                               <p className="text-sm text-gray-300 md:leading-tight">
                                 {formatDateES(inv.date)}
                               </p>
                             </div>
 
-                            <div className="flex flex-col items-center justify-center gap-0.5 text-center md:items-end md:text-right">
+                            <div className="flex flex-col items-center justify-center gap-0.5 text-center md:items-center md:text-right">
                               <div className="text-xs text-gray-500 md:hidden">Total</div>
                               <p className="text-sm font-semibold text-gray-100">
                                 {(inv.total ?? 0).toFixed(2)} €
