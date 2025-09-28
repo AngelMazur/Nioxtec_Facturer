@@ -256,10 +256,14 @@ export default function Clientes() {
           Crear Cliente
         </NeoGradientButton>
       </div>
-      <section>
-         <h3 className="text-xl font-semibold mb-2">Listado</h3>
+      <section className="space-y-3">
+        <div className="mx-auto w-full max-w-4xl">
+          <h3 className="text-xl font-semibold">Listado</h3>
+        </div>
         {loading ? (
-          <CustomSkeleton count={5} height={30} className="mb-2" />
+          <div className="mx-auto w-full max-w-4xl">
+            <CustomSkeleton count={5} height={30} />
+          </div>
         ) : (
           <>
            {(() => {
@@ -330,9 +334,9 @@ export default function Clientes() {
                     <div className={`
                       hidden md:grid
                       md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_104px]
+                      md:h-10
                       items-center
                       gap-2 sm:gap-3 md:gap-4
-                      mb-2 sm:mb-2.5 md:mb-3
                       text-xs text-gray-500 font-medium
                     `}>
                       <button
@@ -382,7 +386,7 @@ export default function Clientes() {
                             style={menuOpen ? { isolation: 'isolate' } : undefined}
                           >
                             <div className="grid grid-cols-1 gap-3 text-center md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_104px] md:items-center md:gap-4">
-                              <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:text-left sm:gap-3 md:text-left min-w-0">
+                            <div className="flex flex-col items-center gap-2 text-center md:flex-row md:items-center md:text-left md:gap-3 min-w-0">
                                 <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand/30 bg-[radial-gradient(circle_at_30%_30%,rgba(8,180,216,0.22),rgba(11,60,93,0.12),rgba(11,60,93,0.05))] shadow-[0_10px_26px_-14px_rgba(8,180,216,0.45)]">
                                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
                                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Z" />

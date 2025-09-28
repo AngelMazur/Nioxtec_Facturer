@@ -104,6 +104,76 @@ export default function Facturas() {
     const n = Number(net) || 0;
     return r ? round2(n * (1 + r / 100)) : round2(n);
   };
+
+  const getInvoiceTypeMeta = (type) => {
+    const normalized = String(type || '').toLowerCase()
+    const metaMap = {
+      factura: {
+        label: 'Factura',
+        ring: 'border-brand/30',
+        glow: 'bg-brand/15',
+        shadow: 'shadow-[0_10px_26px_-14px_rgba(8,180,216,0.45)]',
+        background: 'bg-[radial-gradient(circle_at_30%_30%,rgba(8,180,216,0.22),rgba(11,60,93,0.12),rgba(11,60,93,0.05))]',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
+            <path d="M8 2h9a2 2 0 0 1 2 2v17l-3-2-3 2-3-2-3 2V4a2 2 0 0 1 2-2Z" />
+            <path d="M9 7h8" />
+            <path d="M9 11h6" />
+          </svg>
+        ),
+      },
+      proforma: {
+        label: 'Proforma',
+        ring: 'border-indigo-400/40',
+        glow: 'bg-indigo-400/20',
+        shadow: 'shadow-[0_10px_26px_-14px_rgba(99,102,241,0.45)]',
+        background: 'bg-[radial-gradient(circle_at_30%_30%,rgba(99,102,241,0.25),rgba(52,53,123,0.12),rgba(23,24,55,0.08))]',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-300">
+            <path d="M4 4h16v4H4z" />
+            <path d="M4 12h16" />
+            <path d="M10 16h10" />
+            <path d="M4 16h2" />
+            <path d="M4 20h16" />
+          </svg>
+        ),
+      },
+      rectificativa: {
+        label: 'Rectificativa',
+        ring: 'border-amber-300/40',
+        glow: 'bg-amber-300/20',
+        shadow: 'shadow-[0_10px_26px_-14px_rgba(251,191,36,0.4)]',
+        background: 'bg-[radial-gradient(circle_at_30%_30%,rgba(251,191,36,0.35),rgba(120,53,15,0.15),rgba(46,16,4,0.08))]',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-amber-300">
+            <path d="M3 3h18" />
+            <path d="M9 7h8" />
+            <path d="M5 7h2" />
+            <path d="M5 11h2" />
+            <path d="M9 11h10" />
+            <path d="M5 15h14" />
+            <path d="M5 19h10" />
+            <path d="m18 18 3 3" />
+            <path d="m21 18-3 3" />
+          </svg>
+        ),
+      },
+    }
+    const fallback = {
+      label: normalized ? normalized : 'Documento',
+      ring: 'border-slate-500/40',
+      glow: 'bg-slate-400/15',
+      shadow: 'shadow-[0_10px_26px_-14px_rgba(148,163,184,0.40)]',
+      background: 'bg-[radial-gradient(circle_at_30%_30%,rgba(148,163,184,0.25),rgba(71,85,105,0.12),rgba(30,41,59,0.08))]',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-slate-200">
+          <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
+          <path d="M14 2v6h6" />
+        </svg>
+      ),
+    }
+    return metaMap[normalized] || fallback
+  }
   const [form, setForm] = useState({
     number: '',
     date: new Date().toISOString().slice(0, 10),
@@ -118,6 +188,7 @@ export default function Facturas() {
   const [forceHoverBtn, setForceHoverBtn] = useState(true);
   const hoverTimeoutRef = useRef(null)
   const [editMode, setEditMode] = useState(false);
+  const [openInvoiceMenuId, setOpenInvoiceMenuId] = useState(null)
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
   const [pmModal, setPmModal] = useState({ open: false, invoice: null, method: 'efectivo' })
 
@@ -129,6 +200,25 @@ export default function Facturas() {
       }
     }
   }, [])
+
+  // Cerrar el menú contextual al hacer clic fuera o presionar Escape
+  useEffect(() => {
+    if (!openInvoiceMenuId) return
+    const handlePointerDown = (event) => {
+      const menuRoot = event.target.closest('[data-invoice-menu-root]')
+      if (menuRoot?.dataset?.invoiceMenuRoot === String(openInvoiceMenuId)) return
+      setOpenInvoiceMenuId(null)
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setOpenInvoiceMenuId(null)
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [openInvoiceMenuId])
 
   // Refresh products when the create modal opens so selector shows latest stock
   useEffect(() => {
@@ -395,10 +485,14 @@ export default function Facturas() {
         </NeoGradientButton>
       </div>
 
-      <section>
-        <h3 className="text-xl font-semibold mb-2">Listado</h3>
-  {loading ? (
-          <CustomSkeleton count={5} height={30} className="mb-2" />
+      <section className="space-y-3">
+        <div className="mx-auto w-full max-w-4xl">
+          <h3 className="text-xl font-semibold">Listado</h3>
+        </div>
+        {loading ? (
+          <div className="mx-auto w-full max-w-4xl">
+            <CustomSkeleton count={5} height={30} />
+          </div>
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
             {(() => {
@@ -490,42 +584,44 @@ export default function Facturas() {
                   </div>
 
                   {/* Labels externos solo en desktop (clickables para ordenar) */}
-                  <div className={`
-                    hidden md:grid md:grid-cols-6
-                    gap-2 sm:gap-3 md:gap-4
-                    mb-2 sm:mb-2.5 md:mb-3
-                    text-xs text-gray-500 font-medium
-                  `}>
-                    <button
-                      className="text-left hover:underline"
-                      onClick={() => { setSort(s => ({ field: 'number', dir: s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
-                    >Número</button>
-                    <button
-                      className="text-left hover:underline"
-                      onClick={() => { setSort(s => ({ field: 'client_id', dir: s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
-                    >Cliente</button>
-                    <button
-                      className="text-left hover:underline"
-                      onClick={() => { setSort(s => ({ field: 'date', dir: s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
-                    >Fecha</button>
-                    <button
-                      className="text-left hover:underline"
-                      onClick={() => { setSort(s => ({ field: 'type', dir: s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
-                    >Tipo</button>
-                    <button
-                      className="text-left hover:underline"
-                      onClick={() => { setSort(s => ({ field: 'total', dir: s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
-                    >Total</button>
-                    <div>Acciones</div>
-                  </div>
+                  <div className="mx-auto w-full max-w-4xl">
+                    <div className={`
+                      hidden md:grid
+                      md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)_104px]
+                      md:h-10
+                      items-center
+                      gap-2 sm:gap-3 md:gap-4
+                      text-xs text-gray-500 font-medium
+                    `}>
+                      <div className="flex items-center gap-2 pl-4">
+                        <button
+                          className="text-left hover:underline"
+                          onClick={() => { setSort(s => ({ field: 'number', dir: s.field === 'number' && s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
+                        >Número</button>
+                        <span className="text-gray-600">/</span>
+                        <button
+                          className="text-left hover:underline"
+                          onClick={() => { setSort(s => ({ field: 'client_id', dir: s.field === 'client_id' && s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
+                        >Cliente</button>
+                      </div>
+                      <button
+                        className="text-center hover:underline"
+                        onClick={() => { setSort(s => ({ field: 'date', dir: s.field === 'date' && s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
+                      >Fecha</button>
+                      <button
+                        className="text-center hover:underline"
+                        onClick={() => { setSort(s => ({ field: 'total', dir: s.field === 'total' && s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
+                      >Total</button>
+                      <div className="text-right pr-4">Acciones</div>
+                    </div>
 
-                  {/* Cards responsive */}
-                  <motion.div
-                    initial="hidden"
-                    animate="show"
-                    variants={{
-                      hidden: { opacity: 1 },
-                      show: {
+                    {/* Cards responsive */}
+                    <motion.div
+                      initial="hidden"
+                      animate="show"
+                      variants={{
+                        hidden: { opacity: 1 },
+                        show: {
                         opacity: 1,
                         transition: { staggerChildren: 0.08, delayChildren: 0.04 },
                       },
@@ -541,70 +637,171 @@ export default function Facturas() {
                       hoverTimeoutRef.current = setTimeout(() => setForceHoverBtn(false), totalMs)
                     }}
                   >
-                    {pageItems.map(inv=>{
-                      const clientName = clients.find(c=>c.id===inv.client_id)?.name ?? ''
+                    {pageItems.map((inv) => {
+                      const clientName = clients.find(c => c.id === inv.client_id)?.name ?? ''
+                      const menuOpen = openInvoiceMenuId === inv.id
+                      const typeMeta = getInvoiceTypeMeta(inv.type)
                       return (
                         <DataCard
                           key={inv.id}
-                          onClick={()=>openPreview(inv.id)}
-                          actions={[
-                            {
-                              label: 'PDF',
-                              className: 'text-brand focus:ring-brand',
-                              onClick: () => downloadInvoice(inv.id, inv.number)
-                            },
-                            {
-                              label: 'Duplicar',
-                              className: 'focus:ring-gray-500',
-                              onClick: () => duplicateInvoice(inv)
-                            },
-                            ...(inv.type === 'proforma'
-                              ? [
-                                  {
-                                    label: 'Editar',
-                                    className: 'text-indigo-400 hover:text-indigo-300 focus:ring-indigo-500',
-                                    onClick: () => editProforma(inv)
-                                  },
-                                  {
-                                    label: 'Convertir',
-                                    className: 'text-green-500 hover:text-green-400 focus:ring-green-500',
-                                    onClick: () => setPmModal({ open: true, invoice: inv, method: 'efectivo' })
-                                  }
-                                ]
-                              : [
-                                {
-                                  label: 'Eliminar',
-                                  className: 'text-red-600 focus:ring-red-500',
-                                  onClick: () => deleteInvoice(inv)
-                                }
-                              ]),
-                          ]}
-                          columns={5}
-                          >
-                            <div>
-                              <div className="text-xs text-gray-500 md:hidden">Número</div>
-                              <div className="font-medium">{inv.number}</div>
+                          isClickable={false}
+                          columns={1}
+                          className={`relative overflow-visible !px-4 !py-3 md:!px-4 md:!py-3 ${menuOpen ? 'z-50' : 'z-0'}`}
+                          style={menuOpen ? { isolation: 'isolate' } : undefined}
+                        >
+                          <div className="grid grid-cols-1 gap-3 text-center md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)_104px] md:items-center md:gap-4">
+                            <div className="flex flex-col items-center gap-2 text-center md:flex-row md:items-center md:text-left md:gap-5 min-w-0">
+                              <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${typeMeta.ring} ${typeMeta.background} ${typeMeta.shadow}`}>
+                                {typeMeta.icon}
+                                <span className={`absolute inset-0 right-1 rounded-full ${typeMeta.glow} blur-[12px]`}></span>
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs text-gray-500 md:hidden">Número</div>
+                                <p className="truncate font-semibold leading-tight text-gray-100">
+                                  {inv.number}
+                                </p>
+                                <div className="mt-1 text-xs text-gray-500 md:hidden">Cliente</div>
+                                <p className="text-sm text-gray-300 truncate">
+                                  {clientName || 'Cliente sin nombre'}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <div className="text-xs text-gray-500 md:hidden">Cliente</div>
-                              <div className="text-gray-300">{clientName}</div>
-                            </div>
-                            <div>
+
+                            <div className="flex flex-col items-center justify-center gap-0.5 text-center md:items-center md:text-left">
                               <div className="text-xs text-gray-500 md:hidden">Fecha</div>
-                              <div className="text-gray-300">{formatDateES(inv.date)}</div>
+                              <p className="text-sm text-gray-300 md:leading-tight">
+                                {formatDateES(inv.date)}
+                              </p>
                             </div>
-                            <div>
-                              <div className="text-xs text-gray-500 md:hidden">Tipo</div>
-                              <div className="text-gray-300 uppercase text-xs">{inv.type}</div>
-                            </div>
-                            <div>
+
+                            <div className="flex flex-col items-center justify-center gap-0.5 text-center md:items-center md:text-right">
                               <div className="text-xs text-gray-500 md:hidden">Total</div>
-                              <div className="font-semibold text-gray-100">{(inv.total ?? 0).toFixed(2)} €</div>
+                              <p className="text-sm font-semibold text-gray-100">
+                                {(inv.total ?? 0).toFixed(2)} €
+                              </p>
                             </div>
-        </DataCard>
+
+                            <div
+                              className="relative flex items-center justify-center gap-2 md:justify-end md:justify-self-end"
+                              data-invoice-menu-root={String(inv.id)}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => openPreview(inv.id)}
+                                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-700/70 bg-gray-900/60 text-gray-200 transition-all duration-200 hover:border-brand/60 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+                                aria-label={`Previsualizar ${inv.number}`}
+                              >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M1.5 12s3.5-7 10.5-7 10.5 7 10.5 7-3.5 7-10.5 7-10.5-7-10.5-7Z" />
+                                  <circle cx="12" cy="12" r="3.5" />
+                                </svg>
+                              </button>
+                              <div className="relative z-50">
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenInvoiceMenuId(menuOpen ? null : inv.id)}
+                                  className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-700/70 bg-gray-900/60 text-gray-200 transition-all duration-200 hover:border-brand/60 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${menuOpen ? 'border-brand/60 text-brand' : ''}`}
+                                  aria-haspopup="menu"
+                                  aria-expanded={menuOpen}
+                                  aria-label={`Más acciones para ${inv.number}`}
+                                >
+                                  <span className="flex flex-col gap-0.5">
+                                    <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                    <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                    <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                  </span>
+                                </button>
+                                {menuOpen && (
+                                  <div className="absolute right-0 top-10 z-[60] w-48 rounded-lg border border-gray-700/70 bg-gray-900/95 shadow-[0_18px_36px_-12px_rgba(8,180,216,0.45)] backdrop-blur-sm">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenInvoiceMenuId(null)
+                                        downloadInvoice(inv.id, inv.number)
+                                      }}
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-200 transition-colors hover:bg-gray-800/80 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+                                    >
+                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M12 5v14" />
+                                        <path d="m5 12 7 7 7-7" />
+                                        <path d="M5 19h14" />
+                                      </svg>
+                                      Descargar PDF
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenInvoiceMenuId(null)
+                                        duplicateInvoice(inv)
+                                      }}
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-200 transition-colors hover:bg-gray-800/80 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+                                    >
+                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M8 2h12v12" />
+                                        <path d="M16 8H4v14h12Z" />
+                                      </svg>
+                                      Duplicar
+                                    </button>
+                                    {inv.type === 'proforma' ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setOpenInvoiceMenuId(null)
+                                            editProforma(inv)
+                                          }}
+                                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-200 transition-colors hover:bg-gray-800/80 hover:text-indigo-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+                                        >
+                                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="m12 20h9" />
+                                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                          </svg>
+                                          Editar
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setOpenInvoiceMenuId(null)
+                                            setPmModal({ open: true, invoice: inv, method: 'efectivo' })
+                                          }}
+                                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-green-400 transition-colors hover:bg-green-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/60"
+                                        >
+                                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M12 22c4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9 4.03 9 9 9Z" />
+                                            <path d="M12 6v6l3 3" />
+                                          </svg>
+                                          Convertir
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenInvoiceMenuId(null)
+                                          deleteInvoice(inv)
+                                        }}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-500 transition-colors hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                                      >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M3 6h18" />
+                                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                          <path d="M10 11v6" />
+                                          <path d="M14 11v6" />
+                                          <path d="M5 6h14l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2Z" />
+                                        </svg>
+                                        Eliminar
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </DataCard>
                       )
                     })}
-      </motion.div>
+                    </motion.div>
+                  </div>
                 </>
               )
             })()}
