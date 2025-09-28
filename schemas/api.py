@@ -31,6 +31,7 @@ class InvoiceCreateRequest(BaseModel):
     client_id: conint(gt=0)
     notes: Optional[str] = ''
     payment_method: Optional[Literal['efectivo', 'bizum', 'transferencia']] = None
+    paid: Optional[bool] = False
     items: conlist(InvoiceItem, min_length=1)
 
 

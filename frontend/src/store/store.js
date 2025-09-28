@@ -60,6 +60,11 @@ export const useStore = create((set, get) => ({
   
   setClients: (clients) => set({ clients }),
   setInvoices: (invoices) => set({ invoices }),
+  updateInvoicePaid: (invoiceId, paid) => set((state) => ({
+    invoices: state.invoices.map((inv) =>
+      inv.id === invoiceId ? { ...inv, paid } : inv
+    ),
+  })),
   
   // Método para añadir nueva factura al principio del orden personalizado
   addInvoiceToTop: (invoice) => {

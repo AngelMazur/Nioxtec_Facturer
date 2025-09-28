@@ -493,6 +493,7 @@ class Invoice(db.Model):
     payment_method = db.Column(db.String(32))  # bizum | efectivo | transferencia
     total = db.Column(db.Float, default=0.0)
     tax_total = db.Column(db.Float, default=0.0)
+    paid = db.Column(db.Boolean, default=False, nullable=False, index=True)
     client = db.relationship('Client', backref=db.backref('invoices', lazy=True))
 
 
@@ -875,6 +876,9 @@ def create_invoice():
     subtotal, tax_amount, total = calculate_totals(items_data)
     # Asignar número automáticamente según fecha indicada (reinicia por año/mes)
     number = _next_sequence_atomic(invoice_type, datetime.strptime(date_str, '%Y-%m-%d'))
+    paid_flag = bool(payload.paid)
+    if invoice_type != 'factura':
+        paid_flag = False
     invoice = Invoice(
         number=number,
         date=date_obj,
@@ -883,7 +887,8 @@ def create_invoice():
         notes=notes,
         payment_method=payment_method,
         total=total,
-        tax_total=tax_amount
+        tax_total=tax_amount,
+        paid=paid_flag
     )
     db.session.add(invoice)
     try:
@@ -933,6 +938,7 @@ def create_invoice():
         'payment_method': invoice.payment_method,
         'total': invoice.total,
         'tax_total': invoice.tax_total,
+        'paid': bool(invoice.paid),
         'items': [
             {
                 'description': it.description,
@@ -1012,7 +1018,8 @@ def list_invoices():
             'type': inv.type,
             'payment_method': inv.payment_method,
             'total': inv.total,
-            'tax_total': inv.tax_total
+            'tax_total': inv.tax_total,
+            'paid': bool(inv.paid)
         })
     return jsonify({'items': items, 'total': total})
 
@@ -1047,6 +1054,7 @@ def get_invoice(invoice_id):
         'payment_method': inv.payment_method,
         'total': inv.total,
         'tax_total': inv.tax_total,
+        'paid': bool(inv.paid),
         'items': [
             {
                 'description': it.description,
@@ -1542,6 +1550,8 @@ def update_invoice(invoice_id):
         pm = (data.get('payment_method') or '').strip().lower()
         inv.payment_method = pm if inv.type == 'factura' and pm in {'efectivo','bizum','transferencia'} else (None if inv.type!='factura' else 'efectivo')
     inv.notes = data.get('notes', inv.notes)
+    if 'paid' in data:
+        inv.paid = bool(data.get('paid')) if inv.type == 'factura' else False
     # Reglas de edición de líneas
     items_data = data.get('items')
     # Política: si es factura y hay líneas vinculadas a productos, no permitir edición de líneas
@@ -1579,6 +1589,19 @@ def update_invoice(invoice_id):
         db.session.rollback()
         return jsonify({'error': 'El número de factura ya existe'}), 409
     return jsonify({'status': 'ok'})
+
+
+@app.route('/api/invoices/<int:invoice_id>/paid', methods=['PATCH'])
+@jwt_required()
+def update_invoice_paid(invoice_id):
+    inv = Invoice.query.get_or_404(invoice_id)
+    if inv.type != 'factura':
+        return jsonify({'error': 'Solo se puede marcar pagado en facturas'}), 400
+    data = request.get_json(silent=True) or {}
+    paid_value = bool(data.get('paid'))
+    inv.paid = paid_value
+    db.session.commit()
+    return jsonify({'status': 'ok', 'paid': bool(inv.paid)})
 
 
 @app.route('/api/invoices/<int:invoice_id>/convert', methods=['PATCH'])
@@ -1623,6 +1646,7 @@ def convert_proforma(invoice_id):
         payment_method=payment_method,
         total=inv.total,
         tax_total=inv.tax_total,
+        paid=False,
     )
     db.session.add(new_inv)
     db.session.flush()
@@ -1664,6 +1688,7 @@ def convert_proforma(invoice_id):
             'payment_method': new_inv.payment_method,
             'total': new_inv.total,
             'tax_total': new_inv.tax_total,
+            'paid': bool(new_inv.paid),
         }
     })
 
@@ -1679,6 +1704,7 @@ def reports_summary():
             db.session.query(db.extract('month', Invoice.date).label('month'), db.func.sum(Invoice.total))
             .filter(db.extract('year', Invoice.date) == year)
             .filter(Invoice.type == 'factura')
+            .filter(Invoice.paid.is_(True))
             .group_by('month')
             .order_by('month')
             .all()
@@ -1689,7 +1715,7 @@ def reports_summary():
             text("""
                 SELECT CAST(STRFTIME('%m', date) AS INTEGER) AS month, SUM(total)
                 FROM invoice
-                WHERE type = 'factura' AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                WHERE type = 'factura' AND paid = 1 AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
                 GROUP BY month
                 ORDER BY month
             """), { 'year': year }
@@ -1712,6 +1738,7 @@ def reports_heatmap():
             .filter(db.extract('year', Invoice.date) == year)
             .filter(db.extract('month', Invoice.date) == month)
             .filter(Invoice.type == 'factura')
+            .filter(Invoice.paid.is_(True))
             .group_by(Invoice.date)
             .all()
         )
@@ -1721,6 +1748,7 @@ def reports_heatmap():
                 SELECT date as d, SUM(total) as t
                 FROM invoice
                 WHERE type = 'factura'
+                  AND paid = 1
                   AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
                   AND CAST(STRFTIME('%m', date) AS INTEGER) = :month
                 GROUP BY d
@@ -1803,6 +1831,7 @@ def reports_combined_summary():
             db.session.query(db.extract('month', Invoice.date).label('month'), db.func.sum(Invoice.total))
             .filter(db.extract('year', Invoice.date) == year)
             .filter(Invoice.type == 'factura')
+            .filter(Invoice.paid.is_(True))
             .group_by('month')
             .order_by('month')
             .all()
@@ -1812,7 +1841,7 @@ def reports_combined_summary():
             text("""
                 SELECT CAST(STRFTIME('%m', date) AS INTEGER) AS month, SUM(total)
                 FROM invoice
-                WHERE type = 'factura' AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                WHERE type = 'factura' AND paid = 1 AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
                 GROUP BY month
                 ORDER BY month
             """), { 'year': year }
@@ -1880,6 +1909,7 @@ def reports_monthly_summary():
             .filter(db.extract('year', Invoice.date) == year)
             .filter(db.extract('month', Invoice.date) == month)
             .filter(Invoice.type == 'factura')
+            .filter(Invoice.paid.is_(True))
             .scalar()
         )
         income_month = float(result or 0)
@@ -1888,7 +1918,8 @@ def reports_monthly_summary():
             text("""
                 SELECT SUM(total)
                 FROM invoice
-                WHERE type = 'factura' 
+                WHERE type = 'factura'
+                  AND paid = 1
                   AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
                   AND CAST(STRFTIME('%m', date) AS INTEGER) = :month
             """), { 'year': year, 'month': month }

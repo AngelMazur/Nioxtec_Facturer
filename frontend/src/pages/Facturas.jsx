@@ -25,6 +25,7 @@ export default function Facturas() {
     invoices, 
     setClients, 
     setInvoices, 
+    updateInvoicePaid,
     token, 
     addInvoiceToTop, 
     setUserSorted, 
@@ -189,6 +190,7 @@ export default function Facturas() {
   const hoverTimeoutRef = useRef(null)
   const [editMode, setEditMode] = useState(false);
   const [openInvoiceMenuId, setOpenInvoiceMenuId] = useState(null)
+  const [updatingPaidId, setUpdatingPaidId] = useState(null)
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
   const [pmModal, setPmModal] = useState({ open: false, invoice: null, method: 'efectivo' })
 
@@ -395,6 +397,23 @@ export default function Facturas() {
       toast.error(e?.message || 'No se pudo convertir')
     }
   }
+
+  const handleTogglePaid = async (inv, nextPaid) => {
+    if (inv.type !== 'factura') return
+    const previous = !!inv.paid
+    if (previous === nextPaid) return
+    setUpdatingPaidId(inv.id)
+    updateInvoicePaid(inv.id, nextPaid)
+    try {
+      await apiPatch(`/invoices/${inv.id}/paid`, { paid: nextPaid }, token)
+      toast.success(nextPaid ? 'Factura marcada como pagada' : 'Factura marcada como pendiente')
+    } catch (error) {
+      updateInvoicePaid(inv.id, previous)
+      toast.error('No se pudo actualizar el estado de pago')
+    } finally {
+      setUpdatingPaidId(null)
+    }
+  }
   // Cargar proforma en modo edición
   const editProforma = async (inv) => {
     try {
@@ -587,7 +606,7 @@ export default function Facturas() {
                   <div className="mx-auto w-full max-w-4xl">
                     <div className={`
                       hidden md:grid
-                      md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)_104px]
+                      md:grid-cols-[minmax(0,2.4fr)_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1fr)_104px]
                       md:h-10
                       items-center
                       gap-2 sm:gap-3 md:gap-4
@@ -604,12 +623,13 @@ export default function Facturas() {
                           onClick={() => { setSort(s => ({ field: 'client_id', dir: s.field === 'client_id' && s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
                         >Cliente</button>
                       </div>
+                      <div className="text-center">Pagado</div>
                       <button
-                        className="text-center hover:underline"
+                        className="text-left hover:underline"
                         onClick={() => { setSort(s => ({ field: 'date', dir: s.field === 'date' && s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
                       >Fecha</button>
                       <button
-                        className="text-center hover:underline"
+                        className="text-right hover:underline"
                         onClick={() => { setSort(s => ({ field: 'total', dir: s.field === 'total' && s.dir === 'asc' ? 'desc' : 'asc' })); setUserSorted(true); setCurrentPage(1); }}
                       >Total</button>
                       <div className="text-right pr-4">Acciones</div>
@@ -641,6 +661,8 @@ export default function Facturas() {
                       const clientName = clients.find(c => c.id === inv.client_id)?.name ?? ''
                       const menuOpen = openInvoiceMenuId === inv.id
                       const typeMeta = getInvoiceTypeMeta(inv.type)
+                      const isFactura = inv.type === 'factura'
+                      const toggleDisabled = updatingPaidId === inv.id || !isFactura
                       return (
                         <DataCard
                           key={inv.id}
@@ -649,7 +671,7 @@ export default function Facturas() {
                           className={`relative overflow-visible !px-4 !py-3 md:!px-4 md:!py-3 ${menuOpen ? 'z-50' : 'z-0'}`}
                           style={menuOpen ? { isolation: 'isolate' } : undefined}
                         >
-                          <div className="grid grid-cols-1 gap-3 text-center md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)_104px] md:items-center md:gap-4">
+                          <div className="grid grid-cols-1 gap-3 text-center md:grid-cols-[minmax(0,2.4fr)_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1fr)_104px] md:items-center md:gap-4">
                             <div className="flex flex-col items-center gap-2 text-center md:flex-row md:items-center md:text-left md:gap-5 min-w-0">
                               <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${typeMeta.ring} ${typeMeta.background} ${typeMeta.shadow}`}>
                                 {typeMeta.icon}
@@ -667,14 +689,37 @@ export default function Facturas() {
                               </div>
                             </div>
 
-                            <div className="flex flex-col items-center justify-center gap-0.5 text-center md:items-center md:text-left">
+                            <div className="flex flex-col items-center justify-center gap-1 text-center md:items-center">
+                              <div className="text-xs text-gray-500 md:hidden">Pagado</div>
+                              <label
+                                className={`relative inline-flex h-7 w-12 items-center rounded-full border border-gray-700/70 bg-gray-900/50 transition-colors duration-200 ${inv.paid ? 'border-emerald-400/70 bg-emerald-500/15' : 'hover:border-brand/40'} ${toggleDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                              >
+                                <span className="sr-only">Cambiar estado de pago</span>
+                                <input
+                                  type="checkbox"
+                                  className="sr-only"
+                                  checked={!!inv.paid}
+                                  disabled={toggleDisabled}
+                                  onChange={(event) => handleTogglePaid(inv, event.target.checked)}
+                                  aria-label={`Marcar ${inv.number} como ${inv.paid ? 'pendiente' : 'pagada'}`}
+                                />
+                                <span
+                                  className={`pointer-events-none block h-4 w-4 rounded-full bg-gray-400 shadow transition-all duration-200 ease-out ${inv.paid ? 'translate-x-7 bg-emerald-300' : 'translate-x-1'} ${updatingPaidId === inv.id ? 'opacity-70' : ''}`}
+                                ></span>
+                              </label>
+                              <span className={`text-[11px] uppercase tracking-wide ${inv.paid ? 'text-emerald-300' : 'text-gray-500'}`}>
+                                {isFactura ? (inv.paid ? 'Pagado' : 'Pendiente') : 'N/A'}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center gap-0.5 text-center md:items-start md:text-left">
                               <div className="text-xs text-gray-500 md:hidden">Fecha</div>
                               <p className="text-sm text-gray-300 md:leading-tight">
                                 {formatDateES(inv.date)}
                               </p>
                             </div>
 
-                            <div className="flex flex-col items-center justify-center gap-0.5 text-center md:items-center md:text-right">
+                            <div className="flex flex-col items-center justify-center gap-0.5 text-center md:items-end md:text-right">
                               <div className="text-xs text-gray-500 md:hidden">Total</div>
                               <p className="text-sm font-semibold text-gray-100">
                                 {(inv.total ?? 0).toFixed(2)} €
