@@ -10,6 +10,7 @@ import CustomSkeleton from "../components/CustomSkeleton"
 import CreateClientModal from "../components/CreateClientModal"
 import NeoGradientButton from "../components/NeoGradientButton"
 import DataCard from "../components/DataCard"
+import Pagination from "../components/Pagination"
 
 export default function Clientes() {
   const { 
@@ -394,7 +395,7 @@ export default function Clientes() {
                                   </svg>
                                   <span className="absolute inset-0 rounded-full bg-brand/15 blur-[12px]"></span>
                                 </div>
-                                <div className="min-w-0 md:max-w-[280px]">
+                                <div className="min-w-0 w-full max-w-[16rem] md:max-w-[280px]">
                                   <div className="mb-0.5 text-xs text-gray-500 md:hidden">Nombre</div>
                                   <p className="truncate font-semibold leading-tight text-gray-100">
                                     {client.name}
@@ -486,29 +487,23 @@ export default function Clientes() {
                     </motion.div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 mt-3">
-                   {safePage > 1 ? (
-                     <button className="bg-secondary text-white px-3 py-1 rounded" onClick={()=>setCurrentPage(p=>Math.max(1,p-1))}>Anterior</button>
-                   ) : <span />}
-                   <div className="flex items-center gap-1">
-                     {Array.from({ length: totalPages }).map((_, i)=>{
-                       const page = i+1
-                       const isActive = page === safePage
-                       return (
-                         <button
-                           key={page}
-                           onClick={()=>setCurrentPage(page)}
-                           className={isActive ? 'bg-primary text-white px-3 py-1 rounded' : 'px-3 py-1 rounded border border-gray-700 text-gray-300 hover:text-brand'}
-                         >
-                           {page}
-                         </button>
-                       )
-                     })}
-                   </div>
-                   {safePage < totalPages ? (
-                     <button className="bg-primary text-white px-3 py-1 rounded" onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))}>Siguiente</button>
-                   ) : <span />}
-                 </div>
+                  <motion.div
+                    key={`clientes-pagination-${safePage}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    className="w-full"
+                  >
+                    <Pagination
+                      canPrev={safePage > 1}
+                      canNext={safePage < totalPages}
+                      onPrev={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      onNext={(page) => setCurrentPage(page)}
+                      onSelect={(page) => setCurrentPage(page)}
+                      pages={Array.from({ length: totalPages }, (_, idx) => idx + 1)}
+                      current={safePage}
+                    />
+                  </motion.div>
                </>
              )
            })()}

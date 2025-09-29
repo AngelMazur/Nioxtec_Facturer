@@ -8,6 +8,7 @@ import CustomSkeleton from "../components/CustomSkeleton"
 import CreateExpenseModal from "../components/CreateExpenseModal"
 import NeoGradientButton from "../components/NeoGradientButton"
 import DataCard from "../components/DataCard"
+import Pagination from "../components/Pagination"
 
 export default function Gastos() {
   const { 
@@ -454,39 +455,23 @@ export default function Gastos() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between gap-2 mt-3">
-          {page > 0 ? (
-            <button 
-              className="bg-secondary text-white px-3 py-1 rounded hover:scale-105 transition-transform duration-200" 
-              onClick={() => setPage(Math.max(0, page - 1))}
-            >
-              Anterior
-            </button>
-          ) : <span />}
-          <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }).map((_, i) => {
-              const currentPage = i
-              const isActive = currentPage === page
-              return (
-                <button
-                  key={currentPage}
-                  onClick={() => setPage(currentPage)}
-                  className={isActive ? 'bg-primary text-white px-3 py-1 rounded' : 'px-3 py-1 rounded border border-gray-700 text-gray-300 hover:text-brand hover:scale-105 transition-transform duration-200'}
-                >
-                  {currentPage + 1}
-                </button>
-              )
-            })}
-          </div>
-          {page < totalPages - 1 ? (
-            <button 
-              className="bg-primary text-white px-3 py-1 rounded hover:scale-105 transition-transform duration-200" 
-              onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-            >
-              Siguiente
-            </button>
-          ) : <span />}
-        </div>
+        <motion.div
+          key={`gastos-pagination-${page}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="w-full"
+        >
+          <Pagination
+            canPrev={page > 0}
+            canNext={page < totalPages - 1}
+            onPrev={() => setPage(Math.max(0, page - 1))}
+            onNext={(nextPage) => setPage(Math.min(totalPages - 1, nextPage - 1))}
+            onSelect={(nextPage) => setPage(nextPage - 1)}
+            pages={Array.from({ length: totalPages }, (_, idx) => idx + 1)}
+            current={page + 1}
+          />
+        </motion.div>
       )}
 
       {/* Form Modal para edición */}

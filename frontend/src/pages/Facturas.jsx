@@ -17,6 +17,7 @@ import NeoGradientButton from "../components/NeoGradientButton";
 import DataCard from "../components/DataCard";
 import { formatDateES } from '../lib/format'
 import LoadingSpinner from "../components/LoadingSpinner";
+import Pagination from "../components/Pagination";
 import { MOTION } from '../styles/motion'
 
 export default function Facturas() {
@@ -692,7 +693,7 @@ export default function Facturas() {
                             <div className="flex flex-col items-center justify-center gap-1 text-center md:items-center">
                               <div className="text-xs text-gray-500 md:hidden">Pagado</div>
                               <label
-                                className={`relative inline-flex h-7 w-12 items-center rounded-full border border-gray-700/70 bg-gray-900/50 transition-colors duration-200 ${inv.paid ? 'border-emerald-400/70 bg-emerald-500/15' : 'hover:border-brand/40'} ${toggleDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                                className={`relative inline-flex h-6 w-12 items-center rounded-[0.9rem] border bg-gray-900/50 transition-colors duration-200 ${inv.paid ? 'border-brand/70 bg-brand/20' : 'border-gray-700/70 hover:border-brand/40'} ${toggleDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                               >
                                 <span className="sr-only">Cambiar estado de pago</span>
                                 <input
@@ -704,10 +705,10 @@ export default function Facturas() {
                                   aria-label={`Marcar ${inv.number} como ${inv.paid ? 'pendiente' : 'pagada'}`}
                                 />
                                 <span
-                                  className={`pointer-events-none block h-4 w-4 rounded-full bg-gray-400 shadow transition-all duration-200 ease-out ${inv.paid ? 'translate-x-7 bg-emerald-300' : 'translate-x-1'} ${updatingPaidId === inv.id ? 'opacity-70' : ''}`}
+                                  className={`pointer-events-none block h-4 w-4 rounded-[0.7rem] bg-gray-400 shadow transition-all duration-200 ease-out ${inv.paid ? 'translate-x-[2.45rem] bg-brand' : 'translate-x-1'} ${updatingPaidId === inv.id ? 'opacity-70' : ''}`}
                                 ></span>
                               </label>
-                              <span className={`text-[11px] uppercase tracking-wide ${inv.paid ? 'text-emerald-300' : 'text-gray-500'}`}>
+                              <span className={`text-[11px] uppercase tracking-wide ${inv.paid ? 'text-brand' : 'text-gray-500'}`}>
                                 {isFactura ? (inv.paid ? 'Pagado' : 'Pendiente') : 'N/A'}
                               </span>
                             </div>
@@ -898,29 +899,23 @@ export default function Facturas() {
   const totalPages = Math.max(1, Math.ceil(baseInvoices.length / pageSize));
         const safePage = Math.min(currentPage, totalPages);
         return (
-          <div className="flex items-center justify-between gap-2 mt-3">
-            {safePage > 1 ? (
-              <button className="bg-secondary text-white px-3 py-1 rounded" onClick={()=>setCurrentPage(p=>Math.max(1,p-1))}>Anterior</button>
-            ) : <span />}
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }).map((_, i)=>{
-                const page = i+1
-                const isActive = page === safePage
-                return (
-                  <button
-                    key={page}
-                    onClick={()=>setCurrentPage(page)}
-                    className={isActive ? 'bg-primary text-white px-3 py-1 rounded' : 'px-3 py-1 rounded border border-gray-700 text-gray-300 hover:text-brand'}
-                  >
-                    {page}
-                  </button>
-                )
-              })}
-            </div>
-            {safePage < totalPages ? (
-              <button className="bg-primary text-white px-3 py-1 rounded" onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))}>Siguiente</button>
-            ) : <span />}
-          </div>
+          <motion.div
+            key={`facturas-pagination-${safePage}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="w-full"
+          >
+            <Pagination
+              canPrev={safePage > 1}
+              canNext={safePage < totalPages}
+              onPrev={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              onNext={(page) => setCurrentPage(page)}
+              onSelect={(page) => setCurrentPage(page)}
+              pages={Array.from({ length: totalPages }, (_, idx) => idx + 1)}
+              current={safePage}
+            />
+          </motion.div>
         );
       })()}
 
