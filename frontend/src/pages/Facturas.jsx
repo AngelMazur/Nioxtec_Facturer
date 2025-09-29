@@ -693,7 +693,7 @@ export default function Facturas() {
                             <div className="flex flex-col items-center justify-center gap-1 text-center md:items-center">
                               <div className="text-xs text-gray-500 md:hidden">Pagado</div>
                               <label
-                                className={`relative inline-flex h-6 w-12 items-center rounded-[0.9rem] border bg-gray-900/50 transition-colors duration-200 ${inv.paid ? 'border-brand/70 bg-brand/20' : 'border-gray-700/70 hover:border-brand/40'} ${toggleDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full border bg-gray-900/60 transition-colors duration-200 ${inv.paid ? 'border-brand/70 bg-brand/30' : 'border-gray-700/70 hover:border-brand/40'} ${toggleDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                               >
                                 <span className="sr-only">Cambiar estado de pago</span>
                                 <input
@@ -705,7 +705,7 @@ export default function Facturas() {
                                   aria-label={`Marcar ${inv.number} como ${inv.paid ? 'pendiente' : 'pagada'}`}
                                 />
                                 <span
-                                  className={`pointer-events-none block h-4 w-4 rounded-[0.7rem] bg-gray-400 shadow transition-all duration-200 ease-out ${inv.paid ? 'translate-x-[2.45rem] bg-brand' : 'translate-x-1'} ${updatingPaidId === inv.id ? 'opacity-70' : ''}`}
+                                  className={`pointer-events-none block h-[1.25rem] w-[1.25rem] rounded-full bg-white shadow-[0_2px_6px_rgba(8,180,216,0.35)] transition-transform duration-200 ease-out ${inv.paid ? 'translate-x-[1.5rem]' : 'translate-x-[0.15rem]'} ${updatingPaidId === inv.id ? 'opacity-70' : ''}`}
                                 ></span>
                               </label>
                               <span className={`text-[11px] uppercase tracking-wide ${inv.paid ? 'text-brand' : 'text-gray-500'}`}>
