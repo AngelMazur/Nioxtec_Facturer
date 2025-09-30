@@ -216,8 +216,8 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
           supplier: defaultSupplier,
           base_amount: r.amount_abs, // CSV holds negative number; store absolute as base
           tax_rate: Number(defaultTax) || 0,
-          // total derived in backend; can omit
-          paid: false
+          // total derived in backend; marcar como pagado por defecto
+          paid: true
         }
         const created = await apiPost('/expenses', payload, token)
         addExpenseToEnd(created)
