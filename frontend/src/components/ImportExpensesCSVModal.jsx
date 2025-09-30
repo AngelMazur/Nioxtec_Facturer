@@ -26,32 +26,29 @@ function parseDateDMY(input) {
 
 function parseEuroDecimal(str) {
   if (str == null) return { ok: false }
-  // Accept forms like -382,92 or 0 or 123
-  const s = String(str).trim().replace(/\s+/g, '')
-  // If it contains both comma and dot, reject (no thousands allowed)
-  if (s.includes(',') && s.includes('.')) return { ok: false }
-  const normalized = s.replace(',', '.')
-  const f = Number(normalized)
+  let s = String(str).trim().replace(/\s+/g, '')
+  // If both separators appear, assume '.' thousands and ',' decimals
+  if (s.includes(',') && s.includes('.')) {
+    s = s.replace(/\./g, '').replace(',', '.')
+  } else {
+    s = s.replace(',', '.')
+  }
+  const f = Number(s)
   if (!isFinite(f)) return { ok: false }
   return { ok: true, value: f }
 }
 
-function safeSplitCSVLine(line) {
-  // Minimal CSV splitter supporting commas and simple quoted fields
+function safeSplitCSVLine(line, delimiter) {
   const out = []
   let cur = ''
   let inQuotes = false
   for (let i = 0; i < line.length; i++) {
     const ch = line[i]
     if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') { // escaped quote
-        cur += '"'; i++
-      } else {
-        inQuotes = !inQuotes
-      }
-    } else if (ch === ',' && !inQuotes) {
-      out.push(cur)
-      cur = ''
+      if (inQuotes && line[i + 1] === '"') { cur += '"'; i++ }
+      else { inQuotes = !inQuotes }
+    } else if (ch === delimiter && !inQuotes) {
+      out.push(cur); cur = ''
     } else {
       cur += ch
     }
@@ -60,13 +57,24 @@ function safeSplitCSVLine(line) {
   return out
 }
 
+function detectDelimiter(firstLine) {
+  const candidates = [',', ';', '\t']
+  let best = ','
+  let bestCount = -1
+  for (const d of candidates) {
+    const count = firstLine.split(d).length - 1
+    if (count > bestCount) { bestCount = count; best = d }
+  }
+  return best
+}
+
 function parseBankCSV(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0)
+  // Remove BOM if present
+  if (text && text.charCodeAt(0) === 0xFEFF) text = text.slice(1)
+  const lines = (text || '').split(/\r?\n/).filter(l => l.trim().length > 0)
   if (lines.length === 0) return { rows: [], errors: ['CSV vacío'] }
-  const header = safeSplitCSVLine(lines[0]).map(h => h.trim().toLowerCase())
-  // expected headers (for documentation)
-  // const expected = ['Fecha ctble','Fecha valor','Concepto','Importe','Moneda','Saldo','Moneda','Concepto ampliado']
-  // Only check prefix of headers (to be tolerant with accents/case)
+  const delimiter = detectDelimiter(lines[0])
+  const header = safeSplitCSVLine(lines[0], delimiter).map(h => h.trim().toLowerCase())
   const okHeader = (
     header.length >= 7 &&
     header[0].startsWith('fecha') && header[1].startsWith('fecha') && header[2].startsWith('concepto') &&
@@ -77,8 +85,7 @@ function parseBankCSV(text) {
 
   const rows = []
   for (let i = 1; i < lines.length; i++) {
-    const cols = safeSplitCSVLine(lines[i])
-    // Padding to at least 8 columns
+    const cols = safeSplitCSVLine(lines[i], delimiter)
     while (cols.length < 8) cols.push('')
     const [fCtb, fVal, concepto, importeStr, moneda1, saldoStr, moneda2, conceptoAmp] = cols
     const r = {
@@ -104,7 +111,6 @@ function parseBankCSV(text) {
     if (!(r.amount_currency === 'EUR' && r.balance_currency === 'EUR')) {
       r.errors.push('Moneda debe ser EUR')
     }
-    // Only expenses (negative amounts)
     r.isExpense = imp.ok && imp.value < 0
     rows.push(r)
   }
