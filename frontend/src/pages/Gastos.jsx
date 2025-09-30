@@ -10,6 +10,263 @@ import NeoGradientButton from "../components/NeoGradientButton"
 import DataCard from "../components/DataCard"
 import Pagination from "../components/Pagination"
 
+const ICON_STYLES = {
+  cyan: {
+    border: 'border-brand/40',
+    bg: 'bg-[radial-gradient(circle_at_35%_35%,rgba(8,180,216,0.22),rgba(11,60,93,0.12),rgba(11,60,93,0.05))]',
+    text: 'text-brand',
+    glow: 'bg-brand/18',
+  },
+  violet: {
+    border: 'border-violet-400/40',
+    bg: 'bg-[radial-gradient(circle_at_35%_35%,rgba(139,92,246,0.22),rgba(88,28,135,0.15),rgba(46,16,78,0.08))]',
+    text: 'text-violet-300',
+    glow: 'bg-violet-400/20',
+  },
+  amber: {
+    border: 'border-amber-400/40',
+    bg: 'bg-[radial-gradient(circle_at_35%_35%,rgba(251,191,36,0.25),rgba(120,53,15,0.15),rgba(46,16,4,0.08))]',
+    text: 'text-amber-300',
+    glow: 'bg-amber-300/25',
+  },
+  emerald: {
+    border: 'border-emerald-400/40',
+    bg: 'bg-[radial-gradient(circle_at_35%_35%,rgba(16,185,129,0.25),rgba(15,118,110,0.18),rgba(4,47,46,0.08))]',
+    text: 'text-emerald-300',
+    glow: 'bg-emerald-400/25',
+  },
+  indigo: {
+    border: 'border-indigo-400/40',
+    bg: 'bg-[radial-gradient(circle_at_35%_35%,rgba(99,102,241,0.24),rgba(55,48,163,0.16),rgba(35,31,104,0.08))]',
+    text: 'text-indigo-300',
+    glow: 'bg-indigo-400/20',
+  },
+  slate: {
+    border: 'border-slate-400/35',
+    bg: 'bg-[radial-gradient(circle_at_35%_35%,rgba(148,163,184,0.18),rgba(71,85,105,0.15),rgba(30,41,59,0.08))]',
+    text: 'text-slate-200',
+    glow: 'bg-slate-400/20',
+  },
+}
+
+const ICON_SVGS = {
+  monitor: (
+    <>
+      <rect x="3" y="5" width="14" height="10" rx="2" ry="2" />
+      <path d="M9 17h4" />
+      <path d="M12 15v2" />
+    </>
+  ),
+  truck: (
+    <>
+      <path d="M3 7h11v7H3Z" />
+      <path d="M14 10h3l3 3v1H14" />
+      <circle cx="7" cy="17" r="1.6" />
+      <circle cx="16" cy="17" r="1.6" />
+    </>
+  ),
+  box: (
+    <>
+      <path d="M3 8.5 12 4l9 4.5-9 4.5-9-4.5Z" />
+      <path d="M3 8.5v8.5l9 5 9-5V8.5" />
+      <path d="M12 12v10" />
+    </>
+  ),
+  wrench: (
+    <>
+      <path d="M15.5 6.5 9 13l-3-3-4 4 4.5 4.5L17 9.5" />
+    </>
+  ),
+  megaphone: (
+    <>
+      <path d="M3 11V7l12-4v18l-12-4v-4" />
+      <path d="M14 9a3 3 0 0 1 0 6" />
+    </>
+  ),
+  creditCard: (
+    <>
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+      <path d="M6 15h2" />
+      <path d="M10 15h2" />
+    </>
+  ),
+  wifi: (
+    <>
+      <path d="M2 9a20 20 0 0 1 20 0" />
+      <path d="M5 12a14 14 0 0 1 14 0" />
+      <path d="M8.5 15.5a8 8 0 0 1 7 0" />
+      <path d="M12 19h.01" strokeLinecap="round" />
+    </>
+  ),
+  cloud: (
+    <>
+      <path d="M7.5 18h8a4.5 4.5 0 0 0 0-9 5 5 0 0 0-9.7-1.6A3.5 3.5 0 0 0 7.5 18Z" />
+    </>
+  ),
+  pencil: (
+    <>
+      <path d="m3 17.25 8.8-8.8a2.5 2.5 0 0 1 3.54 3.54L6.5 20.79 3 21l.25-3.75Z" />
+      <path d="m14 7 3 3" />
+    </>
+  ),
+  scale: (
+    <>
+      <path d="M12 3v18" />
+      <path d="M4.5 7h15" />
+      <path d="m7 7-3 7h6l-3-7Z" />
+      <path d="m20 14-3-7-3 7h6Z" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="7" r="3" />
+      <path d="M4 21v-1a4 4 0 0 1 4-4h2" />
+      <path d="M16 21v-1a4 4 0 0 0-4-4h-1" />
+      <circle cx="17" cy="9" r="3" />
+    </>
+  ),
+  cap: (
+    <>
+      <path d="M12 4 3 8l9 4 9-4-9-4Z" />
+      <path d="M12 12v4" />
+      <path d="M7 10v4.5a5 5 0 0 0 10 0V10" />
+    </>
+  ),
+  building: (
+    <>
+      <rect x="5" y="3" width="14" height="18" rx="2" />
+      <path d="M9 9h6" />
+      <path d="M9 13h6" />
+      <path d="M9 17h6" />
+    </>
+  ),
+  percent: (
+    <>
+      <line x1="5" y1="19" x2="19" y2="5" />
+      <circle cx="7.5" cy="7.5" r="2.5" />
+      <circle cx="16.5" cy="16.5" r="2.5" />
+    </>
+  ),
+  arrows: (
+    <>
+      <path d="m7 7 5-5 5 5" />
+      <path d="M12 2v20" />
+      <path d="m17 17-5 5-5-5" />
+    </>
+  ),
+  alert: (
+    <>
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" strokeLinecap="round" />
+      <path d="M4.5 19h15l-7.5-13Z" />
+    </>
+  ),
+  layers: (
+    <>
+      <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+      <path d="m3 13 9 5 9-5" />
+      <path d="m3 18 9 5 9-5" />
+    </>
+  ),
+  shield: (
+    <>
+      <path d="M12 3 4 6v6c0 5 3.5 9.4 8 11 4.5-1.6 8-6 8-11V6l-8-3Z" />
+      <path d="m9 12 2 2 4-4" />
+    </>
+  ),
+  ban: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="m8 8 8 8" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M2 12h20" />
+      <path d="M12 4a16 16 0 0 1 0 16" />
+      <path d="M12 4a16 16 0 0 0 0 16" />
+    </>
+  ),
+  document: (
+    <>
+      <path d="M6 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
+      <path d="M13 2v6h6" />
+      <path d="M9 13h6" />
+      <path d="M9 17h3" />
+    </>
+  ),
+}
+
+function buildIcon(styleKey, svg) {
+  const style = ICON_STYLES[styleKey] || ICON_STYLES.cyan
+  return function Icon() {
+    return (
+      <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${style.border} ${style.bg} shadow-[0_12px_24px_-16px_rgba(8,180,216,0.45)]`}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={style.text}>
+          {svg}
+        </svg>
+        <span className={`pointer-events-none absolute inset-0 rounded-full ${style.glow} blur-[18px]`}></span>
+      </div>
+    )
+  }
+}
+
+const CATEGORY_ICON_GROUPS = [
+  { codes: ['600', '600.1', '600.2', '600.3'], keywords: ['pantalla', 'mercader', 'tpv', 'perif', 'soporte', 'licencia'], icon: buildIcon('cyan', ICON_SVGS.monitor) },
+  { codes: ['601'], keywords: ['variacion', 'exist'], icon: buildIcon('slate', ICON_SVGS.layers) },
+  { codes: ['602', '602.1', '602.2', '603'], keywords: ['import', 'aduan', 'flete', 'dua', 'transporte'], icon: buildIcon('indigo', ICON_SVGS.truck) },
+  { codes: ['604'], keywords: ['envase', 'embalaje', 'palet', 'caja'], icon: buildIcon('amber', ICON_SVGS.box) },
+  { codes: ['62'], keywords: ['logistica', 'courier', 'paqueter', 'subcontr', 'servicio'], icon: buildIcon('emerald', ICON_SVGS.wrench) },
+  { codes: ['621', '621.1'], keywords: ['instal', 'manten', 'tecnic'], icon: buildIcon('emerald', ICON_SVGS.wrench) },
+  { codes: ['623'], keywords: ['ads', 'publicid', 'propag', 'marketing'], icon: buildIcon('violet', ICON_SVGS.megaphone) },
+  { codes: ['626', '626.'], keywords: ['pasarela', 'tpv', 'banco', 'stripe'], icon: buildIcon('indigo', ICON_SVGS.creditCard) },
+  { codes: ['627'], keywords: ['telefon', 'internet', 'fibra', 'datos'], icon: buildIcon('cyan', ICON_SVGS.wifi) },
+  { codes: ['628', '628.1', '628.2', '628.3'], keywords: ['software', 'saas', 'hosting', 'dominio', 'ia', 'suscrip'], icon: buildIcon('violet', ICON_SVGS.cloud) },
+  { codes: ['629', '629.2', '629.3', '629.4', '629.5', '629.6'], keywords: ['diseno', 'impres', 'viaj', 'diet', 'combust', 'limpieza', 'material'], icon: buildIcon('amber', ICON_SVGS.pencil) },
+  { codes: ['63', '631'], keywords: ['tribut', 'tasa', 'impuesto'], icon: buildIcon('slate', ICON_SVGS.scale) },
+  { codes: ['64', '642'], keywords: ['salario', 'nomina', 'personal', 'seguridad social'], icon: buildIcon('emerald', ICON_SVGS.users) },
+  { codes: ['649'], keywords: ['formacion', 'curso', 'epi'], icon: buildIcon('amber', ICON_SVGS.cap) },
+  { codes: ['65'], keywords: ['alquiler', 'renta', 'oficina', 'almacen'], icon: buildIcon('cyan', ICON_SVGS.building) },
+  { codes: ['66', '662'], keywords: ['comision', 'interes', 'financ'], icon: buildIcon('indigo', ICON_SVGS.percent) },
+  { codes: ['668'], keywords: ['cambio', 'divisa', 'diferencia'], icon: buildIcon('violet', ICON_SVGS.arrows) },
+  { codes: ['67'], keywords: ['insolv', 'perdida', 'credito'], icon: buildIcon('slate', ICON_SVGS.alert) },
+  { codes: ['68', '681'], keywords: ['amortiz', 'equipo', 'herramienta'], icon: buildIcon('slate', ICON_SVGS.layers) },
+  { codes: ['69'], keywords: ['provision', 'garantia'], icon: buildIcon('slate', ICON_SVGS.shield) },
+  { keywords: ['no ded', 'multa', 'sancion', 'atencion'], icon: buildIcon('slate', ICON_SVGS.ban) },
+  { keywords: ['aduan', 'arancel'], icon: buildIcon('indigo', ICON_SVGS.globe) },
+]
+
+const DEFAULT_CATEGORY_ICON = buildIcon('cyan', ICON_SVGS.document)
+
+const normalizeCategoryText = (value = '') => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+const matchesCode = (code, pattern) => {
+  if (!code || !pattern) return false
+  if (pattern.endsWith('x')) {
+    return code.startsWith(pattern.slice(0, -1))
+  }
+  return code.startsWith(pattern)
+}
+
+function getExpenseCategoryMeta(category = '') {
+  const normalized = normalizeCategoryText(category)
+  const codeMatch = normalized.match(/^(\d{3}(?:\.\d)?)/)
+  const code = codeMatch ? codeMatch[1] : null
+
+  for (const group of CATEGORY_ICON_GROUPS) {
+    if (group.codes && code && group.codes.some((pattern) => matchesCode(code, pattern))) {
+      return group
+    }
+    if (group.keywords && group.keywords.some((keyword) => normalized.includes(keyword))) {
+      return group
+    }
+  }
+
+  return { icon: DEFAULT_CATEGORY_ICON }
+}
+
 export default function Gastos() {
   const { 
     token, 
@@ -31,6 +288,8 @@ export default function Gastos() {
   const [forceHoverBtn, setForceHoverBtn] = useState(true)
   const hoverTimeoutRef = useRef(null)
   const [editingExpense, setEditingExpense] = useState(null)
+  const [openMenuId, setOpenMenuId] = useState(null)
+  const [updatingPaidId, setUpdatingPaidId] = useState(null)
   const [formData, setFormData] = useState({
     date: '',
     category: '',
@@ -68,6 +327,28 @@ export default function Gastos() {
 
   // Limpieza del timeout del botón
   useEffect(() => () => { if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current) }, [])
+
+  useEffect(() => {
+    if (!openMenuId) return
+
+    const handlePointerDown = (event) => {
+      const menuRoot = event.target.closest('[data-expense-menu-root]')
+      if (menuRoot?.dataset?.expenseMenuRoot === String(openMenuId)) return
+      setOpenMenuId(null)
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setOpenMenuId(null)
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [openMenuId])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -110,6 +391,31 @@ export default function Gastos() {
       paid: expense.paid
     })
     setShowForm(true)
+  }
+
+  const handleTogglePaid = async (expense, nextPaid) => {
+    const payload = {
+      date: expense.date,
+      category: expense.category,
+      description: expense.description,
+      supplier: expense.supplier,
+      base_amount: expense.base_amount,
+      tax_rate: expense.tax_rate,
+      paid: nextPaid,
+    }
+
+    setUpdatingPaidId(expense.id)
+    setExpenses((prev) => prev.map((item) => (item.id === expense.id ? { ...item, paid: nextPaid } : item)))
+
+    try {
+      await apiPut(`/expenses/${expense.id}`, payload, token)
+      toast.success(nextPaid ? 'Gasto marcado como pagado' : 'Gasto marcado como pendiente')
+    } catch {
+      toast.error('No se pudo actualizar el estado de pago')
+      setExpenses((prev) => prev.map((item) => (item.id === expense.id ? { ...item, paid: !nextPaid } : item)))
+    } finally {
+      setUpdatingPaidId(null)
+    }
   }
 
   const handleDelete = async (id) => {
@@ -172,7 +478,7 @@ export default function Gastos() {
       </div>
 
   {/* Filtros */}
-  <div className="gap-2 items-center flex">
+  <div className="gap-2 items-center flex max-w-4xl mx-auto">
         <input
           type="text"
           placeholder="Buscar en descripción, proveedor o categoría..."
@@ -183,8 +489,8 @@ export default function Gastos() {
       </div>
 
       {/* Listado */}
-      <section>
-        <h3 className="text-xl font-semibold mb-2">Listado</h3>
+      <section className="space-y-3">
+        <h3 className="text-xl font-semibold mb-3 mx-auto w-full max-w-4xl">Listado</h3>
         {loading ? (
           <CustomSkeleton count={5} height={30} className="mb-2" />
         ) : (
@@ -279,56 +585,20 @@ export default function Gastos() {
             </div>
 
             {/* Labels externos solo en desktop */}
-            <div className={`
-              hidden md:grid md:grid-cols-9
-              gap-2 sm:gap-3 md:gap-4
-              mb-2 sm:mb-2.5 md:mb-3
-              text-xs text-gray-500 font-medium
-            `}>
-              <div>
-                <button 
-                  className="hover:underline cursor-pointer" 
-                  onClick={() => handleSort('date')}
-                >
-                  Fecha {sort === 'date' && (dir === 'asc' ? '↑' : '↓')}
-                </button>
+            <div className="mx-auto w-full max-w-4xl">
+              <div className={`
+                hidden md:grid
+                md:grid-cols-[minmax(0,2.6fr)_minmax(0,1fr)_minmax(0,0.9fr)_104px]
+                items-center
+                gap-2 sm:gap-3 md:gap-4
+                mb-2 sm:mb-2.5 md:mb-3
+                text-xs text-gray-500 font-medium
+              `}>
+                <div className="pl-4">Categoría / Proveedor</div>
+                <div className='text-center'>Estado</div>
+                <div className="text-center">Total</div>
+                <div className="text-right pr-4">Acciones</div>
               </div>
-              <div>
-                <button 
-                  className="hover:underline cursor-pointer" 
-                  onClick={() => handleSort('category')}
-                >
-                  Categoría {sort === 'category' && (dir === 'asc' ? '↑' : '↓')}
-                </button>
-              </div>
-              <div>
-                <button 
-                  className="hover:underline cursor-pointer" 
-                  onClick={() => handleSort('description')}
-                >
-                  Concepto {sort === 'description' && (dir === 'asc' ? '↑' : '↓')}
-                </button>
-              </div>
-              <div>
-                <button 
-                  className="hover:underline cursor-pointer" 
-                  onClick={() => handleSort('supplier')}
-                >
-                  Proveedor {sort === 'supplier' && (dir === 'asc' ? '↑' : '↓')}
-                </button>
-              </div>
-              <div>Base</div>
-              <div>IVA</div>
-              <div>
-                <button 
-                  className="hover:underline cursor-pointer" 
-                  onClick={() => handleSort('total')}
-                >
-                  Total {sort === 'total' && (dir === 'asc' ? '↑' : '↓')}
-                </button>
-              </div>
-              <div>Pagado</div>
-              <div>Acciones</div>
             </div>
 
             {/* Cards responsive con stagger */}
@@ -348,6 +618,7 @@ export default function Gastos() {
                 hoverTimeoutRef.current = setTimeout(() => setForceHoverBtn(false), totalMs)
               }}
             >
+              <div className="mx-auto w-full max-w-4xl space-y-2">
               {(() => {
                 // Obtener gastos en orden personalizado o aplicar ordenamiento manual
                 let sorted;
@@ -388,67 +659,141 @@ export default function Gastos() {
                   sorted = getOrderedExpenses(expenses);
                 }
                 
-                return sorted.map((expense) => (
-                                <DataCard
-                  key={expense.id}
-                  // STYLE: Hacer la tarjeta clickeable para abrir edición y habilitar hover
-                  onClick={() => handleEdit(expense)}
-                  actions={[
-                    {
-                      label: 'Editar',
-                      className: 'text-brand focus:ring-brand',
-                      onClick: () => handleEdit(expense)
-                    },
-                    {
-                      label: 'Eliminar',
-                      className: 'text-red-600 focus:ring-red-500',
-                      onClick: () => handleDelete(expense.id)
-                    }
-                  ]}
-                  columns={8}
-                  >
-                    <div>
-                      <div className="text-xs text-gray-500 md:hidden">Fecha</div>
-                      <div className="font-medium">{new Date(expense.date).toLocaleDateString('es-ES')}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500 md:hidden">Categoría</div>
-                      <div className="text-gray-300">{expense.category}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500 md:hidden">Concepto</div>
-                      <div className="text-gray-300">{expense.description}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500 md:hidden">Proveedor</div>
-                      <div className="text-gray-300">{expense.supplier}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500 md:hidden">Base</div>
-                      <div className="font-medium tabular-nums">{expense.base_amount.toFixed(2)} €</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500 md:hidden">IVA</div>
-                      <div className="text-gray-300">{expense.tax_rate}%</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500 md:hidden">Total</div>
-                      <div className="font-semibold text-gray-100 tabular-nums">{expense.total.toFixed(2)} €</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500 md:hidden">Pagado</div>
-                      <div className="text-gray-300">
-                        {expense.paid ? (
-                          <span className="text-green-400">✓ Pagado</span>
-                        ) : (
-                          <span className="text-red-400">✗ Pendiente</span>
-                        )}
+                return sorted.map((expense) => {
+                  const categoryMeta = getExpenseCategoryMeta(expense.category)
+                  const CategoryIcon = categoryMeta.icon || DEFAULT_CATEGORY_ICON
+                  const menuOpen = openMenuId === expense.id
+                  const supplier = expense.supplier || 'Proveedor no especificado'
+                  const totalDisplay = `${expense.total.toFixed(2)} €`
+
+                  return (
+                    <DataCard
+                      key={expense.id}
+                      isClickable={false}
+                      columns={1}
+                      className={`relative overflow-visible !px-4 !py-3 md:!px-4 md:!py-3 ${menuOpen ? 'z-50' : 'z-0'}`}
+                      style={menuOpen ? { isolation: 'isolate' } : undefined}
+                    >
+                      <div className="grid grid-cols-1 gap-3 text-center md:grid-cols-[minmax(0,2.6fr)_minmax(0,1fr)_minmax(0,0.9fr)_104px] md:items-center md:text-left md:gap-4">
+                        <div className="flex flex-col items-center gap-2 text-center md:flex-row md:items-center md:text-left md:gap-3 min-w-0">
+                          <CategoryIcon />
+                          <div className="min-w-0 text-left">
+                            <p className="truncate font-semibold leading-tight text-gray-100">
+                              {expense.category || 'Gasto sin categoría'}
+                            </p>
+                            <p className="truncate text-sm text-gray-400">
+                              {supplier}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-center justify-center gap-1 text-center md:items-center">
+                          <label
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full border bg-gray-900/60 transition-colors duration-200 ${expense.paid ? 'border-brand/70 bg-brand/30' : 'border-gray-700/70 hover:border-brand/40'} ${updatingPaidId === expense.id ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                          >
+                            <span className="sr-only">Cambiar estado de pago</span>
+                            <input
+                              type="checkbox"
+                              className="sr-only"
+                              checked={!!expense.paid}
+                              disabled={updatingPaidId === expense.id}
+                              onChange={(event) => handleTogglePaid(expense, event.target.checked)}
+                              aria-label={`Marcar ${expense.description || expense.category} como ${expense.paid ? 'pendiente' : 'pagado'}`}
+                            />
+                            <span
+                              className={`pointer-events-none block h-[1.25rem] w-[1.25rem] rounded-full bg-white shadow-[0_2px_6px_rgba(8,180,216,0.35)] transition-transform duration-200 ease-out ${expense.paid ? 'translate-x-[1.5rem]' : 'translate-x-[0.15rem]'} ${updatingPaidId === expense.id ? 'opacity-70' : ''}`}
+                            ></span>
+                          </label>
+                          <span className={`text-[11px] uppercase tracking-wide ${expense.paid ? 'text-brand' : 'text-gray-500'}`}>
+                            {expense.paid ? 'Pagado' : 'Pendiente'}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col items-center justify-center text-center md:items-end md:text-right">
+                          <span className="text-xs text-gray-500 md:hidden">Total</span>
+                          <p className="text-sm font-semibold text-gray-100 tabular-nums">
+                            {totalDisplay}
+                          </p>
+                        </div>
+
+                        <div
+                          className="relative flex items-center justify-center gap-2 md:justify-end md:justify-self-end"
+                          data-expense-menu-root={String(expense.id)}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenMenuId(null)
+                              handleEdit(expense)
+                            }}
+                            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-700/70 bg-gray-900/60 text-gray-200 transition-all duration-200 hover:border-brand/60 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+                            aria-label={`Ver detalles de ${expense.description}`}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1.5 12s3.5-7 10.5-7 10.5 7 10.5 7-3.5 7-10.5 7-10.5-7-10.5-7Z" />
+                              <circle cx="12" cy="12" r="3.5" />
+                            </svg>
+                          </button>
+
+                          <div className="relative z-50">
+                            <button
+                              type="button"
+                              onClick={() => setOpenMenuId(menuOpen ? null : expense.id)}
+                              className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-700/70 bg-gray-900/60 text-gray-200 transition-all duration-200 hover:border-brand/60 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${menuOpen ? 'border-brand/60 text-brand' : ''}`}
+                              aria-haspopup="menu"
+                              aria-expanded={menuOpen}
+                              aria-label={`Más acciones para ${expense.description}`}
+                            >
+                              <span className="flex flex-col gap-0.5">
+                                <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                <span className="block h-1 w-1 rounded-full bg-current"></span>
+                              </span>
+                            </button>
+                            {menuOpen && (
+                              <div className="absolute right-0 top-10 z-[60] w-44 rounded-lg border border-gray-700/70 bg-gray-900/95 shadow-[0_18px_36px_-12px_rgba(8,180,216,0.45)] backdrop-blur-sm">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null)
+                                    handleEdit(expense)
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-200 transition-colors hover:bg-gray-800/80 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+                                >
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="m12 20h9" />
+                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                  </svg>
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null)
+                                    handleDelete(expense.id)
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-500 transition-colors hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                                >
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 6h18" />
+                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                    <path d="M10 11v6" />
+                                    <path d="M14 11v6" />
+                                    <path d="M5 6h14l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2Z" />
+                                  </svg>
+                                  Eliminar
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </DataCard>
-        ))
+                    </DataCard>
+                  )
+                })
               })()}
-      </motion.div>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </section>
@@ -572,16 +917,6 @@ export default function Gastos() {
                   />
                 </label>
                 
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="modal-paid"
-                    checked={formData.paid}
-                    onChange={(e) => setFormData({...formData, paid: e.target.checked})}
-                    className="mr-2"
-                  />
-                  <label htmlFor="modal-paid" className="text-sm font-medium">Pagado</label>
-                </div>
               </div>
               
               <div className="flex gap-2 pt-4">

@@ -691,7 +691,6 @@ export default function Facturas() {
                             </div>
 
                             <div className="flex flex-col items-center justify-center gap-1 text-center md:items-center">
-                              <div className="text-xs text-gray-500 md:hidden">Pagado</div>
                               <label
                                 className={`relative inline-flex h-6 w-11 items-center rounded-full border bg-gray-900/60 transition-colors duration-200 ${inv.paid ? 'border-brand/70 bg-brand/30' : 'border-gray-700/70 hover:border-brand/40'} ${toggleDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                               >
