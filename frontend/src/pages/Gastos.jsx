@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { MOTION } from '../styles/motion'
 import CustomSkeleton from "../components/CustomSkeleton"
 import CreateExpenseModal from "../components/CreateExpenseModal"
+import ImportExpensesCSVModal from "../components/ImportExpensesCSVModal"
 import NeoGradientButton from "../components/NeoGradientButton"
 import DataCard from "../components/DataCard"
 import Pagination from "../components/Pagination"
@@ -285,6 +286,7 @@ export default function Gastos() {
   const [limit] = useState(10)
   const [showForm, setShowForm] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showImportCSV, setShowImportCSV] = useState(false)
   const [forceHoverBtn, setForceHoverBtn] = useState(true)
   const hoverTimeoutRef = useRef(null)
   const [editingExpense, setEditingExpense] = useState(null)
@@ -950,6 +952,13 @@ export default function Gastos() {
         onSubmit={handleSubmit}
         form={formData}
         setForm={setFormData}
+        onOpenCSV={() => setShowImportCSV(true)}
+      />
+
+      <ImportExpensesCSVModal
+        isOpen={showImportCSV}
+        onClose={() => { setShowImportCSV(false); loadExpenses() }}
+        onImported={() => { setShowImportCSV(false); loadExpenses() }}
       />
     </main>
   )

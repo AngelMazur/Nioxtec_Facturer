@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
+const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm, onOpenCSV }) => {
   const dialogRef = React.useRef(null)
   const lastActiveRef = React.useRef(null)
   // Keep a stable reference to onClose to avoid re-running effects on each render
@@ -226,7 +226,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
-                className="flex gap-2 pt-4"
+                className="flex gap-2 pt-4 flex-wrap"
               >
                 <button
                   type="submit"
@@ -240,6 +240,13 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                   className="bg-secondary hover:opacity-90 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-brand focus:ring-opacity-50"
                 >
                   Limpiar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenCSV && onOpenCSV()}
+                  className="bg-amber-600 hover:bg-amber-500 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-amber-400 focus:ring-opacity-50"
+                >
+                  Subir CSV
                 </button>
                 <button
                   type="button"
