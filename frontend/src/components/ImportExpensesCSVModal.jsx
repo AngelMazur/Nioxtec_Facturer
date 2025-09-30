@@ -6,22 +6,21 @@ import { useStore } from '../store/store'
 
 // Utilities to parse and normalize CSV content according to user's rules
 function parseDateDMY(input) {
-  // Accept d/m/yy or dd/mm/yy (also with leading zeros)
-  if (!input) return null
+  // Accept d/m/yy or dd/mm/yy and variations with '-', '.' and optional inner spaces
+  if (!input && input !== 0) return null
   const trimmed = String(input).trim()
-  const m = trimmed.match(/^\s*(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/)
+  const m = trimmed.match(/(\d{1,2})\D+(\d{1,2})\D+(\d{2,4})/)
   if (!m) return null
-  let d = parseInt(m[1], 10)
-  let mo = parseInt(m[2], 10)
-  let yy = parseInt(m[3], 10)
-  if (isNaN(d) || isNaN(mo) || isNaN(yy)) return null
-  // Assume 2000-2099 for 2-digit years
-  const year = 2000 + yy
-  // Basic range checks
+  const d = parseInt(m[1], 10)
+  const mo = parseInt(m[2], 10)
+  let y = parseInt(m[3], 10)
+  if (isNaN(d) || isNaN(mo) || isNaN(y)) return null
+  const year = (m[3].length === 2) ? 2000 + y : y
   if (mo < 1 || mo > 12 || d < 1 || d > 31) return null
-  // Build ISO date (not validating month/day combos strictly)
-  const iso = `${year}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-  return iso
+  // Validate actual calendar date
+  const dt = new Date(year, mo - 1, d)
+  if (dt.getFullYear() !== year || (dt.getMonth() + 1) !== mo || dt.getDate() !== d) return null
+  return `${year}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
 function parseEuroDecimal(str) {
