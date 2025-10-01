@@ -951,6 +951,8 @@ export default function Gastos() {
           // Volver a página 1 para ver los nuevos gastos
           setPage(0)
           setShowImportCSV(false)
+          // Cerrar también la modal de crear gasto si estaba abierta
+          setShowCreateModal(false)
           // Forzar recarga inmediata (por si ya estamos en page 0)
           loadExpenses()
         }}
