@@ -946,8 +946,12 @@ export default function Gastos() {
 
       <ImportExpensesCSVModal
         isOpen={showImportCSV}
-        onClose={() => { setShowImportCSV(false); loadExpenses() }}
-        onImported={() => { setShowImportCSV(false); loadExpenses() }}
+        onClose={() => setShowImportCSV(false)}
+        onImported={() => { 
+          // Volver a página 1 para ver los nuevos gastos (loadExpenses se ejecuta automáticamente)
+          setPage(0)
+          setShowImportCSV(false)
+        }}
       />
     </main>
   )
