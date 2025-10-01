@@ -280,6 +280,9 @@ export default function Gastos() {
   const [sort, setSort] = useState('date')
   const [dir, setDir] = useState('desc')
   const [page, setPage] = useState(0)
+  const [sortMode, setSortMode] = useState('created_at') // 'created_at' | 'date'
+  const [groupBy, setGroupBy] = useState('none') // 'none' | 'month'
+  const [collapsedMonths, setCollapsedMonths] = useState(new Set())
   const [limit] = useState(10)
   const [showForm, setShowForm] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -305,7 +308,7 @@ export default function Gastos() {
       const params = new URLSearchParams({
         limit: limit.toString(),
         offset: (page * limit).toString(),
-        sort,
+        sort: sortMode, // Usar sortMode en lugar de sort
         dir
       })
       if (search) params.append('q', search)
@@ -318,7 +321,7 @@ export default function Gastos() {
     } finally {
       setLoading(false)
     }
-  }, [page, search, sort, dir, limit, token])
+  }, [page, search, sortMode, dir, limit, token])
 
   useEffect(() => {
     loadExpenses()
@@ -475,15 +478,85 @@ export default function Gastos() {
       </div>
 
   {/* Filtros */}
-  <div className="gap-2 items-center flex max-w-4xl mx-auto">
-        <input
-          type="text"
-          placeholder="Buscar en descripción, proveedor o categoría..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-        />
+  <div className="space-y-3 max-w-4xl mx-auto">
+    <input
+      type="text"
+      placeholder="Buscar en descripción, proveedor o categoría..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="w-full border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+    />
+    
+    {/* Controles de ordenamiento y agrupación */}
+    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+      {/* Ordenamiento */}
+      <div className="flex-1">
+        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14M5 12l7 7 7-7"/>
+          </svg>
+          <span>Ordenar</span>
+        </div>
+        <div className="flex rounded-lg border border-gray-600 bg-gray-800/40 p-1">
+          <button
+            onClick={() => setSortMode('created_at')}
+            className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-all duration-200 ${
+              sortMode === 'created_at'
+                ? 'bg-brand text-white shadow-lg shadow-brand/25'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            Más recientes
+          </button>
+          <button
+            onClick={() => setSortMode('date')}
+            className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-all duration-200 ${
+              sortMode === 'date'
+                ? 'bg-brand text-white shadow-lg shadow-brand/25'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            Por fecha
+          </button>
+        </div>
       </div>
+      
+      {/* Agrupación */}
+      <div className="flex-1">
+        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span>Agrupar</span>
+        </div>
+        <div className="flex rounded-lg border border-gray-600 bg-gray-800/40 p-1">
+          <button
+            onClick={() => setGroupBy('none')}
+            className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-all duration-200 ${
+              groupBy === 'none'
+                ? 'bg-brand text-white shadow-lg shadow-brand/25'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            Sin agrupar
+          </button>
+          <button
+            onClick={() => setGroupBy('month')}
+            className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-all duration-200 ${
+              groupBy === 'month'
+                ? 'bg-brand text-white shadow-lg shadow-brand/25'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            Por mes
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
       {/* Listado */}
       <section className="space-y-3">
@@ -618,38 +691,231 @@ export default function Gastos() {
               <div className="mx-auto w-full max-w-4xl space-y-2">
               {(() => {
                 // El backend ya devuelve los gastos ordenados correctamente
-                // Solo aplicamos ordenamiento local si el usuario cambia el criterio de orden
-                const sorted = expenses.slice().sort((a, b) => {
-                  const dirFactor = dir === 'asc' ? 1 : -1
-                  const aId = a?.id || 0
-                  const bId = b?.id || 0
-                  const fallback = (aId - bId) * dirFactor
-                  if (sort === 'date') {
-                    const cmp = String(a.date || '').localeCompare(String(b.date || ''))
-                    return cmp !== 0 ? cmp * dirFactor : fallback
-                  }
-                  if (sort === 'total') {
-                    const diff = ((a.total ?? 0) - (b.total ?? 0))
-                    return diff !== 0 ? diff * dirFactor : fallback
-                  }
-                  if (sort === 'category') {
-                    const cmp = String(a.category || '').localeCompare(String(b.category || ''), 'es', { numeric: true })
-                    return cmp !== 0 ? cmp * dirFactor : fallback
-                  }
-                  if (sort === 'description') {
-                    const cmp = String(a.description || '').localeCompare(String(b.description || ''), 'es', { numeric: true })
-                    return cmp !== 0 ? cmp * dirFactor : fallback
-                  }
-                  if (sort === 'supplier') {
-                    const cmp = String(a.supplier || '').localeCompare(String(b.supplier || ''), 'es', { numeric: true })
-                    return cmp !== 0 ? cmp * dirFactor : fallback
-                  }
-                  const av = a[sort]
-                  const bv = b[sort]
-                  const cmp = String(av ?? '').localeCompare(String(bv ?? ''), 'es', { numeric: true })
-                  return cmp !== 0 ? cmp * dirFactor : fallback
-                })
+                const sorted = expenses.slice()
                 
+                // Agrupar por mes si está activado
+                if (groupBy === 'month') {
+                  // Agrupar gastos por mes
+                  const grouped = sorted.reduce((acc, expense) => {
+                    const date = new Date(expense.date)
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+                    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+                    const monthLabel = `${monthNames[date.getMonth()]} ${date.getFullYear()}`
+                    
+                    if (!acc[monthKey]) {
+                      acc[monthKey] = {
+                        label: monthLabel,
+                        expenses: [],
+                        total: 0
+                      }
+                    }
+                    acc[monthKey].expenses.push(expense)
+                    acc[monthKey].total += expense.total
+                    return acc
+                  }, {})
+                  
+                  // Ordenar meses
+                  const sortedMonths = Object.entries(grouped).sort((a, b) => {
+                    if (sortMode === 'date') {
+                      // Orden cronológico inverso (más reciente primero)
+                      return b[0].localeCompare(a[0])
+                    } else {
+                      // Por created_at: usar el created_at más reciente de cada mes
+                      const aLatest = Math.max(...a[1].expenses.map(e => new Date(e.created_at || 0).getTime()))
+                      const bLatest = Math.max(...b[1].expenses.map(e => new Date(e.created_at || 0).getTime()))
+                      return bLatest - aLatest
+                    }
+                  })
+                  
+                  return sortedMonths.map(([monthKey, monthData]) => {
+                    const isCollapsed = collapsedMonths.has(monthKey)
+                    
+                    return (
+                      <div key={monthKey} className="space-y-2">
+                        {/* Header del mes */}
+                        <button
+                          onClick={() => {
+                            const newCollapsed = new Set(collapsedMonths)
+                            if (isCollapsed) {
+                              newCollapsed.delete(monthKey)
+                            } else {
+                              newCollapsed.add(monthKey)
+                            }
+                            setCollapsedMonths(newCollapsed)
+                          }}
+                          className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-gray-800/60 to-gray-800/40 border border-gray-700/50 rounded-lg hover:border-brand/40 transition-all duration-200 group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <svg 
+                              className={`w-5 h-5 text-brand transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="2" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                            >
+                              <path d="M9 18l6-6-6-6"/>
+                            </svg>
+                            <div className="text-left">
+                              <h4 className="font-semibold text-gray-100 group-hover:text-brand transition-colors">
+                                {monthData.label}
+                              </h4>
+                              <p className="text-xs text-gray-400">
+                                {monthData.expenses.length} gasto{monthData.expenses.length !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-brand tabular-nums">
+                              {monthData.total.toFixed(2)} €
+                            </p>
+                          </div>
+                        </button>
+                        
+                        {/* Gastos del mes */}
+                        {!isCollapsed && (
+                          <div className="space-y-2 pl-0 md:pl-2">
+                            {monthData.expenses.map((expense) => {
+                              const categoryMeta = getExpenseCategoryMeta(expense.category)
+                              const CategoryIcon = categoryMeta.icon || DEFAULT_CATEGORY_ICON
+                              const menuOpen = openMenuId === expense.id
+                              const supplier = expense.supplier || 'Proveedor no especificado'
+                              const totalDisplay = `${expense.total.toFixed(2)} €`
+
+                              return (
+                                <DataCard
+                                  key={expense.id}
+                                  isClickable={false}
+                                  columns={1}
+                                  className={`relative overflow-visible !px-4 !py-3 md:!px-4 md:!py-3 ${menuOpen ? 'z-50' : 'z-0'}`}
+                                  style={menuOpen ? { isolation: 'isolate' } : undefined}
+                                >
+                                  <div className="grid grid-cols-1 gap-3 text-center md:grid-cols-[minmax(0,2.6fr)_minmax(0,1fr)_minmax(0,0.9fr)_104px] md:items-center md:text-left md:gap-4">
+                                    <div className="flex flex-col items-center gap-2 text-center md:flex-row md:items-center md:text-left md:gap-3 min-w-0">
+                                      <CategoryIcon />
+                                      <div className="min-w-0 text-left">
+                                        <p className="truncate font-semibold leading-tight text-gray-100">
+                                          {expense.category || 'Gasto sin categoría'}
+                                        </p>
+                                        <p className="truncate text-sm text-gray-400">
+                                          {supplier}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex flex-col items-center justify-center gap-1 text-center md:items-center">
+                                      <label
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full border bg-gray-900/60 transition-colors duration-200 ${expense.paid ? 'border-brand/70 bg-brand/30' : 'border-gray-700/70 hover:border-brand/40'} ${updatingPaidId === expense.id ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                                      >
+                                        <span className="sr-only">Cambiar estado de pago</span>
+                                        <input
+                                          type="checkbox"
+                                          className="sr-only"
+                                          checked={!!expense.paid}
+                                          disabled={updatingPaidId === expense.id}
+                                          onChange={(event) => handleTogglePaid(expense, event.target.checked)}
+                                          aria-label={`Marcar ${expense.description || expense.category} como ${expense.paid ? 'pendiente' : 'pagado'}`}
+                                        />
+                                        <span
+                                          className={`pointer-events-none block h-[1.25rem] w-[1.25rem] rounded-full bg-white shadow-[0_2px_6px_rgba(8,180,216,0.35)] transition-transform duration-200 ease-out ${expense.paid ? 'translate-x-[1.5rem]' : 'translate-x-[0.15rem]'} ${updatingPaidId === expense.id ? 'opacity-70' : ''}`}
+                                        ></span>
+                                      </label>
+                                      <span className={`text-[11px] uppercase tracking-wide ${expense.paid ? 'text-brand' : 'text-gray-500'}`}>
+                                        {expense.paid ? 'Pagado' : 'Pendiente'}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex flex-col items-center justify-center text-center md:items-end md:text-right">
+                                      <span className="text-xs text-gray-500 md:hidden">Total</span>
+                                      <p className="text-sm font-semibold text-gray-100 tabular-nums">
+                                        {totalDisplay}
+                                      </p>
+                                    </div>
+
+                                    <div
+                                      className="relative flex items-center justify-center gap-2 md:justify-end md:justify-self-end"
+                                      data-expense-menu-root={String(expense.id)}
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenMenuId(null)
+                                          handleEdit(expense)
+                                        }}
+                                        className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-700/70 bg-gray-900/60 text-gray-200 transition-all duration-200 hover:border-brand/60 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+                                        aria-label={`Ver detalles de ${expense.description}`}
+                                      >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M1.5 12s3.5-7 10.5-7 10.5 7 10.5 7-3.5 7-10.5 7-10.5-7-10.5-7Z" />
+                                          <circle cx="12" cy="12" r="3.5" />
+                                        </svg>
+                                      </button>
+
+                                      <div className="relative z-50">
+                                        <button
+                                          type="button"
+                                          onClick={() => setOpenMenuId(menuOpen ? null : expense.id)}
+                                          className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-700/70 bg-gray-900/60 text-gray-200 transition-all duration-200 hover:border-brand/60 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${menuOpen ? 'border-brand/60 text-brand' : ''}`}
+                                          aria-haspopup="menu"
+                                          aria-expanded={menuOpen}
+                                          aria-label={`Más acciones para ${expense.description}`}
+                                        >
+                                          <span className="flex flex-col gap-0.5">
+                                            <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                            <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                            <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                          </span>
+                                        </button>
+                                        {menuOpen && (
+                                          <div className="absolute right-0 top-10 z-[60] w-44 rounded-lg border border-gray-700/70 bg-gray-900/95 shadow-[0_18px_36px_-12px_rgba(8,180,216,0.45)] backdrop-blur-sm">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setOpenMenuId(null)
+                                                handleEdit(expense)
+                                              }}
+                                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-200 transition-colors hover:bg-gray-800/80 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+                                            >
+                                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="m12 20h9" />
+                                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                              </svg>
+                                              Editar
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setOpenMenuId(null)
+                                                handleDelete(expense.id)
+                                              }}
+                                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-500 transition-colors hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                                            >
+                                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M3 6h18" />
+                                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                <path d="M10 11v6" />
+                                                <path d="M14 11v6" />
+                                                <path d="M5 6h14l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2Z" />
+                                              </svg>
+                                              Eliminar
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </DataCard>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                }
+                
+                // Sin agrupar - lista plana
                 return sorted.map((expense) => {
                   const categoryMeta = getExpenseCategoryMeta(expense.category)
                   const CategoryIcon = categoryMeta.icon || DEFAULT_CATEGORY_ICON
