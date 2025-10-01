@@ -1,5 +1,6 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ExpenseAutocomplete from './ExpenseAutocomplete'
 
 const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm, onOpenCSV }) => {
   const dialogRef = React.useRef(null)
@@ -113,14 +114,12 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm, onOpenCS
                 >
                   <label className="flex flex-col gap-1">
                     <span className="text-sm text-gray-500">Categoría *</span>
-                    <input
-                      type="text"
-                      required
-                      maxLength={64}
-                      name="category"
+                    <ExpenseAutocomplete
                       value={form.category}
-                      onChange={handleChange}
-                      className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                      onChange={(value) => setForm(prev => ({ ...prev, category: value }))}
+                      type="categories"
+                      placeholder="Escribe o selecciona una categoría..."
+                      required
                     />
                   </label>
                 </motion.div>
@@ -152,14 +151,12 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm, onOpenCS
                 >
                   <label className="flex flex-col gap-1">
                     <span className="text-sm text-gray-500">Proveedor *</span>
-                    <input
-                      type="text"
-                      required
-                      maxLength={128}
-                      name="supplier"
+                    <ExpenseAutocomplete
                       value={form.supplier}
-                      onChange={handleChange}
-                      className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                      onChange={(value) => setForm(prev => ({ ...prev, supplier: value }))}
+                      type="suppliers"
+                      placeholder="Escribe o selecciona un proveedor..."
+                      required
                     />
                   </label>
                 </motion.div>

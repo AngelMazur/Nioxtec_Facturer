@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { apiGet, apiPost, apiDelete } from '../lib/api'
 import { useStore } from '../store/store'
+import ExpenseAutocomplete from './ExpenseAutocomplete'
 
 // Utilities to parse and normalize CSV content according to user's rules
 function parseDateDMY(input) {
@@ -285,8 +286,26 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                   <div className="bg-gray-800/60 rounded p-3 space-y-2">
                     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={omitDuplicates} onChange={e => setOmitDuplicates(e.target.checked)} /> Omitir duplicados (por fecha+importe+concepto)</label>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <label className="flex flex-col gap-1"><span className="text-gray-400">Categoría por defecto</span><input value={defaultCategory} onChange={e=>setDefaultCategory(e.target.value)} className="px-2 py-1 rounded bg-gray-900 border border-gray-700" /></label>
-                      <label className="flex flex-col gap-1"><span className="text-gray-400">Proveedor por defecto</span><input value={defaultSupplier} onChange={e=>setDefaultSupplier(e.target.value)} className="px-2 py-1 rounded bg-gray-900 border border-gray-700" /></label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-gray-400">Categoría por defecto</span>
+                        <ExpenseAutocomplete
+                          value={defaultCategory}
+                          onChange={setDefaultCategory}
+                          type="categories"
+                          placeholder="Categoría..."
+                          className="px-2 py-1 rounded bg-gray-900 border border-gray-700 text-sm"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-gray-400">Proveedor por defecto</span>
+                        <ExpenseAutocomplete
+                          value={defaultSupplier}
+                          onChange={setDefaultSupplier}
+                          type="suppliers"
+                          placeholder="Proveedor..."
+                          className="px-2 py-1 rounded bg-gray-900 border border-gray-700 text-sm"
+                        />
+                      </label>
                       <label className="flex flex-col gap-1"><span className="text-gray-400">IVA por defecto (%)</span><input type="number" step="0.1" min="0" max="100" value={defaultTax} onChange={e=>setDefaultTax(e.target.value)} className="px-2 py-1 rounded bg-gray-900 border border-gray-700" /></label>
                     </div>
                     {existingIndex.size>0 && (

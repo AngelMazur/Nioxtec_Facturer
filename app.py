@@ -2230,6 +2230,22 @@ def delete_expense(expense_id):
     return jsonify({'status': 'deleted'})
 
 
+@app.route('/api/expenses/categories', methods=['GET'])
+@jwt_required()
+def get_expense_categories():
+    """Get unique expense categories for autocomplete."""
+    categories = db.session.query(Expense.category).distinct().order_by(Expense.category).all()
+    return jsonify({'categories': [cat[0] for cat in categories if cat[0]]})
+
+
+@app.route('/api/expenses/suppliers', methods=['GET'])
+@jwt_required()
+def get_expense_suppliers():
+    """Get unique expense suppliers for autocomplete."""
+    suppliers = db.session.query(Expense.supplier).distinct().order_by(Expense.supplier).all()
+    return jsonify({'suppliers': [sup[0] for sup in suppliers if sup[0]]})
+
+
 @app.route('/api/expenses/export_xlsx')
 @jwt_required()
 @limiter.limit("10 per minute")
