@@ -212,6 +212,7 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
   }, [isOpen])
 
   async function fetchAllExpensesIndex() {
+    console.log('🔍 [CSV Import] Cargando índice de duplicados...')
     try {
       const resp = await apiGet(`/expenses?limit=10000&offset=0&sort=date&dir=desc`, token)
       const map = new Map()
@@ -221,8 +222,8 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
         const sig = `${e.date}|${amount.toFixed(2)}|${(e.description || '').trim().replace(/\s+/g,' ')}`
         map.set(sig, e)
       }
-      console.log('🔍 [CSV Import] Índice de duplicados cargado:', map.size, 'gastos existentes')
-      console.log('🔍 [CSV Import] Primeras 3 firmas:', Array.from(map.keys()).slice(0, 3))
+      console.log('✅ [CSV Import] Índice de duplicados cargado:', map.size, 'gastos existentes')
+      console.log('🔍 [CSV Import] Firmas en índice:', Array.from(map.keys()).slice(0, 5))
       setExistingIndex(map)
     } catch {
       // Not critical, allow import without duplicate detection
@@ -233,15 +234,16 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => {
+    reader.onload = async () => {
       const text = reader.result?.toString() || ''
       setRawText(text)
       const p = parseBankCSV(text)
       setParsed(p)
       const sum = summarize(p.rows)
       setSummary(sum)
+      // Cargar índice de duplicados ANTES de mostrar preview
+      await fetchAllExpensesIndex()
       setStep('preview')
-      fetchAllExpensesIndex()
     }
     reader.onerror = () => toast.error('No se pudo leer el archivo')
     reader.readAsText(file, 'utf-8')
