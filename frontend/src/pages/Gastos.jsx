@@ -271,9 +271,7 @@ function getExpenseCategoryMeta(category = '') {
 export default function Gastos() {
   const { 
     token, 
-    setUserSortedExpenses, 
-    getOrderedExpenses,
-    userHasSortedExpenses
+    setUserSortedExpenses
   } = useStore()
   const [expenses, setExpenses] = useState([])
   const [total, setTotal] = useState(0)
@@ -619,44 +617,38 @@ export default function Gastos() {
             >
               <div className="mx-auto w-full max-w-4xl space-y-2">
               {(() => {
-                // Obtener gastos en orden personalizado o aplicar ordenamiento manual
-                let sorted;
-                if (userHasSortedExpenses) {
-                  // Si el usuario ha ordenado manualmente, aplicar ese ordenamiento con desempate estable por ID
-                  sorted = expenses.slice().sort((a, b) => {
-                    const dirFactor = dir === 'asc' ? 1 : -1
-                    const aId = a?.id || 0
-                    const bId = b?.id || 0
-                    const fallback = (aId - bId) * dirFactor
-                    if (sort === 'date') {
-                      const cmp = String(a.date || '').localeCompare(String(b.date || ''))
-                      return cmp !== 0 ? cmp * dirFactor : fallback
-                    }
-                    if (sort === 'total') {
-                      const diff = ((a.total ?? 0) - (b.total ?? 0))
-                      return diff !== 0 ? diff * dirFactor : fallback
-                    }
-                    if (sort === 'category') {
-                      const cmp = String(a.category || '').localeCompare(String(b.category || ''), 'es', { numeric: true })
-                      return cmp !== 0 ? cmp * dirFactor : fallback
-                    }
-                    if (sort === 'description') {
-                      const cmp = String(a.description || '').localeCompare(String(b.description || ''), 'es', { numeric: true })
-                      return cmp !== 0 ? cmp * dirFactor : fallback
-                    }
-                    if (sort === 'supplier') {
-                      const cmp = String(a.supplier || '').localeCompare(String(b.supplier || ''), 'es', { numeric: true })
-                      return cmp !== 0 ? cmp * dirFactor : fallback
-                    }
-                    const av = a[sort]
-                    const bv = b[sort]
-                    const cmp = String(av ?? '').localeCompare(String(bv ?? ''), 'es', { numeric: true })
+                // El backend ya devuelve los gastos ordenados correctamente
+                // Solo aplicamos ordenamiento local si el usuario cambia el criterio de orden
+                const sorted = expenses.slice().sort((a, b) => {
+                  const dirFactor = dir === 'asc' ? 1 : -1
+                  const aId = a?.id || 0
+                  const bId = b?.id || 0
+                  const fallback = (aId - bId) * dirFactor
+                  if (sort === 'date') {
+                    const cmp = String(a.date || '').localeCompare(String(b.date || ''))
                     return cmp !== 0 ? cmp * dirFactor : fallback
-                  })
-                } else {
-                  // Usar orden personalizado del store (nuevos gastos al final)
-                  sorted = getOrderedExpenses(expenses);
-                }
+                  }
+                  if (sort === 'total') {
+                    const diff = ((a.total ?? 0) - (b.total ?? 0))
+                    return diff !== 0 ? diff * dirFactor : fallback
+                  }
+                  if (sort === 'category') {
+                    const cmp = String(a.category || '').localeCompare(String(b.category || ''), 'es', { numeric: true })
+                    return cmp !== 0 ? cmp * dirFactor : fallback
+                  }
+                  if (sort === 'description') {
+                    const cmp = String(a.description || '').localeCompare(String(b.description || ''), 'es', { numeric: true })
+                    return cmp !== 0 ? cmp * dirFactor : fallback
+                  }
+                  if (sort === 'supplier') {
+                    const cmp = String(a.supplier || '').localeCompare(String(b.supplier || ''), 'es', { numeric: true })
+                    return cmp !== 0 ? cmp * dirFactor : fallback
+                  }
+                  const av = a[sort]
+                  const bv = b[sort]
+                  const cmp = String(av ?? '').localeCompare(String(bv ?? ''), 'es', { numeric: true })
+                  return cmp !== 0 ? cmp * dirFactor : fallback
+                })
                 
                 return sorted.map((expense) => {
                   const categoryMeta = getExpenseCategoryMeta(expense.category)
