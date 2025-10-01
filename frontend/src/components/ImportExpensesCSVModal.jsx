@@ -181,7 +181,12 @@ function summarize(rows) {
 
 function rowSignature(r) {
   // Duplicate if accounting_date + amount + description match
-  return `${r.accounting_date}|${(r.amount ?? 0).toFixed(2)}|${r.description}`
+  // Use absolute value to match with database (stored as positive base_amount)
+  const absoluteAmount = Math.abs(r.amount ?? 0)
+  const normalizedDesc = (r.description || '').trim().replace(/\s+/g,' ')
+  const sig = `${r.accounting_date}|${(-absoluteAmount).toFixed(2)}|${normalizedDesc}`
+  console.log('🔍 [CSV Import] Firma generada:', sig)
+  return sig
 }
 
 export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) {
@@ -216,6 +221,8 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
         const sig = `${e.date}|${amount.toFixed(2)}|${(e.description || '').trim().replace(/\s+/g,' ')}`
         map.set(sig, e)
       }
+      console.log('🔍 [CSV Import] Índice de duplicados cargado:', map.size, 'gastos existentes')
+      console.log('🔍 [CSV Import] Primeras 3 firmas:', Array.from(map.keys()).slice(0, 3))
       setExistingIndex(map)
     } catch {
       // Not critical, allow import without duplicate detection
@@ -292,6 +299,8 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
         imported++
       }
       toast.success(`Importados ${imported} gastos`)
+      // Recargar índice de duplicados para futuras importaciones
+      await fetchAllExpensesIndex()
       setStep('done')
       onImported?.(imported)
     } catch (err) {
@@ -327,7 +336,14 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                 )}
                 {(() => {
                   const validExpenses = parsed.rows.filter(r => r.isExpense && r.errors.length === 0)
-                  const duplicates = validExpenses.filter(r => existingIndex.has(rowSignature(r)))
+                  const duplicates = validExpenses.filter(r => {
+                    const sig = rowSignature(r)
+                    const isDup = existingIndex.has(sig)
+                    if (isDup) {
+                      console.log('🔍 [CSV Import] Duplicado encontrado:', sig)
+                    }
+                    return isDup
+                  })
                   const toImport = getRowsToImport()
                   
                   return (
