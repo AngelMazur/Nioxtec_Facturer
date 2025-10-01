@@ -948,9 +948,11 @@ export default function Gastos() {
         isOpen={showImportCSV}
         onClose={() => setShowImportCSV(false)}
         onImported={() => { 
-          // Volver a página 1 para ver los nuevos gastos (loadExpenses se ejecuta automáticamente)
+          // Volver a página 1 para ver los nuevos gastos
           setPage(0)
           setShowImportCSV(false)
+          // Forzar recarga inmediata (por si ya estamos en page 0)
+          loadExpenses()
         }}
       />
     </main>

@@ -183,7 +183,9 @@ function rowSignature(r) {
   // Duplicate if accounting_date + amount + description match
   // Use absolute value to match with database (stored as positive base_amount)
   const absoluteAmount = Math.abs(r.amount ?? 0)
-  const normalizedDesc = (r.description || '').trim().replace(/\s+/g,' ')
+  // Use FULL description (with extended_description) as stored in DB
+  const fullDesc = r.extended_description ? `${r.description} — ${r.extended_description}` : r.description
+  const normalizedDesc = (fullDesc || '').trim().replace(/\s+/g,' ')
   const sig = `${r.accounting_date}|${(-absoluteAmount).toFixed(2)}|${normalizedDesc}`
   console.log('🔍 [CSV Import] Firma generada:', sig)
   return sig
