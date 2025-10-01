@@ -134,7 +134,7 @@ function rowSignature(r) {
 }
 
 export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) {
-  const { token, addExpenseToEnd } = useStore()
+  const { token } = useStore()
   const [step, setStep] = React.useState('select') // select | preview | importing | done
   const [_, setRawText] = React.useState('')
   const [parsed, setParsed] = React.useState({ rows: [], errors: [] })
@@ -220,8 +220,7 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
           // total derived in backend; marcar como pagado por defecto
           paid: true
         }
-        const created = await apiPost('/expenses', payload, token)
-        addExpenseToEnd(created)
+        await apiPost('/expenses', payload, token)
         imported++
       }
       toast.success(`Importados ${imported} gastos`)

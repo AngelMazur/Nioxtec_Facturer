@@ -271,7 +271,6 @@ function getExpenseCategoryMeta(category = '') {
 export default function Gastos() {
   const { 
     token, 
-    addExpenseToEnd, 
     setUserSortedExpenses, 
     getOrderedExpenses,
     userHasSortedExpenses
@@ -366,10 +365,8 @@ export default function Gastos() {
         await apiPut(`/expenses/${editingExpense.id}`, submitData, token)
         toast.success('Gasto actualizado correctamente')
       } else {
-        const response = await apiPost('/expenses', submitData, token)
+        await apiPost('/expenses', submitData, token)
         toast.success('Gasto creado correctamente')
-        // Añadir el nuevo gasto al final del orden personalizado
-        addExpenseToEnd(response)
       }
       setShowForm(false)
       setShowCreateModal(false)

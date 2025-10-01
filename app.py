@@ -971,12 +971,12 @@ def list_invoices():
     limit = request.args.get('limit', type=int, default=10)
     offset = request.args.get('offset', type=int, default=0)
     q = (request.args.get('q') or '').strip()
-    sort = (request.args.get('sort') or 'id').strip()
+    sort = (request.args.get('sort') or 'date').strip()
     direction = (request.args.get('dir') or 'desc').strip().lower()
 
     allowed_sort = {'id', 'date', 'total', 'tax_total', 'number'}
     if sort not in allowed_sort:
-        sort = 'id'
+        sort = 'date'
     if direction not in {'asc', 'desc'}:
         direction = 'desc'
 
