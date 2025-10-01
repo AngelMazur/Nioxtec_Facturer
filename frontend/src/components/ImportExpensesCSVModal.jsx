@@ -505,7 +505,6 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                   </table>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
-                  <button onClick={onClose} className="bg-gray-600 hover:bg-gray-700 rounded px-4 py-2 text-sm sm:text-base order-2 sm:order-1">Cancelar</button>
                   {(() => {
                     const toImport = getRowsToImport()
                     const canImport = toImport.length > 0

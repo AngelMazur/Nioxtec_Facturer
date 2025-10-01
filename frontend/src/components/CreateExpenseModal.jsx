@@ -231,13 +231,6 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm, onOpenCS
                 </button>
                 <button
                   type="button"
-                  onClick={() => setForm({ date: '', category: '', description: '', supplier: '', base_amount: '', tax_rate: 21.0, paid: false })}
-                  className="bg-secondary hover:opacity-90 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-brand focus:ring-opacity-50"
-                >
-                  Limpiar
-                </button>
-                <button
-                  type="button"
                   onClick={() => onOpenCSV && onOpenCSV()}
                   className="bg-amber-600 hover:bg-amber-500 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-amber-400 focus:ring-opacity-50"
                 >
