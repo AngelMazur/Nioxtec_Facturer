@@ -252,8 +252,29 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
             {step === 'preview' && summary && (
               <div className="p-5 space-y-4">
                 {parsed.errors?.length > 0 && (
-                  <div className="text-red-400 text-sm">{parsed.errors.join('; ')}</div>
+                  <div className="bg-red-900/20 border border-red-800 rounded p-3 text-red-400 text-sm">
+                    <strong>Errores de archivo:</strong> {parsed.errors.join('; ')}
+                  </div>
                 )}
+                {(() => {
+                  const validExpenses = parsed.rows.filter(r => r.isExpense && r.errors.length === 0)
+                  const duplicates = validExpenses.filter(r => existingIndex.has(rowSignature(r)))
+                  const toImport = getRowsToImport()
+                  
+                  return (
+                    <div className="bg-blue-900/20 border border-blue-800 rounded p-3 text-blue-300 text-sm space-y-1">
+                      <div><strong>Estado de importación:</strong></div>
+                      <div>• Gastos válidos detectados: {validExpenses.length}</div>
+                      {duplicates.length > 0 && (
+                        <div>• Duplicados encontrados: {duplicates.length} {omitDuplicates ? '(se omitirán)' : '(se reemplazarán)'}</div>
+                      )}
+                      <div>• Gastos listos para importar: <strong>{toImport.length}</strong></div>
+                      {toImport.length === 0 && validExpenses.length > 0 && (
+                        <div className="text-yellow-400">⚠️ No hay gastos para importar porque todos son duplicados y tienes activada la opción "Omitir duplicados"</div>
+                      )}
+                    </div>
+                  )
+                })()} 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-gray-800/60 rounded p-3">
                     <div className="text-sm">Nº de gastos: <span className="font-semibold">{summary.count}</span></div>
@@ -277,23 +298,46 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                   <table className="min-w-full text-sm">
                     <thead className="bg-gray-800/60 text-gray-300">
                       <tr>
+                        <th className="text-left px-2 py-1">Estado</th>
                         <th className="text-left px-2 py-1">Fecha</th>
                         <th className="text-left px-2 py-1">Concepto</th>
                         <th className="text-right px-2 py-1">Importe</th>
                         <th className="text-left px-2 py-1">Errores</th>
-                        <th className="text-left px-2 py-1">Duplicado</th>
                       </tr>
                     </thead>
                     <tbody>
                       {summary.preview.map((r, idx) => {
                         const dup = existingIndex.size ? existingIndex.has(rowSignature(r)) : false
+                        const hasErrors = r.errors.length > 0
+                        const willImport = r.isExpense && !hasErrors && (!dup || !omitDuplicates)
+                        
+                        let status = ''
+                        let statusClass = ''
+                        
+                        if (!r.isExpense) {
+                          status = '🚫 No es gasto'
+                          statusClass = 'text-gray-400'
+                        } else if (hasErrors) {
+                          status = '❌ Con errores'
+                          statusClass = 'text-red-400'
+                        } else if (dup && omitDuplicates) {
+                          status = '⚠️ Duplicado (omitir)'
+                          statusClass = 'text-yellow-400'
+                        } else if (dup && !omitDuplicates) {
+                          status = '🔄 Duplicado (reemplazar)'
+                          statusClass = 'text-orange-400'
+                        } else {
+                          status = '✅ Se importará'
+                          statusClass = 'text-green-400'
+                        }
+                        
                         return (
-                          <tr key={idx} className="odd:bg-gray-900/40">
+                          <tr key={idx} className={`odd:bg-gray-900/40 ${!willImport ? 'opacity-60' : ''}`}>
+                            <td className={`px-2 py-1 whitespace-nowrap ${statusClass}`}>{status}</td>
                             <td className="px-2 py-1 whitespace-nowrap">{r.accounting_date || '-'}</td>
                             <td className="px-2 py-1">{r.description}</td>
                             <td className="px-2 py-1 text-right tabular-nums">{(r.amount||0).toFixed(2)}</td>
-                            <td className="px-2 py-1 text-red-400">{r.errors.join('; ')}</td>
-                            <td className="px-2 py-1">{dup ? 'Sí' : 'No'}</td>
+                            <td className="px-2 py-1 text-red-400 text-xs">{r.errors.join('; ')}</td>
                           </tr>
                         )
                       })}
@@ -302,7 +346,28 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                 </div>
                 <div className="flex gap-2 justify-end">
                   <button onClick={onClose} className="bg-gray-600 hover:bg-gray-700 rounded px-4 py-2">Cancelar</button>
-                  <button onClick={importNow} className="bg-primary hover:opacity-90 rounded px-4 py-2">Importar {getRowsToImport().length} gastos</button>
+                  {(() => {
+                    const toImport = getRowsToImport()
+                    const canImport = toImport.length > 0
+                    
+                    return (
+                      <button 
+                        onClick={canImport ? importNow : undefined} 
+                        disabled={!canImport}
+                        className={`rounded px-4 py-2 ${
+                          canImport 
+                            ? 'bg-primary hover:opacity-90' 
+                            : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                        }`}
+                        title={!canImport ? 'No hay gastos válidos para importar' : ''}
+                      >
+                        {canImport 
+                          ? `Importar ${toImport.length} gastos` 
+                          : 'No hay gastos para importar'
+                        }
+                      </button>
+                    )
+                  })()} 
                 </div>
               </div>
             )}
