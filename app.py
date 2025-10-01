@@ -2134,11 +2134,12 @@ def list_expenses():
             )
         )
     
-    # Apply sorting
+    # Apply sorting (with created_at as secondary sort for consistent ordering)
     sort_field = getattr(Expense, sort)
     if dir == 'desc':
-        sort_field = sort_field.desc()
-    query = query.order_by(sort_field)
+        query = query.order_by(sort_field.desc(), Expense.created_at.desc())
+    else:
+        query = query.order_by(sort_field.asc(), Expense.created_at.desc())
     
     total = query.count()
     expenses = query.offset(offset).limit(limit).all()

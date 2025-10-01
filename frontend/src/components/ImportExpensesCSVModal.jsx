@@ -305,8 +305,9 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
       toast.success(`Importados ${imported} gastos`)
       // Recargar índice de duplicados para futuras importaciones
       await fetchAllExpensesIndex()
-      setStep('done')
+      // Cerrar modal automáticamente y volver a la lista
       onImported?.(imported)
+      onClose()
     } catch (err) {
       toast.error('Error en importación: ' + (err?.message || ''))
       setStep('preview')
@@ -533,13 +534,6 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
 
             {step === 'importing' && (
               <div className="p-6 text-center text-gray-300">Importando…</div>
-            )}
-
-            {step === 'done' && (
-              <div className="p-6 text-center space-y-4">
-                <div className="text-green-400">Importación completada.</div>
-                <button onClick={onClose} className="bg-primary rounded px-4 py-2">Cerrar</button>
-              </div>
             )}
             </div>
           </motion.div>
