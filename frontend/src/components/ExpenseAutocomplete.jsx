@@ -8,7 +8,6 @@ const ExpenseAutocomplete = ({
   onChange, 
   type = 'categories', // 'categories' or 'suppliers'
   placeholder = "Escribe o selecciona...", 
-  required = false,
   className = "",
   disabled = false 
 }) => {
@@ -55,18 +54,11 @@ const ExpenseAutocomplete = ({
     loadOptions()
   }, [token, endpoint, fieldKey, type])
 
-  // Filtrar opciones basado en el valor actual
+  // Mostrar todas las opciones disponibles
   useEffect(() => {
-    if (!value || value.length === 0) {
-      setFilteredOptions(options)
-    } else {
-      const filtered = options.filter(option => 
-        option.toLowerCase().includes(value.toLowerCase())
-      )
-      setFilteredOptions(filtered)
-    }
+    setFilteredOptions(options)
     setHighlightedIndex(-1)
-  }, [value, options])
+  }, [options])
 
   // Manejar clics fuera del componente
   useEffect(() => {
@@ -85,19 +77,13 @@ const ExpenseAutocomplete = ({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleInputChange = (e) => {
-    const newValue = e.target.value
-    onChange(newValue)
-    setIsOpen(true)
-  }
-
-  const handleInputFocus = () => {
-    setIsOpen(true)
+  const handleInputClick = () => {
+    setIsOpen(!isOpen)
   }
 
   const handleKeyDown = (e) => {
     if (!isOpen) {
-      if (e.key === 'ArrowDown') {
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
         setIsOpen(true)
         e.preventDefault()
       }
@@ -118,6 +104,7 @@ const ExpenseAutocomplete = ({
         )
         break
       case 'Enter':
+      case ' ':
         e.preventDefault()
         if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
           onChange(filteredOptions[highlightedIndex])
@@ -146,19 +133,25 @@ const ExpenseAutocomplete = ({
 
   return (
     <div className="relative">
-      <input
+      <div
         ref={inputRef}
-        type="text"
-        value={value}
-        onChange={handleInputChange}
-        onFocus={handleInputFocus}
+        onClick={handleInputClick}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        required={required}
-        disabled={disabled}
-        className={`w-full border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand ${className}`}
-        autoComplete="off"
-      />
+        tabIndex={disabled ? -1 : 0}
+        className={`w-full border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand cursor-pointer flex items-center justify-between ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+      >
+        <span className={value ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}>
+          {value || placeholder}
+        </span>
+        <svg 
+          className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
       
       <AnimatePresence>
         {showDropdown && (

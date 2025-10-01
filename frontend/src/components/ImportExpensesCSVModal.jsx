@@ -292,7 +292,7 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                           value={defaultCategory}
                           onChange={setDefaultCategory}
                           type="categories"
-                          placeholder="Categoría..."
+                          placeholder="Selecciona categoría..."
                           className="px-2 py-1 rounded bg-gray-900 border border-gray-700 text-sm"
                         />
                       </label>
@@ -302,7 +302,7 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                           value={defaultSupplier}
                           onChange={setDefaultSupplier}
                           type="suppliers"
-                          placeholder="Proveedor..."
+                          placeholder="Selecciona proveedor..."
                           className="px-2 py-1 rounded bg-gray-900 border border-gray-700 text-sm"
                         />
                       </label>
