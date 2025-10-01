@@ -30,7 +30,23 @@ const ExpenseAutocomplete = ({
       if (!token) return
       try {
         const response = await apiGet(endpoint, token)
-        setOptions(response[fieldKey] || [])
+        const rawOptions = response[fieldKey] || []
+        
+        // Filtrar opciones válidas en el frontend también
+        const validOptions = rawOptions.filter(option => {
+          if (!option || typeof option !== 'string') return false
+          const trimmed = option.trim()
+          
+          // Para categorías: mínimo 2 caracteres, debe contener al menos una letra
+          if (type === 'categories') {
+            return trimmed.length >= 2 && /[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(trimmed)
+          }
+          
+          // Para proveedores: mínimo 2 caracteres
+          return trimmed.length >= 2
+        })
+        
+        setOptions(validOptions)
       } catch (error) {
         console.warn(`Error loading ${type}:`, error)
         setOptions([])

@@ -2235,7 +2235,15 @@ def delete_expense(expense_id):
 def get_expense_categories():
     """Get unique expense categories for autocomplete."""
     categories = db.session.query(Expense.category).distinct().order_by(Expense.category).all()
-    return jsonify({'categories': [cat[0] for cat in categories if cat[0]]})
+    # Filtrar categorías válidas: no vacías, mínimo 2 caracteres, contiene al menos una letra
+    valid_categories = []
+    for cat in categories:
+        if cat[0]:
+            trimmed = cat[0].strip()
+            # Debe tener al menos 2 caracteres y contener al menos una letra
+            if len(trimmed) >= 2 and any(c.isalpha() for c in trimmed):
+                valid_categories.append(trimmed)
+    return jsonify({'categories': valid_categories})
 
 
 @app.route('/api/expenses/suppliers', methods=['GET'])
@@ -2243,7 +2251,12 @@ def get_expense_categories():
 def get_expense_suppliers():
     """Get unique expense suppliers for autocomplete."""
     suppliers = db.session.query(Expense.supplier).distinct().order_by(Expense.supplier).all()
-    return jsonify({'suppliers': [sup[0] for sup in suppliers if sup[0]]})
+    # Filtrar proveedores válidos: no vacíos, mínimo 2 caracteres
+    valid_suppliers = []
+    for sup in suppliers:
+        if sup[0] and len(sup[0].strip()) >= 2:
+            valid_suppliers.append(sup[0].strip())
+    return jsonify({'suppliers': valid_suppliers})
 
 
 @app.route('/api/expenses/export_xlsx')
