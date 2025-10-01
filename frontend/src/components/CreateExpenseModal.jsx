@@ -118,7 +118,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm, onOpenCS
                       value={form.category}
                       onChange={(value) => setForm(prev => ({ ...prev, category: value }))}
                       type="categories"
-                      placeholder="Selecciona una categoría..."
+                      placeholder="Escribe una categoría o selecciona del desplegable..."
                     />
                   </label>
                 </motion.div>
@@ -154,7 +154,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm, onOpenCS
                       value={form.supplier}
                       onChange={(value) => setForm(prev => ({ ...prev, supplier: value }))}
                       type="suppliers"
-                      placeholder="Selecciona un proveedor..."
+                      placeholder="Escribe un proveedor o selecciona del desplegable..."
                     />
                   </label>
                 </motion.div>
