@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { apiGet } from '../lib/api'
 import { useStore } from '../store/store'
@@ -16,6 +17,7 @@ const ExpenseAutocomplete = ({
   const [isOpen, setIsOpen] = useState(false)
   const [filteredOptions, setFilteredOptions] = useState([])
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
   const inputRef = useRef(null)
   const dropdownRef = useRef(null)
 
@@ -54,11 +56,21 @@ const ExpenseAutocomplete = ({
     loadOptions()
   }, [token, endpoint, fieldKey, type])
 
-  // Mostrar siempre todas las opciones del backend, sin filtrar por texto escrito
+  // Filtrar opciones según lo que el usuario escribe (búsqueda flexible)
   useEffect(() => {
-    setFilteredOptions(options)
+    if (!value || value.trim() === '') {
+      // Si está vacío, mostrar todas las opciones
+      setFilteredOptions(options)
+    } else {
+      // Si hay texto, filtrar las que contengan el texto (case-insensitive)
+      const searchText = value.toLowerCase().trim()
+      const filtered = options.filter(opt => 
+        opt.toLowerCase().includes(searchText)
+      )
+      setFilteredOptions(filtered.length > 0 ? filtered : options)
+    }
     setHighlightedIndex(-1)
-  }, [options])
+  }, [options, value, type])
 
   // Manejar clics fuera del componente
   useEffect(() => {
@@ -77,18 +89,39 @@ const ExpenseAutocomplete = ({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Calcular posición del dropdown cuando se abre
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      })
+    }
+  }, [isOpen])
+
   const handleInputChange = (e) => {
     const newValue = e.target.value
     onChange(newValue)
-    setIsOpen(true)
+    // Abrir dropdown solo si hay opciones disponibles
+    if (options.length > 0) {
+      setIsOpen(true)
+    }
   }
 
   const handleInputFocus = () => {
-    setIsOpen(true)
+    // Abrir dropdown solo si hay opciones disponibles
+    if (options.length > 0) {
+      setIsOpen(true)
+    }
   }
 
   const handleInputClick = () => {
-    setIsOpen(true)
+    // Abrir dropdown solo si hay opciones disponibles
+    if (options.length > 0) {
+      setIsOpen(true)
+    }
   }
 
   const handleKeyDown = (e) => {
@@ -140,56 +173,70 @@ const ExpenseAutocomplete = ({
 
   const showDropdown = isOpen && filteredOptions.length > 0
 
+  const dropdownContent = showDropdown && (
+    <motion.div
+      ref={dropdownRef}
+      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+      transition={{ duration: 0.15 }}
+      style={{
+        position: 'fixed',
+        top: `${dropdownPosition.top}px`,
+        left: `${dropdownPosition.left}px`,
+        width: `${dropdownPosition.width}px`,
+        zIndex: 9999
+      }}
+      className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto"
+    >
+      {filteredOptions.map((option, index) => (
+        <motion.div
+          key={option}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: index * 0.02 }}
+          onClick={() => selectOption(option)}
+          className={`
+            px-3 py-2 cursor-pointer transition-colors duration-150 text-sm
+            ${index === highlightedIndex 
+              ? 'bg-brand text-white' 
+              : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100'
+            }
+            ${index === 0 ? 'rounded-t-md' : ''}
+            ${index === filteredOptions.length - 1 ? 'rounded-b-md' : ''}
+          `}
+        >
+          {option}
+        </motion.div>
+      ))}
+    </motion.div>
+  )
+
   return (
-    <div className="relative">
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={handleInputChange}
-        onFocus={handleInputFocus}
-        onClick={handleInputClick}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        disabled={disabled}
-        className={`w-full border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand ${className}`}
-        autoComplete="off"
-      />
+    <>
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          onClick={handleInputClick}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          className={`w-full border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand ${className}`}
+          autoComplete="off"
+        />
+      </div>
       
-      <AnimatePresence>
-        {showDropdown && (
-          <motion.div
-            ref={dropdownRef}
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto"
-          >
-            {filteredOptions.map((option, index) => (
-              <motion.div
-                key={option}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: index * 0.02 }}
-                onClick={() => selectOption(option)}
-                className={`
-                  px-3 py-2 cursor-pointer transition-colors duration-150 text-sm
-                  ${index === highlightedIndex 
-                    ? 'bg-brand text-white' 
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100'
-                  }
-                  ${index === 0 ? 'rounded-t-md' : ''}
-                  ${index === filteredOptions.length - 1 ? 'rounded-b-md' : ''}
-                `}
-              >
-                {option}
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {dropdownContent}
+        </AnimatePresence>,
+        document.body
+      )}
+    </>
   )
 }
 

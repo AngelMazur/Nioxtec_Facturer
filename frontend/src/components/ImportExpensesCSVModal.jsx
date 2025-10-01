@@ -10,33 +10,33 @@ function categorizarPorConcepto(concepto) {
   if (!concepto) return 'Otros'
   const texto = concepto.toLowerCase()
   
+  // MARKETING / PUBLICIDAD (antes de Alimentación para capturar "BOLD MARKETIN")
+  if (/\b(publicidad|marketing|anuncio|campana|promocion|branding|marketin|bold.*marketin|facebook.*ads|instagram.*ads|google.*ads|google.*adwords|linkedin.*ads|twitter.*ads|tiktok.*ads|youtube.*ads|meta.*ads|adsense|sem|seo|posicionamiento|analytics|tag.*manager|hootsuite|buffer|mailchimp|sendinblue|mailerlite|newsletter|email.*marketing|social.*media|redes.*sociales|influencer|colaboracion|patrocinio|evento|feria|stand|cartel|banner|flyer|folleto|catalogo|tarjeta.*visita|diseno.*grafico|fotografia|video|audiovisual|produccion|edicion|agencia.*marketing|consultoria.*marketing|estrategia|marca|logo|identidad.*corporativa)\b/i.test(texto))
+    return 'Marketing'
+  
+  // SERVICIOS / FISCAL (incluye autónomos, impuestos, TGSS)
+  if (/\b(autonomos|autonomo|cotizacion|tgss|tesoreria.*general|seguridad.*social|hacienda|impuesto|irpf|iva|modelo.*[0-9]{3}|trimestre|declaracion|fiscal|tributacion|agencia.*tributaria|sat|aeat|seguro|poliza|axa|mapfre|mutua|sanitas|asisa|iberdrola|endesa|naturgy|fenosa|electricidad|luz|gas|butano|agua|aqualia|canal.*isabel|telefono|telefonia|movistar|vodafone|orange|yoigo|masmovil|fibra|internet|adsl|movil|celular|linea|tarifa|factura.*telefono|factura.*luz|factura.*agua|factura.*gas|suministro|servicio|limpieza|mantenimiento|reparacion|fontanero|electricista|carpintero|pintor|cerrajero|mudanza|trastero|alquiler.*local|alquiler.*oficina|arrendamiento|comunidad.*propietarios|ibi|basura|alcantarillado|asesor|asesoria|gestoria|abogado|notario|registro|legal|contable|laboral|recursos.*humanos|nomina|consultoria|auditoria|banco|comision|transferencia|cajero|tarjeta.*credito|prestamo|interes|hipoteca)\b/i.test(texto))
+    return 'Servicios'
+  
   // TECNOLOGÍA
   if (/\b(software|hardware|ordenador|pc|laptop|portatil|tablet|ipad|macbook|servidor|cloud|hosting|dominio|licencia|suscripcion|microsoft|office|windows|google|workspace|adobe|photoshop|illustrator|zoom|teams|slack|dropbox|github|bitbucket|aws|azure|digitalocean|vultr|heroku|netlify|vercel|cloudflare|ssl|certificado|api|desarrollo|programacion|codigo|web|app|movil|android|ios|apple|samsung|hp|dell|lenovo|asus|acer|impresora|escaner|router|switch|modem|wifi|ethernet|cable|usb|hdmi|monitor|pantalla|teclado|raton|mouse|auriculares|microfono|camara|webcam|disco.*duro|ssd|ram|memoria|gpu|procesador|cpu|mantenimiento.*informatico|reparacion.*ordenador|antivirus|backup|copia.*seguridad|bases.*datos|mysql|postgresql|mongodb|redis|servidor.*dedicado|vps|cdn)\b/i.test(texto))
     return 'Tecnología'
   
   // TRANSPORTE
-  if (/\b(gasolina|combustible|diesel|gasoil|carburante|parking|aparcamiento|estacionamiento|peaje|autopista|taxi|uber|cabify|bolt|free.*now|tren|renfe|ave|cercanias|metro|autobus|bus|avion|vuelo|aeropuerto|billete|ticket|viaje|desplazamiento|kilometraje|alquiler.*coche|alquiler.*vehiculo|rent.*car|hertz|avis|europcar|enterprise|cotizacion|autonomos|seguridad.*social|trafico|multa|itv|revision|taller|mecanico|neumaticos|ruedas|aceite|filtro|bateria|frenos|amortiguadores|transporte|envio|mensajeria|correos|seur|mrw|dhl|fedex|ups|glovo|deliveroo|just.*eat)\b/i.test(texto))
+  if (/\b(gasolina|combustible|diesel|gasoil|carburante|parking|aparcamiento|estacionamiento|peaje|autopista|taxi|uber|cabify|bolt|free.*now|tren|renfe|ave|cercanias|metro|autobus|bus|avion|vuelo|aeropuerto|billete|ticket|viaje|desplazamiento|kilometraje|alquiler.*coche|alquiler.*vehiculo|rent.*car|hertz|avis|europcar|enterprise|trafico|multa|itv|revision|taller|mecanico|neumaticos|ruedas|aceite|filtro|bateria|frenos|amortiguadores|transporte|envio|mensajeria|correos|seur|mrw|dhl|fedex|ups|glovo|deliveroo|just.*eat)\b/i.test(texto))
     return 'Transporte'
   
-  // ALIMENTACIÓN
-  if (/\b(restaurante|comida|almuerzo|cena|desayuno|menu|catering|bar|cafeteria|cafe|cerveza|vino|bebida|coca.*cola|pepsi|agua|snack|sandwich|bocadillo|pizza|hamburguesa|kebab|sushi|comida.*rapida|mcdonalds|burger.*king|kfc|subway|telepizza|dominos|bold|marketin.*bogota|supermercado|mercadona|carrefour|lidl|aldi|dia|alcampo|eroski|hipercor|consum|alimentacion|verduras|frutas|carne|pescado|pan|panaderia|pasteleria|dulces|chocolate)\b/i.test(texto))
+  // ALIMENTACIÓN (BOLD solo sin MARKETIN)
+  if (/\b(restaurante|comida|almuerzo|cena|desayuno|menu|catering|bar|cafeteria|cafe|cerveza|vino|bebida|coca.*cola|pepsi|agua|snack|sandwich|bocadillo|pizza|hamburguesa|kebab|sushi|comida.*rapida|mcdonalds|burger.*king|kfc|subway|telepizza|dominos|supermercado|mercadona|carrefour|lidl|aldi|dia|alcampo|eroski|hipercor|consum|alimentacion|verduras|frutas|carne|pescado|pan|panaderia|pasteleria|dulces|chocolate)\b/i.test(texto) && !/marketin/i.test(texto))
     return 'Alimentación'
   
   // OFICINA / SUMINISTROS
   if (/\b(papeleria|oficina|material|fournier|staples|imprenta|impresion|fotocopias|encuadernacion|toner|cartucho|tinta|papel|folio|carpeta|archivador|boligrafo|lapiz|rotulador|marcador|post.*it|nota.*adhesiva|grapadora|perforadora|tijeras|cutter|cinta.*adhesiva|sobre|sello|stamp|etiqueta|cuaderno|libreta|agenda|calculadora|pizarra|proyector|presentacion|escritorio|mesa|silla|estanteria|armario|cajon|lampara|flexo|ventilador|calefactor|aire.*acondicionado|climatizacion)\b/i.test(texto))
     return 'Oficina'
   
-  // MARKETING / PUBLICIDAD
-  if (/\b(publicidad|marketing|anuncio|campana|promocion|branding|facebook.*ads|instagram.*ads|google.*ads|google.*adwords|linkedin.*ads|twitter.*ads|tiktok.*ads|youtube.*ads|meta.*ads|adsense|sem|seo|posicionamiento|analytics|tag.*manager|hootsuite|buffer|mailchimp|sendinblue|mailerlite|newsletter|email.*marketing|social.*media|redes.*sociales|influencer|colaboracion|patrocinio|evento|feria|stand|cartel|banner|flyer|folleto|catalogo|tarjeta.*visita|diseno.*grafico|fotografia|video|audiovisual|produccion|edicion|agencia.*marketing|consultoria.*marketing|estrategia|marca|logo|identidad.*corporativa)\b/i.test(texto))
-    return 'Marketing'
-  
   // FORMACIÓN
   if (/\b(curso|formacion|capacitacion|training|certificacion|certificado|master|postgrado|mba|doctorado|universidad|escuela|academia|instituto|udemy|coursera|platzi|linkedin.*learning|domestika|crehana|educacion|aprendizaje|clase|taller|seminario|webinar|conferencia|congreso|jornada|ponencia|charla|mentor|coaching|tutoria|libro|manual|guia|documentacion|suscripcion.*educativa)\b/i.test(texto))
     return 'Formación'
-  
-  // SERVICIOS / SUMINISTROS
-  if (/\b(seguro|poliza|axa|mapfre|mutua|sanitas|asisa|iberdrola|endesa|naturgy|fenosa|electricidad|luz|gas|butano|agua|aqualia|canal.*isabel|telefono|telefonia|movistar|vodafone|orange|yoigo|masmovil|fibra|internet|adsl|movil|celular|linea|tarifa|factura.*telefono|factura.*luz|factura.*agua|factura.*gas|suministro|servicio|limpieza|mantenimiento|reparacion|fontanero|electricista|carpintero|pintor|cerrajero|mudanza|trastero|alquiler.*local|alquiler.*oficina|arrendamiento|comunidad.*propietarios|ibi|basura|alcantarillado|asesor|asesoria|gestoria|abogado|notario|registro|legal|contable|fiscal|laboral|recursos.*humanos|nomina|seg.*social|consultoria|auditoria|banco|comision|transferencia|cajero|tarjeta.*credito|prestamo|interes|hipoteca)\b/i.test(texto))
-    return 'Servicios'
   
   // EQUIPAMIENTO
   if (/\b(mobiliario|mueble|equipamiento|herramienta|maquinaria|equipo|instrumental|material.*trabajo|uniforme|ropa.*trabajo|epi|proteccion|seguridad|casco|guantes|botas|chaleco|mascarilla|gafas.*proteccion)\b/i.test(texto))
@@ -303,22 +303,23 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-          <motion.div initial={{ scale: 0.95, y: 10, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.95, y: 10, opacity: 0 }} transition={{ type: 'spring', damping: 24, stiffness: 240 }} className="bg-gray-900 text-gray-100 border border-gray-700 rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-700">
-              <h3 className="text-lg font-semibold">Importar gastos desde CSV</h3>
-              <button onClick={onClose} className="text-gray-400 hover:text-white">✕</button>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4" onClick={onClose}>
+          <motion.div initial={{ scale: 0.95, y: 10, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.95, y: 10, opacity: 0 }} transition={{ type: 'spring', damping: 24, stiffness: 240 }} className="bg-gray-900 text-gray-100 border border-gray-700 rounded-xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-3 sm:px-5 py-2 sm:py-3 border-b border-gray-700 flex-shrink-0">
+              <h3 className="text-base sm:text-lg font-semibold truncate">Importar gastos desde CSV</h3>
+              <button onClick={onClose} className="text-gray-400 hover:text-white ml-2 flex-shrink-0">✕</button>
             </div>
 
-            {step === 'select' && (
-              <div className="p-5 space-y-4">
-                <p className="text-sm text-gray-300">Sube un archivo .csv con los encabezados: Fecha ctble, Fecha valor, Concepto, Importe, Moneda, Saldo, Moneda, Concepto ampliado</p>
-                <input type="file" accept=".csv" onChange={handleFile} className="block w-full text-sm" />
-              </div>
-            )}
+            <div className="overflow-y-auto flex-1">
+              {step === 'select' && (
+                <div className="p-3 sm:p-5 space-y-4">
+                  <p className="text-xs sm:text-sm text-gray-300">Sube un archivo .csv con los encabezados: Fecha ctble, Fecha valor, Concepto, Importe, Moneda, Saldo, Moneda, Concepto ampliado</p>
+                  <input type="file" accept=".csv" onChange={handleFile} className="block w-full text-sm" />
+                </div>
+              )}
 
-            {step === 'preview' && summary && (
-              <div className="p-5 space-y-4">
+              {step === 'preview' && summary && (
+                <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
                 {parsed.errors?.length > 0 && (
                   <div className="bg-red-900/20 border border-red-800 rounded p-3 text-red-400 text-sm">
                     <strong>Errores de archivo:</strong> {parsed.errors.join('; ')}
@@ -343,30 +344,86 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                     </div>
                   )
                 })()} 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-gray-800/60 rounded p-3">
-                    <div className="text-sm">Nº de gastos: <span className="font-semibold">{summary.count}</span></div>
-                    <div className="text-sm">Suma importes (negativa): <span className="font-semibold">{summary.sumNeg.toFixed(2)} EUR</span></div>
-                    <div className="text-sm">Suma absoluta: <span className="font-semibold">{summary.sumAbs.toFixed(2)} EUR</span></div>
-                    <div className="text-sm">Rango fechas: <span className="font-semibold">{summary.range.min || '-'} – {summary.range.max || '-'}</span></div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="bg-gray-800/60 rounded p-2 sm:p-3">
+                    <div className="text-xs sm:text-sm">Nº de gastos: <span className="font-semibold">{summary.count}</span></div>
+                    <div className="text-xs sm:text-sm">Suma importes (negativa): <span className="font-semibold">{summary.sumNeg.toFixed(2)} EUR</span></div>
+                    <div className="text-xs sm:text-sm">Suma absoluta: <span className="font-semibold">{summary.sumAbs.toFixed(2)} EUR</span></div>
+                    <div className="text-xs sm:text-sm">Rango fechas: <span className="font-semibold break-all">{summary.range.min || '-'} – {summary.range.max || '-'}</span></div>
                   </div>
-                  <div className="bg-gray-800/60 rounded p-3 space-y-2">
-                    <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={omitDuplicates} onChange={e => setOmitDuplicates(e.target.checked)} /> Omitir duplicados (por fecha+importe+concepto)</label>
-                    <div className="text-sm">
+                  <div className="bg-gray-800/60 rounded p-2 sm:p-3 space-y-2">
+                    <label className="flex items-center gap-2 text-xs sm:text-sm"><input type="checkbox" checked={omitDuplicates} onChange={e => setOmitDuplicates(e.target.checked)} className="flex-shrink-0" /> <span className="leading-tight">Omitir duplicados</span></label>
+                    <div className="text-xs sm:text-sm">
                       <label className="flex flex-col gap-1">
                         <span className="text-gray-400">IVA por defecto (%)</span>
-                        <input type="number" step="0.1" min="0" max="100" value={defaultTax} onChange={e=>setDefaultTax(e.target.value)} className="px-2 py-1 rounded bg-gray-900 border border-gray-700" />
+                        <input type="number" step="0.1" min="0" max="100" value={defaultTax} onChange={e=>setDefaultTax(e.target.value)} className="px-2 py-1 text-sm rounded bg-gray-900 border border-gray-700" />
                       </label>
                     </div>
                     {existingIndex.size>0 && (
-                      <div className="text-xs text-gray-400">Detección de duplicados cargada ({existingIndex.size} existentes indexados)</div>
+                      <div className="text-xs text-gray-400">Detección cargada ({existingIndex.size} existentes)</div>
                     )}
                     <div className="text-xs text-blue-300 mt-2">
-                      💡 Las categorías y proveedores se asignan automáticamente por fila. Puedes editarlos en la tabla.
+                      💡 Categorías auto-asignadas. Edita en tabla.
                     </div>
                   </div>
                 </div>
-                <div className="overflow-auto border border-gray-800 rounded">
+                {/* Vista de tarjetas para móvil */}
+                <div className="lg:hidden space-y-2">
+                  {summary.preview.map((r, idx) => {
+                    const dup = existingIndex.size ? existingIndex.has(rowSignature(r)) : false
+                    const hasErrors = r.errors.length > 0
+                    const willImport = r.isExpense && !hasErrors && (!dup || !omitDuplicates)
+                    
+                    const currentCategory = rowCategories[idx] !== undefined ? rowCategories[idx] : r.category
+                    const currentSupplier = rowSuppliers[idx] !== undefined ? rowSuppliers[idx] : r.supplier
+                    
+                    let status = '', statusClass = ''
+                    if (!r.isExpense) { status = '🚫 No es gasto'; statusClass = 'text-gray-400' }
+                    else if (hasErrors) { status = '❌ Con errores'; statusClass = 'text-red-400' }
+                    else if (dup && omitDuplicates) { status = '⚠️ Duplicado'; statusClass = 'text-yellow-400' }
+                    else if (dup && !omitDuplicates) { status = '🔄 Reemplazar'; statusClass = 'text-orange-400' }
+                    else { status = '✅ Importar'; statusClass = 'text-green-400' }
+                    
+                    return (
+                      <div key={idx} className={`bg-gray-800/40 border border-gray-700 rounded p-3 space-y-2 ${!willImport ? 'opacity-60' : ''}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-xs font-medium ${statusClass}`}>{status}</span>
+                          <span className="text-xs text-gray-400">{r.accounting_date || '-'}</span>
+                        </div>
+                        <div className="text-sm font-medium text-gray-200 line-clamp-2" title={r.description}>{r.description}</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-xs text-gray-400 block mb-1">Categoría</label>
+                            <ExpenseAutocomplete
+                              value={currentCategory}
+                              onChange={(newCategory) => setRowCategories(prev => ({ ...prev, [idx]: newCategory }))}
+                              type="categories"
+                              placeholder="Categoría..."
+                              className="px-2 py-1.5 text-xs bg-gray-900 border border-gray-600 rounded w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-400 block mb-1">Proveedor</label>
+                            <ExpenseAutocomplete
+                              value={currentSupplier}
+                              onChange={(newSupplier) => setRowSuppliers(prev => ({ ...prev, [idx]: newSupplier }))}
+                              type="suppliers"
+                              placeholder="Proveedor..."
+                              className="px-2 py-1.5 text-xs bg-gray-900 border border-gray-600 rounded w-full"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-lg font-bold text-gray-100 tabular-nums">{(r.amount||0).toFixed(2)} €</span>
+                          {r.errors.length > 0 && <span className="text-xs text-red-400">{r.errors.join('; ')}</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                
+                {/* Vista de tabla para desktop */}
+                <div className="hidden lg:block overflow-auto border border-gray-800 rounded">
                   <table className="min-w-full text-sm">
                     <thead className="bg-gray-800/60 text-gray-300">
                       <tr>
@@ -385,29 +442,15 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                         const hasErrors = r.errors.length > 0
                         const willImport = r.isExpense && !hasErrors && (!dup || !omitDuplicates)
                         
-                        // Obtener categoría y proveedor (editado o por defecto de la fila)
                         const currentCategory = rowCategories[idx] !== undefined ? rowCategories[idx] : r.category
                         const currentSupplier = rowSuppliers[idx] !== undefined ? rowSuppliers[idx] : r.supplier
                         
-                        let status = ''
-                        let statusClass = ''
-                        
-                        if (!r.isExpense) {
-                          status = '🚫 No es gasto'
-                          statusClass = 'text-gray-400'
-                        } else if (hasErrors) {
-                          status = '❌ Con errores'
-                          statusClass = 'text-red-400'
-                        } else if (dup && omitDuplicates) {
-                          status = '⚠️ Duplicado (omitir)'
-                          statusClass = 'text-yellow-400'
-                        } else if (dup && !omitDuplicates) {
-                          status = '🔄 Duplicado (reemplazar)'
-                          statusClass = 'text-orange-400'
-                        } else {
-                          status = '✅ Se importará'
-                          statusClass = 'text-green-400'
-                        }
+                        let status = '', statusClass = ''
+                        if (!r.isExpense) { status = '🚫 No es gasto'; statusClass = 'text-gray-400' }
+                        else if (hasErrors) { status = '❌ Con errores'; statusClass = 'text-red-400' }
+                        else if (dup && omitDuplicates) { status = '⚠️ Duplicado (omitir)'; statusClass = 'text-yellow-400' }
+                        else if (dup && !omitDuplicates) { status = '🔄 Duplicado (reemplazar)'; statusClass = 'text-orange-400' }
+                        else { status = '✅ Se importará'; statusClass = 'text-green-400' }
                         
                         return (
                           <tr key={idx} className={`odd:bg-gray-900/40 ${!willImport ? 'opacity-60' : ''}`}>
@@ -440,8 +483,8 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                     </tbody>
                   </table>
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={onClose} className="bg-gray-600 hover:bg-gray-700 rounded px-4 py-2">Cancelar</button>
+                <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
+                  <button onClick={onClose} className="bg-gray-600 hover:bg-gray-700 rounded px-4 py-2 text-sm sm:text-base order-2 sm:order-1">Cancelar</button>
                   {(() => {
                     const toImport = getRowsToImport()
                     const canImport = toImport.length > 0
@@ -450,7 +493,7 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                       <button 
                         onClick={canImport ? importNow : undefined} 
                         disabled={!canImport}
-                        className={`rounded px-4 py-2 ${
+                        className={`rounded px-4 py-2 text-sm sm:text-base order-1 sm:order-2 ${
                           canImport 
                             ? 'bg-primary hover:opacity-90' 
                             : 'bg-gray-700 text-gray-400 cursor-not-allowed'
@@ -458,8 +501,8 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                         title={!canImport ? 'No hay gastos válidos para importar' : ''}
                       >
                         {canImport 
-                          ? `Importar ${toImport.length} gastos` 
-                          : 'No hay gastos para importar'
+                          ? `Importar ${toImport.length} gasto${toImport.length === 1 ? '' : 's'}` 
+                          : 'No hay gastos'
                         }
                       </button>
                     )
@@ -478,6 +521,7 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                 <button onClick={onClose} className="bg-primary rounded px-4 py-2">Cerrar</button>
               </div>
             )}
+            </div>
           </motion.div>
         </motion.div>
       )}
