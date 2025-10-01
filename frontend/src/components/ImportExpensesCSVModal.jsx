@@ -5,6 +5,51 @@ import { apiGet, apiPost, apiDelete } from '../lib/api'
 import { useStore } from '../store/store'
 import ExpenseAutocomplete from './ExpenseAutocomplete'
 
+// Función de categorización inteligente basada en palabras clave
+function categorizarPorConcepto(concepto) {
+  if (!concepto) return 'Otros'
+  const texto = concepto.toLowerCase()
+  
+  // TECNOLOGÍA
+  if (/\b(software|hardware|ordenador|pc|laptop|portatil|tablet|ipad|macbook|servidor|cloud|hosting|dominio|licencia|suscripcion|microsoft|office|windows|google|workspace|adobe|photoshop|illustrator|zoom|teams|slack|dropbox|github|bitbucket|aws|azure|digitalocean|vultr|heroku|netlify|vercel|cloudflare|ssl|certificado|api|desarrollo|programacion|codigo|web|app|movil|android|ios|apple|samsung|hp|dell|lenovo|asus|acer|impresora|escaner|router|switch|modem|wifi|ethernet|cable|usb|hdmi|monitor|pantalla|teclado|raton|mouse|auriculares|microfono|camara|webcam|disco.*duro|ssd|ram|memoria|gpu|procesador|cpu|mantenimiento.*informatico|reparacion.*ordenador|antivirus|backup|copia.*seguridad|bases.*datos|mysql|postgresql|mongodb|redis|servidor.*dedicado|vps|cdn)\b/i.test(texto))
+    return 'Tecnología'
+  
+  // TRANSPORTE
+  if (/\b(gasolina|combustible|diesel|gasoil|carburante|parking|aparcamiento|estacionamiento|peaje|autopista|taxi|uber|cabify|bolt|free.*now|tren|renfe|ave|cercanias|metro|autobus|bus|avion|vuelo|aeropuerto|billete|ticket|viaje|desplazamiento|kilometraje|alquiler.*coche|alquiler.*vehiculo|rent.*car|hertz|avis|europcar|enterprise|cotizacion|autonomos|seguridad.*social|trafico|multa|itv|revision|taller|mecanico|neumaticos|ruedas|aceite|filtro|bateria|frenos|amortiguadores|transporte|envio|mensajeria|correos|seur|mrw|dhl|fedex|ups|glovo|deliveroo|just.*eat)\b/i.test(texto))
+    return 'Transporte'
+  
+  // ALIMENTACIÓN
+  if (/\b(restaurante|comida|almuerzo|cena|desayuno|menu|catering|bar|cafeteria|cafe|cerveza|vino|bebida|coca.*cola|pepsi|agua|snack|sandwich|bocadillo|pizza|hamburguesa|kebab|sushi|comida.*rapida|mcdonalds|burger.*king|kfc|subway|telepizza|dominos|bold|marketin.*bogota|supermercado|mercadona|carrefour|lidl|aldi|dia|alcampo|eroski|hipercor|consum|alimentacion|verduras|frutas|carne|pescado|pan|panaderia|pasteleria|dulces|chocolate)\b/i.test(texto))
+    return 'Alimentación'
+  
+  // OFICINA / SUMINISTROS
+  if (/\b(papeleria|oficina|material|fournier|staples|imprenta|impresion|fotocopias|encuadernacion|toner|cartucho|tinta|papel|folio|carpeta|archivador|boligrafo|lapiz|rotulador|marcador|post.*it|nota.*adhesiva|grapadora|perforadora|tijeras|cutter|cinta.*adhesiva|sobre|sello|stamp|etiqueta|cuaderno|libreta|agenda|calculadora|pizarra|proyector|presentacion|escritorio|mesa|silla|estanteria|armario|cajon|lampara|flexo|ventilador|calefactor|aire.*acondicionado|climatizacion)\b/i.test(texto))
+    return 'Oficina'
+  
+  // MARKETING / PUBLICIDAD
+  if (/\b(publicidad|marketing|anuncio|campana|promocion|branding|facebook.*ads|instagram.*ads|google.*ads|google.*adwords|linkedin.*ads|twitter.*ads|tiktok.*ads|youtube.*ads|meta.*ads|adsense|sem|seo|posicionamiento|analytics|tag.*manager|hootsuite|buffer|mailchimp|sendinblue|mailerlite|newsletter|email.*marketing|social.*media|redes.*sociales|influencer|colaboracion|patrocinio|evento|feria|stand|cartel|banner|flyer|folleto|catalogo|tarjeta.*visita|diseno.*grafico|fotografia|video|audiovisual|produccion|edicion|agencia.*marketing|consultoria.*marketing|estrategia|marca|logo|identidad.*corporativa)\b/i.test(texto))
+    return 'Marketing'
+  
+  // FORMACIÓN
+  if (/\b(curso|formacion|capacitacion|training|certificacion|certificado|master|postgrado|mba|doctorado|universidad|escuela|academia|instituto|udemy|coursera|platzi|linkedin.*learning|domestika|crehana|educacion|aprendizaje|clase|taller|seminario|webinar|conferencia|congreso|jornada|ponencia|charla|mentor|coaching|tutoria|libro|manual|guia|documentacion|suscripcion.*educativa)\b/i.test(texto))
+    return 'Formación'
+  
+  // SERVICIOS / SUMINISTROS
+  if (/\b(seguro|poliza|axa|mapfre|mutua|sanitas|asisa|iberdrola|endesa|naturgy|fenosa|electricidad|luz|gas|butano|agua|aqualia|canal.*isabel|telefono|telefonia|movistar|vodafone|orange|yoigo|masmovil|fibra|internet|adsl|movil|celular|linea|tarifa|factura.*telefono|factura.*luz|factura.*agua|factura.*gas|suministro|servicio|limpieza|mantenimiento|reparacion|fontanero|electricista|carpintero|pintor|cerrajero|mudanza|trastero|alquiler.*local|alquiler.*oficina|arrendamiento|comunidad.*propietarios|ibi|basura|alcantarillado|asesor|asesoria|gestoria|abogado|notario|registro|legal|contable|fiscal|laboral|recursos.*humanos|nomina|seg.*social|consultoria|auditoria|banco|comision|transferencia|cajero|tarjeta.*credito|prestamo|interes|hipoteca)\b/i.test(texto))
+    return 'Servicios'
+  
+  // EQUIPAMIENTO
+  if (/\b(mobiliario|mueble|equipamiento|herramienta|maquinaria|equipo|instrumental|material.*trabajo|uniforme|ropa.*trabajo|epi|proteccion|seguridad|casco|guantes|botas|chaleco|mascarilla|gafas.*proteccion)\b/i.test(texto))
+    return 'Equipamiento'
+  
+  // VIAJES
+  if (/\b(hotel|hostal|apartamento|alojamiento|booking|airbnb|reserva|habitacion|noche|estancia|pension.*completa|media.*pension|desayuno.*incluido|turismo|viaje.*negocios|dieta|per.*diem|congreso|feria.*comercial|visita.*cliente)\b/i.test(texto))
+    return 'Viajes'
+  
+  // Default si no coincide nada
+  return 'Otros'
+}
+
 // Utilities to parse and normalize CSV content according to user's rules
 function parseDateDMY(input) {
   // Accept d/m/yy or dd/mm/yy and variations with '-', '.' and optional inner spaces
@@ -112,6 +157,12 @@ function parseBankCSV(text) {
       r.errors.push('Moneda debe ser EUR')
     }
     r.isExpense = imp.ok && imp.value < 0
+    
+    // Asignar categoría automática basada en el concepto
+    const conceptoCompleto = [r.description, r.extended_description].filter(Boolean).join(' ')
+    r.category = categorizarPorConcepto(conceptoCompleto)
+    r.supplier = 'Banco' // Proveedor por defecto, también editable
+    
     rows.push(r)
   }
   return { rows, errors }
@@ -141,9 +192,12 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
   const [summary, setSummary] = React.useState(null)
   const [existingIndex, setExistingIndex] = React.useState(new Map())
   const [omitDuplicates, setOmitDuplicates] = React.useState(true)
-  const [defaultCategory, setDefaultCategory] = React.useState('Banco')
-  const [defaultSupplier, setDefaultSupplier] = React.useState('Banco')
+  const [defaultCategory] = React.useState('Otros') // Fallback si categoría no detectada
+  const [defaultSupplier] = React.useState('Banco') // Fallback si proveedor no detectado
   const [defaultTax, setDefaultTax] = React.useState(0)
+  // Estado para las categorías y proveedores editables por fila
+  const [rowCategories, setRowCategories] = React.useState({})
+  const [rowSuppliers, setRowSuppliers] = React.useState({})
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -209,12 +263,26 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
           }
         }
       }
-      for (const r of rows) {
+      
+      // Importar cada fila con su categoría y proveedor específicos
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i]
+        // Buscar el índice original de la fila en parsed.rows para obtener la categoría editada
+        const originalIdx = parsed.rows.findIndex(row => 
+          row.accounting_date === r.accounting_date && 
+          row.description === r.description && 
+          row.amount === r.amount
+        )
+        
+        // Usar categoría/proveedor editado si existe, sino usar el de la fila (auto-detectado)
+        const category = rowCategories[originalIdx] !== undefined ? rowCategories[originalIdx] : r.category
+        const supplier = rowSuppliers[originalIdx] !== undefined ? rowSuppliers[originalIdx] : r.supplier
+        
         const payload = {
           date: r.accounting_date,
-          category: defaultCategory,
+          category: category || defaultCategory,
           description: r.extended_description ? `${r.description} — ${r.extended_description}` : r.description,
-          supplier: defaultSupplier,
+          supplier: supplier || defaultSupplier,
           base_amount: r.amount_abs, // CSV holds negative number; store absolute as base
           tax_rate: Number(defaultTax) || 0,
           // total derived in backend; marcar como pagado por defecto
@@ -284,32 +352,18 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                   </div>
                   <div className="bg-gray-800/60 rounded p-3 space-y-2">
                     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={omitDuplicates} onChange={e => setOmitDuplicates(e.target.checked)} /> Omitir duplicados (por fecha+importe+concepto)</label>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="text-sm">
                       <label className="flex flex-col gap-1">
-                        <span className="text-gray-400">Categoría por defecto</span>
-                        <ExpenseAutocomplete
-                          value={defaultCategory}
-                          onChange={setDefaultCategory}
-                          type="categories"
-                          placeholder="Categoría por defecto..."
-                          className="px-2 py-1 rounded bg-gray-900 border border-gray-700 text-sm"
-                        />
+                        <span className="text-gray-400">IVA por defecto (%)</span>
+                        <input type="number" step="0.1" min="0" max="100" value={defaultTax} onChange={e=>setDefaultTax(e.target.value)} className="px-2 py-1 rounded bg-gray-900 border border-gray-700" />
                       </label>
-                      <label className="flex flex-col gap-1">
-                        <span className="text-gray-400">Proveedor por defecto</span>
-                        <ExpenseAutocomplete
-                          value={defaultSupplier}
-                          onChange={setDefaultSupplier}
-                          type="suppliers"
-                          placeholder="Proveedor por defecto..."
-                          className="px-2 py-1 rounded bg-gray-900 border border-gray-700 text-sm"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1"><span className="text-gray-400">IVA por defecto (%)</span><input type="number" step="0.1" min="0" max="100" value={defaultTax} onChange={e=>setDefaultTax(e.target.value)} className="px-2 py-1 rounded bg-gray-900 border border-gray-700" /></label>
                     </div>
                     {existingIndex.size>0 && (
                       <div className="text-xs text-gray-400">Detección de duplicados cargada ({existingIndex.size} existentes indexados)</div>
                     )}
+                    <div className="text-xs text-blue-300 mt-2">
+                      💡 Las categorías y proveedores se asignan automáticamente por fila. Puedes editarlos en la tabla.
+                    </div>
                   </div>
                 </div>
                 <div className="overflow-auto border border-gray-800 rounded">
@@ -319,6 +373,8 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                         <th className="text-left px-2 py-1">Estado</th>
                         <th className="text-left px-2 py-1">Fecha</th>
                         <th className="text-left px-2 py-1">Concepto</th>
+                        <th className="text-left px-2 py-1 min-w-[150px]">Categoría</th>
+                        <th className="text-left px-2 py-1 min-w-[150px]">Proveedor</th>
                         <th className="text-right px-2 py-1">Importe</th>
                         <th className="text-left px-2 py-1">Errores</th>
                       </tr>
@@ -328,6 +384,10 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                         const dup = existingIndex.size ? existingIndex.has(rowSignature(r)) : false
                         const hasErrors = r.errors.length > 0
                         const willImport = r.isExpense && !hasErrors && (!dup || !omitDuplicates)
+                        
+                        // Obtener categoría y proveedor (editado o por defecto de la fila)
+                        const currentCategory = rowCategories[idx] !== undefined ? rowCategories[idx] : r.category
+                        const currentSupplier = rowSuppliers[idx] !== undefined ? rowSuppliers[idx] : r.supplier
                         
                         let status = ''
                         let statusClass = ''
@@ -353,7 +413,25 @@ export default function ImportExpensesCSVModal({ isOpen, onClose, onImported }) 
                           <tr key={idx} className={`odd:bg-gray-900/40 ${!willImport ? 'opacity-60' : ''}`}>
                             <td className={`px-2 py-1 whitespace-nowrap ${statusClass}`}>{status}</td>
                             <td className="px-2 py-1 whitespace-nowrap">{r.accounting_date || '-'}</td>
-                            <td className="px-2 py-1">{r.description}</td>
+                            <td className="px-2 py-1 max-w-xs truncate" title={r.description}>{r.description}</td>
+                            <td className="px-2 py-1">
+                              <ExpenseAutocomplete
+                                value={currentCategory}
+                                onChange={(newCategory) => setRowCategories(prev => ({ ...prev, [idx]: newCategory }))}
+                                type="categories"
+                                placeholder="Categoría..."
+                                className="px-1 py-0.5 text-xs bg-gray-800 border border-gray-600 rounded w-full"
+                              />
+                            </td>
+                            <td className="px-2 py-1">
+                              <ExpenseAutocomplete
+                                value={currentSupplier}
+                                onChange={(newSupplier) => setRowSuppliers(prev => ({ ...prev, [idx]: newSupplier }))}
+                                type="suppliers"
+                                placeholder="Proveedor..."
+                                className="px-1 py-0.5 text-xs bg-gray-800 border border-gray-600 rounded w-full"
+                              />
+                            </td>
                             <td className="px-2 py-1 text-right tabular-nums">{(r.amount||0).toFixed(2)}</td>
                             <td className="px-2 py-1 text-red-400 text-xs">{r.errors.join('; ')}</td>
                           </tr>
