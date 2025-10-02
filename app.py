@@ -29,6 +29,7 @@ for generating invoices, reports and other documents【239017722105616†L83-L94
 
 from datetime import datetime, timedelta
 import os
+import time
 import re
 import unicodedata
 from docx import Document
@@ -41,7 +42,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required, get_jwt_identity,
-    set_access_cookies, unset_jwt_cookies
+    set_access_cookies, unset_jwt_cookies, verify_jwt_in_request
 )
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
@@ -534,6 +535,7 @@ class Product(db.Model):
     price_net = db.Column(db.Float, nullable=False, default=0.0)
     tax_rate = db.Column(db.Float, default=21.0)
     features = db.Column(db.JSON)
+    images = db.Column(db.JSON, default=list)  # Lista de imágenes del producto
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     # Soft-delete / archive flag
     is_active = db.Column(db.Boolean, default=True, index=True)
@@ -1287,6 +1289,7 @@ def _product_to_dict(p: 'Product') -> dict:
         'price_net': p.price_net,
         'tax_rate': p.tax_rate,
         'features': p.features or {},
+        'images': p.images or [],  # Incluir imágenes
         'created_at': p.created_at.isoformat() if p.created_at else None,
     'is_active': bool(getattr(p, 'is_active', True)),
     }
@@ -1367,9 +1370,13 @@ def update_product(pid):
     p = Product.query.get_or_404(pid)
     data = request.get_json(force=True)
     # Update simple string fields, but treat SKU specially: empty -> NULL
-    for field in ['category', 'model', 'features']:
+    for field in ['category', 'model', 'features', 'images']:
         if field in data:
             setattr(p, field, data[field])
+            # Si es images, marcar como modificado para SQLAlchemy
+            if field == 'images':
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(p, 'images')
     if 'sku' in data:
         # store NULL in DB when client sends empty/blank sku to avoid
         # violating UNIQUE constraint for empty strings
@@ -1435,13 +1442,19 @@ def products_summary():
     ), {'active': 1 if active_param != '0' else 0}).fetchall()
     by_cat = {}
     for c, t in cats:
+        # Obtener suma de stock_qty y cantidad de productos por modelo
         rows = db.session.execute(text(
-            f"SELECT model, COUNT(*) as cnt FROM product {where_clause} AND category = :c GROUP BY model ORDER BY model"
+            f"""SELECT model, 
+                       COUNT(*) as cnt, 
+                       SUM(COALESCE(stock_qty, 0)) as stock_total 
+                FROM product {where_clause} AND category = :c 
+                GROUP BY model 
+                ORDER BY model"""
         ), {'c': c, 'active': 1 if active_param != '0' else 0}).fetchall()
         by_cat[c] = {
             'category': c,
             'total': int(t or 0),
-            'models': [{'model': m, 'count': int(cnt or 0)} for m, cnt in rows]
+            'models': [{'model': m, 'count': int(cnt or 0), 'stock_total': int(stock_total or 0)} for m, cnt, stock_total in rows]
         }
     return jsonify({'categories': list(by_cat.values())})
 
@@ -1481,6 +1494,101 @@ def adjust_product_stock(pid: int):
     db.session.add(StockMovement(product_id=p.id, qty=int(qty), type=mv_type))
     db.session.commit()
     return jsonify({'status': 'ok', 'stock_qty': p.stock_qty})
+
+@app.route('/api/products/upload-image', methods=['POST', 'OPTIONS'])
+@jwt_required(optional=True)
+def upload_product_image():
+    """Subir una imagen para un producto."""
+    # Manejar preflight CORS
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response, 200
+    
+    # Verificar JWT para POST
+    verify_jwt_in_request()
+    
+    import os
+    from werkzeug.utils import secure_filename
+    
+    print("📸 DEBUG: Iniciando subida de imagen...")
+    print(f"📸 DEBUG: request.files keys: {list(request.files.keys())}")
+    print(f"📸 DEBUG: request.form keys: {list(request.form.keys())}")
+    
+    # Verificar que se envió un archivo
+    if 'file' not in request.files:
+        print("❌ DEBUG: No se encontró 'file' en request.files")
+        return jsonify({'error': 'No se envió ningún archivo'}), 400
+    
+    file = request.files['file']
+    product_id = request.form.get('product_id')
+    
+    print(f"📸 DEBUG: file.filename = {file.filename}")
+    print(f"📸 DEBUG: product_id = {product_id}")
+    
+    if file.filename == '':
+        return jsonify({'error': 'Nombre de archivo vacío'}), 400
+    
+    if not product_id:
+        return jsonify({'error': 'product_id es requerido'}), 400
+    
+    # Verificar que el producto existe
+    product = Product.query.get_or_404(int(product_id))
+    
+    # Validar extensión de archivo
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    if ext not in allowed_extensions:
+        return jsonify({'error': f'Extensión no permitida. Usa: {", ".join(allowed_extensions)}'}), 400
+    
+    # Crear directorio si no existe
+    upload_dir = os.path.join('static', 'uploads', 'products')
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Generar nombre único para el archivo
+    filename = secure_filename(file.filename)
+    unique_filename = f"{product_id}_{int(time.time())}_{filename}"
+    file_path = os.path.join(upload_dir, unique_filename)
+    
+    print(f"📸 DEBUG: Guardando en: {file_path}")
+    
+    # Guardar archivo
+    file.save(file_path)
+    
+    # URL relativa para acceder a la imagen
+    image_url = f"/static/uploads/products/{unique_filename}"
+    
+    print(f"✅ DEBUG: Imagen guardada exitosamente: {image_url}")
+    
+    # Guardar en la base de datos (actualizar campo images del producto)
+    # Verificar si el producto tiene el atributo images y si es None, inicializarlo como lista
+    try:
+        current_images = product.images if hasattr(product, 'images') and product.images else []
+    except Exception as e:
+        print(f"⚠️ DEBUG: Error al leer product.images: {e}")
+        current_images = []
+    
+    current_images.append({
+        'url': image_url,
+        'alt': file.filename
+    })
+    product.images = current_images
+    
+    # Marcar el atributo como modificado para que SQLAlchemy lo actualice
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(product, 'images')
+    
+    db.session.commit()
+    
+    print(f"✅ DEBUG: Base de datos actualizada")
+    
+    return jsonify({
+        'url': image_url,
+        'alt': file.filename,
+        'status': 'ok'
+    })
 
 @app.get('/api/contracts/templates/<template_id>/placeholders')
 @jwt_required()

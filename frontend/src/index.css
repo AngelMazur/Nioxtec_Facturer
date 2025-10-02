@@ -101,3 +101,30 @@ body {
   position: fixed; inset: 0; pointer-events: none; z-index: 60; opacity: .015; mix-blend-mode: soft-light;
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAQAAACq9V7WAAAAW0lEQVR4Ae3QsQkAMAwAsWf//5ZkL9yCwqYk0Q3w4cY9C8QYb8VgJQ3c5dS0y2i7f3jW9q8p4yNw3C6W0a3mQ8dO7Jqz9k1t+eG1r6qE0g3w0nPn9Y8E4X5zvZ6V7Qk4zZr6o2k8Gd3b0gAAAP8C1iGQz1m5gQAAAABJRU5ErkJggg==');
 }
+
+/* Custom scrollbar para modales y áreas de scroll */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(24, 180, 216, 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(24, 180, 216, 0.5);
+}
+
+/* Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(24, 180, 216, 0.3) rgba(255, 255, 255, 0.02);
+}
+

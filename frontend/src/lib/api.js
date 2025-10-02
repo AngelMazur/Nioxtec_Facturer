@@ -51,15 +51,30 @@ export async function apiGet(path, token) {
  * @param {string} path - API endpoint path (without /api prefix)
  * @param {Object} body - Request payload to send as JSON
  * @param {string} token - JWT token for authentication
+ * @param {Object} customHeaders - Optional custom headers (for multipart/form-data)
  * @returns {Promise<Object>} JSON response data
  * @throws {Error} API error message
  */
-export async function apiPost(path, body, token) {
+export async function apiPost(path, body, token, customHeaders = null) {
+  const headers = customHeaders || getHeaders(token)
+  
+  // Si customHeaders tiene Content-Type multipart/form-data, no incluir Content-Type
+  // para que el navegador lo añada automáticamente con el boundary
+  const finalHeaders = { ...headers }
+  if (customHeaders && customHeaders['Content-Type'] === 'multipart/form-data') {
+    delete finalHeaders['Content-Type']
+  }
+  
+  // Si es Authorization solo, añadirlo
+  if (token && !finalHeaders.Authorization) {
+    finalHeaders.Authorization = `Bearer ${token}`
+  }
+  
   const res = await fetch(`${API_BASE}/api${path}`, {
     method: 'POST',
-    headers: getHeaders(token),
+    headers: finalHeaders,
     credentials: 'include',
-    body: JSON.stringify(body),
+    body: body instanceof FormData ? body : JSON.stringify(body),
   })
   if (!res.ok) {
     const msg = await safeError(res)
