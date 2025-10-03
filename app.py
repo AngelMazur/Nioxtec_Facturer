@@ -2788,14 +2788,14 @@ def generate_contract_pdf():
                         line-height: 1.2;
                     }}
                     h1 {{ 
-                        font-size: 18pt;
+                        font-size: 14pt;
                         margin-top: 0.5em;
                         margin-bottom: 1.2em;
                         letter-spacing: 0.5px;
                         font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     h2 {{ 
-                        font-size: 15pt;
+                        font-size: 12pt;
                         margin-top: 2em;
                         margin-bottom: 0.8em;
                         padding-top: 0.5em;
@@ -2803,14 +2803,14 @@ def generate_contract_pdf():
                         font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     h3 {{ 
-                        font-size: 12pt;
+                        font-size: 10pt;
                         margin-top: 1.2em;
                         margin-bottom: 0.6em;
                         font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     /* Estilos específicos para títulos del contrato */
                     .contract-title {{
-                        font-size: 18pt;
+                        font-size: 16pt;
                         color: #65AAC3;
                         font-weight: bold;
                         text-align: center;
@@ -2820,7 +2820,7 @@ def generate_contract_pdf():
                         font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     .section-title {{
-                        font-size: 15pt;
+                        font-size: 14pt;
                         color: #65AAC3;
                         font-weight: bold;
                         margin-top: 2.5em;
@@ -3369,23 +3369,23 @@ def _docx_to_html(docx_path):
             if text.upper() == "CONTRATO DE COMPRAVENTA A PLAZOS SIN INTERESES":
                 # Título principal del contrato de compraventa
                 app.logger.info(f"Detected main title: {text}")
-                html_parts.append(f'<h1 class="contract-title" style="font-size: 16pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 0.5em;">{text}</h1>')
+                html_parts.append(f'<h1 class="contract-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 0.5em;">{text}</h1>')
             elif text.upper() == "CONTRATO DE RENTING DE PANTALLA PUBLICITARIA":
                 # Título principal del contrato de renting
                 app.logger.info(f"Detected main title: {text}")
-                html_parts.append(f'<h1 class="contract-title" style="font-size: 18pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 1.5em; text-transform: uppercase; letter-spacing: 0.5px;">{text}</h1>')
+                html_parts.append(f'<h1 class="contract-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 1.5em; text-transform: uppercase; letter-spacing: 0.5px;">{text}</h1>')
             elif text.upper() == "PARTES INTERVINIENTES":
                 # Sección principal del contrato de compraventa
                 app.logger.info(f"Detected section title: {text}")
-                html_parts.append(f'<h2 class="section-title" style="font-size: 15pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
+                html_parts.append(f'<h2 class="section-title" style="font-size: 13pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
             elif text.upper() in ["CLAUSULAS", "CLÁUSULAS"]:
                 # Sección principal del contrato de renting
                 app.logger.info(f"Detected section title: {text}")
-                html_parts.append(f'<h2 class="section-title" style="font-size: 15pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
+                html_parts.append(f'<h2 class="section-title" style="font-size: 13pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
             elif text.upper() == "ACEPTACIÓN DEL CONTRATO":
                 # Sección principal del contrato de renting
                 app.logger.info(f"Detected section title: {text}")
-                html_parts.append(f'<h2 class="section-title" style="font-size: 15pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
+                html_parts.append(f'<h2 class="section-title" style="font-size: 13pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
             elif text.upper() in ["VENDEDOR", "COMPRADOR", "OBJETO DEL CONTRATO", "GARANTÍA", "IMPAGO", "PROTECCIÓN DE DATOS", "JURISDICCIÓN", "ENTREGA"]:
                 # Subsecciones del contrato de compraventa
                 # Verificar que sea un título independiente (no parte de una frase)
