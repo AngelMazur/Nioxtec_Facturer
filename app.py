@@ -2581,6 +2581,7 @@ def generate_contract_pdf():
     Generate PDF from contract content.
     
     Accepts DOCX template ID and form data, fills the template and generates a PDF.
+    Optionally saves the PDF as client document if client_id is provided.
     
     Returns:
         JSON: Generated filename on success
@@ -2589,9 +2590,10 @@ def generate_contract_pdf():
     template_id = data.get('template_id')
     form_data = data.get('form_data', {})
     filename = data.get('filename', 'contract.pdf')
+    client_id = data.get('client_id')  # Optional: if provided, save as client document
     
     if not template_id:
-        return jsonify({'error': 'Template ID is required'}), 400
+        return jsonify({'error': 'Template ID is required'})
     
     try:
         # Get template filename
@@ -2746,99 +2748,139 @@ def generate_contract_pdf():
                 <style>
                     body {{
                         font-family: "Cambria", "Times New Roman", serif;
-                        line-height: 1.6;
+                        line-height: 1.4;
                         margin: 1.5cm 1.2cm 1.5cm 1.2cm;
                         font-size: 11pt;
-                                        }}
+                        color: #333;
+                    }}
                     .header {{
                         display: flex;
                         justify-content: center;
                         align-items: center;
                         text-align: center;
-                        margin-bottom: 1em;
+                        margin-bottom: 1.5em;
                         page-break-inside: avoid;
                         width: 100%;
                     }}
                     .header img {{
-                        max-height: 60px;
-                        max-width: 150px;
+                        max-height: 70px;
+                        max-width: 160px;
                         object-fit: contain;
                         margin: 0 auto;
                         display: block;
                     }}
+                    /* Párrafos con mejor espaciado */
+                    p {{
+                        margin: 0.5em 0;
+                        text-align: justify;
+                    }}
+                    /* Negritas destacadas */
+                    strong {{
+                        font-weight: bold;
+                        color: #222;
+                    }}
+                    /* Jerarquía visual mejorada para títulos */
                     h1, h2, h3 {{
                         color: #65AAC3;
-                        margin-top: 1.5em;
-                        margin-bottom: 0.2em;
-                        font-family: "Cambria", "Times New Roman", serif;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                         font-weight: bold;
+                        page-break-after: avoid;
+                        line-height: 1.2;
                     }}
                     h1 {{ 
-                        font-size: 16pt; 
-                        color: #65AAC3;
-                        font-weight: bold;
+                        font-size: 18pt;
+                        margin-top: 0.5em;
+                        margin-bottom: 1.2em;
+                        letter-spacing: 0.5px;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     h2 {{ 
-                        font-size: 14pt; 
-                        color: #65AAC3;
-                        font-weight: bold;
+                        font-size: 15pt;
+                        margin-top: 2em;
+                        margin-bottom: 0.8em;
+                        padding-top: 0.5em;
+                        border-top: 2px solid #65AAC3;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     h3 {{ 
-                        font-size: 12pt; 
-                        color: #65AAC3;
-                        font-weight: bold;
+                        font-size: 12pt;
+                        margin-top: 1.2em;
+                        margin-bottom: 0.6em;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     /* Estilos específicos para títulos del contrato */
                     .contract-title {{
-                        font-size: 16pt;
+                        font-size: 18pt;
                         color: #65AAC3;
                         font-weight: bold;
                         text-align: center;
-                        margin-bottom: 1em;
+                        margin-bottom: 1.5em;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     .section-title {{
-                        font-size: 14pt;
+                        font-size: 15pt;
                         color: #65AAC3;
                         font-weight: bold;
-                        margin-top: 2em;
-                        margin-bottom: 0.5em;
+                        margin-top: 2.5em;
+                        margin-bottom: 1em;
+                        padding-top: 0.8em;
+                        padding-bottom: 0.3em;
+                        border-top: 2px solid #65AAC3;
+                        border-bottom: 1px solid #65AAC3;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     .subsection-title {{
                         font-size: 12pt;
                         color: #65AAC3;
                         font-weight: bold;
-                        margin-top: 1em;
-                        margin-bottom: 0.5em;
+                        margin-top: 1.5em;
+                        margin-bottom: 0.7em;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
+                    /* Tablas mejoradas */
                     table {{
                         width: 100%;
                         border-collapse: collapse;
-                        margin: 1em 0;
+                        margin: 1.2em 0;
                         font-family: "Cambria", "Times New Roman", serif;
-                        font-size: 11pt;
+                        font-size: 10.5pt;
+                        page-break-inside: avoid;
                     }}
                     th, td {{
-                        border: 1px solid #ddd;
-                        padding: 8px;
+                        border: 1px solid #ccc;
+                        padding: 10px 12px;
                         text-align: left;
                         font-family: "Cambria", "Times New Roman", serif;
-                        font-size: 11pt;
                     }}
                     th {{
-                        background-color: #f5f5f5;
+                        background-color: #65AAC3;
+                        color: white;
                         font-weight: bold;
+                        font-size: 11pt;
                     }}
+                    td {{
+                        background-color: #fafafa;
+                    }}
+                    tr:nth-child(even) td {{
+                        background-color: #f5f5f5;
+                    }}
+                    /* Sección de firma */
                     .signature-section {{
                         margin-top: 3em;
-                        page-break-before: always;
+                        page-break-before: auto;
+                        page-break-inside: avoid;
                     }}
                     .signature-line {{
-                        border-top: 1px solid #000;
-                        margin-top: 2em;
-                        padding-top: 0.5em;
+                        border-top: 2px solid #333;
+                        margin-top: 2.5em;
+                        padding-top: 0.8em;
+                        text-align: center;
+                        font-weight: bold;
                     }}
                 </style>
-                        </head>
+            </head>
             <body>
                 <div class="header">
                     <img src="{Path(os.path.join(STATIC_FOLDER, 'contracts', 'images', 'header-right.png')).resolve().as_uri()}" alt="NIOXTEC Logo" />
@@ -2879,7 +2921,53 @@ def generate_contract_pdf():
         with open(file_path, 'wb') as f:
             f.write(pdf_bytes)
         
-        return jsonify({'filename': safe_filename})
+        # If client_id is provided, also save as client document
+        document_saved = False
+        if client_id:
+            try:
+                # Verify client exists
+                client = Client.query.get(client_id)
+                if client:
+                    # Check if document with same filename already exists for this client
+                    existing_doc = ClientDocument.query.filter_by(
+                        client_id=client_id,
+                        filename=safe_filename
+                    ).first()
+                    
+                    if not existing_doc:
+                        # Save to client documents folder
+                        base_dir = _client_upload_dir(client_id)
+                        documents_dir = os.path.join(base_dir, 'documents')
+                        os.makedirs(documents_dir, exist_ok=True)
+                        
+                        unique_name = f"{uuid4().hex}_{safe_filename}"
+                        stored_rel = os.path.join(str(client_id), 'documents', unique_name)
+                        stored_abs = os.path.join(UPLOADS_ROOT, stored_rel)
+                        
+                        with open(stored_abs, 'wb') as f:
+                            f.write(pdf_bytes)
+                        
+                        # Save document record to database
+                        doc_record = ClientDocument(
+                            client_id=client_id,
+                            category='document',
+                            filename=safe_filename,
+                            stored_path=stored_rel,
+                            content_type='application/pdf',
+                            size_bytes=len(pdf_bytes),
+                        )
+                        db.session.add(doc_record)
+                        db.session.commit()
+                        document_saved = True
+                        app.logger.info(f"Contract PDF auto-saved as client document: {safe_filename} for client {client_id}")
+            except Exception as save_error:
+                app.logger.error(f"Error auto-saving contract as client document: {save_error}")
+                # Don't fail the whole request, just log the error
+        
+        return jsonify({
+            'filename': safe_filename,
+            'document_saved': document_saved
+        })
         
     except Exception as e:
         app.logger.error(f"Error generating contract PDF: {e}")
@@ -3222,6 +3310,46 @@ def extract_placeholders_from_docx(filename):
     except Exception as e:
         return {'error': f'Error processing DOCX: {str(e)}'}
 
+def _format_paragraph_with_bold(paragraph):
+    """
+    Format paragraph text preserving bold formatting from DOCX.
+    Returns HTML with <strong> tags for bold text.
+    Handles bold that can be: True (explicit), False (explicit), or None (inherited from style).
+    """
+    html_parts = []
+    
+    # Check if paragraph style has bold by default
+    paragraph_has_bold_style = False
+    try:
+        if paragraph.style.font.bold:
+            paragraph_has_bold_style = True
+    except:
+        pass
+    
+    for run in paragraph.runs:
+        text = run.text
+        if text:
+            # Replace newlines with <br>
+            text = text.replace('\n', '<br>')
+            
+            # Determine if this run should be bold
+            is_bold = False
+            
+            if run.bold is True:
+                # Explicitly bold
+                is_bold = True
+            elif run.bold is None and paragraph_has_bold_style:
+                # Inherits bold from paragraph style
+                is_bold = True
+            # If run.bold is False, is_bold stays False (explicitly not bold)
+            
+            if is_bold:
+                html_parts.append(f'<strong>{text}</strong>')
+            else:
+                html_parts.append(text)
+    
+    return ''.join(html_parts) if html_parts else paragraph.text.replace('\n', '<br>')
+
 def _docx_to_html(docx_path):
     """Convert DOCX to HTML for PDF generation."""
     doc = Document(docx_path)
@@ -3231,9 +3359,11 @@ def _docx_to_html(docx_path):
         if paragraph.text.strip():
             text = paragraph.text.strip()
             
+            # Check if paragraph has a heading style
+            is_heading_3 = paragraph.style.name in ['Heading 3', 'Título 3', 'Heading3', 'Titulo 3']
+            
             # Debug logging
-            app.logger.info(f"Processing paragraph: '{text}' (length: {len(text)})")
-            app.logger.info(f"Text in uppercase: '{text.upper()}'")
+            app.logger.info(f"Processing paragraph: '{text}' (length: {len(text)}, style: {paragraph.style.name})")
             
             # Detectar títulos basándose en el contenido y formato
             if text.upper() == "CONTRATO DE COMPRAVENTA A PLAZOS SIN INTERESES":
@@ -3243,46 +3373,61 @@ def _docx_to_html(docx_path):
             elif text.upper() == "CONTRATO DE RENTING DE PANTALLA PUBLICITARIA":
                 # Título principal del contrato de renting
                 app.logger.info(f"Detected main title: {text}")
-                html_parts.append(f'<h1 class="contract-title" style="font-size: 16pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 0.5em;">{text}</h1>')
+                html_parts.append(f'<h1 class="contract-title" style="font-size: 18pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 1.5em; text-transform: uppercase; letter-spacing: 0.5px;">{text}</h1>')
             elif text.upper() == "PARTES INTERVINIENTES":
                 # Sección principal del contrato de compraventa
                 app.logger.info(f"Detected section title: {text}")
-                html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
+                html_parts.append(f'<h2 class="section-title" style="font-size: 15pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
             elif text.upper() in ["CLAUSULAS", "CLÁUSULAS"]:
                 # Sección principal del contrato de renting
                 app.logger.info(f"Detected section title: {text}")
-                html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
+                html_parts.append(f'<h2 class="section-title" style="font-size: 15pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
             elif text.upper() == "ACEPTACIÓN DEL CONTRATO":
                 # Sección principal del contrato de renting
                 app.logger.info(f"Detected section title: {text}")
-                html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
+                html_parts.append(f'<h2 class="section-title" style="font-size: 15pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
             elif text.upper() in ["VENDEDOR", "COMPRADOR", "OBJETO DEL CONTRATO", "GARANTÍA", "IMPAGO", "PROTECCIÓN DE DATOS", "JURISDICCIÓN", "ENTREGA"]:
                 # Subsecciones del contrato de compraventa
                 # Verificar que sea un título independiente (no parte de una frase)
                 if len(text.split()) <= 3 and not any(char in text for char in ['.', ',', ':', ';']):
                     app.logger.info(f"Detected subsection title: {text}")
-                    html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.2em;">{text}</h3>')
+                    html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.7em;">{text}</h3>')
                 else:
                     # Es parte de una frase, tratarlo como texto normal
                     app.logger.info(f"Title word found in sentence, treating as normal text: {text}")
                     text = text.replace('\n', '<br>')
-                    html_parts.append(f'<p>{text}</p>')
+                    html_parts.append(f'<p style="margin: 0.5em 0; text-align: justify;">{text}</p>')
             elif text.upper() in ["1. OBJETO DEL CONTRATO", "2. DURACIÓN MÍNIMA DEL RENTING", "3. CUOTA DE RENTING Y FORMA DE PAGO", "4. CESIÓN DE PROPIEDAD", "5. USO, INSTALACIÓN Y CONTENIDOS", "6. SERVICIO TÉCNICO Y SOPORTE", "7. RESPONSABILIDAD Y BUENAS PRÁCTICAS", "8. FORMA DE PAGO Y AUTORIZACIÓN SEPA", "9. CANCELACIÓN ANTICIPADA", "10. JURISDICCIÓN"]:
-                # Subsecciones del contrato de renting
+                # Subsecciones del contrato de renting (títulos antiguos)
                 app.logger.info(f"Detected subsection title: {text}")
-                html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.2em;">{text}</h3>')
+                html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.7em;">{text}</h3>')
+            # Detectar títulos H3 por estilo de Word o por patrón de texto
+            elif is_heading_3 or (text.startswith("3.") or text.startswith("4.") or 
+                  text.startswith("5. Servicio técnico") or text.startswith("6. Responsabilidad") or 
+                  text.startswith("7. Cancelación") or text.startswith("8. Jurisdicción") or
+                  text == "Calendario de recobro"):
+                # Nuevas subsecciones del contrato de renting H3
+                app.logger.info(f"Detected new H3 subsection title: {text} (is_heading_3={is_heading_3})")
+                html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.7em;">{text}</h3>')
             else:
-                # Texto normal
-                text = text.replace('\n', '<br>')
-                html_parts.append(f'<p>{text}</p>')
+                # Texto normal - detectar negritas en runs del párrafo
+                formatted_text = _format_paragraph_with_bold(paragraph)
+                html_parts.append(f'<p style="margin: 0.5em 0; text-align: justify;">{formatted_text}</p>')
     
     for table in doc.tables:
         html_parts.append('<table border="1" style="width: 100%; border-collapse: collapse; margin: 1em 0;">')
         for row in table.rows:
             html_parts.append('<tr>')
             for cell in row.cells:
-                cell_text = cell.text.replace('\n', '<br>')
-                html_parts.append(f'<td style="padding: 8px; border: 1px solid #ddd;">{cell_text}</td>')
+                # Format cell content preserving bold
+                cell_html_parts = []
+                for paragraph in cell.paragraphs:
+                    if paragraph.text.strip():
+                        formatted_text = _format_paragraph_with_bold(paragraph)
+                        cell_html_parts.append(formatted_text)
+                
+                cell_content = '<br>'.join(cell_html_parts) if cell_html_parts else ''
+                html_parts.append(f'<td style="padding: 8px; border: 1px solid #ddd;">{cell_content}</td>')
             html_parts.append('</tr>')
         html_parts.append('</table>')
     

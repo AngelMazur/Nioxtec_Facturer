@@ -211,12 +211,29 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
       const filename = generateFilename()
       
       // Generate PDF using template ID and form data
-      const pdfBlob = await generateContractPDF(selectedTemplate.id, formData, filename, token)
+      // Pass client ID if available for auto-save
+      const result = await generateContractPDF(
+        selectedTemplate.id, 
+        formData, 
+        filename, 
+        token,
+        selectedClient?.id || null
+      )
       
       // Download PDF
-      downloadContractPDF(pdfBlob, filename)
+      downloadContractPDF(result.pdfBlob, filename)
       
-      toast.success('Contrato generado y descargado correctamente')
+      // Show success message
+      if (result.documentSaved && selectedClient) {
+        toast.success('Contrato generado, descargado y guardado automáticamente')
+        // Call callback to refresh client documents if provided
+        if (onDocumentSaved) {
+          onDocumentSaved(selectedClient.id)
+        }
+      } else {
+        toast.success('Contrato generado y descargado correctamente')
+      }
+      
       // Close modal when generating PDF
       handleClose()
     } catch (error) {
