@@ -1345,6 +1345,10 @@ def create_product():
 @app.route('/api/products', methods=['GET', 'OPTIONS'])
 @jwt_required(optional=True)
 def list_products():
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     limit = request.args.get('limit', type=int, default=10)
     offset = request.args.get('offset', type=int, default=0)
     q = (request.args.get('q') or '').strip()
@@ -1454,6 +1458,10 @@ def delete_product(pid):
 @app.route('/api/products/summary', methods=['GET', 'OPTIONS'])
 @jwt_required(optional=True)
 def products_summary():
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     # Agregados por categoría y por modelo, filtrando por activos/archivados
     active_param = (request.args.get('active') or '1').strip()
     where_clause = "WHERE is_active = :active" if active_param in {'0','1'} else "WHERE is_active = 1"
