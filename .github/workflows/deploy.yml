@@ -57,9 +57,29 @@ jobs:
               git reset --hard origin/main
               # Parar backend antes de tocar el venv para evitar ficheros .pyd bloqueados por el proceso en Windows
               try { Log 'Deteniendo backend para actualizar dependencias'; schtasks /End /TN "Nioxtec Backend" 2>$null | Out-Null; $backendStopped=$true } catch {}
+              
               # Limpiar venvs versionados o previos
               try { Remove-Item -Recurse -Force '.\\.venv' -ErrorAction SilentlyContinue } catch {}
               try { Remove-Item -Recurse -Force '.\\.venv310' -ErrorAction SilentlyContinue } catch {}
+              
+              # Limpiar .venv_* antiguos (mantener solo los 3 más recientes)
+              try {
+                $oldVenvs = Get-ChildItem -Path . -Directory -Filter ".venv_*" | 
+                           Sort-Object LastWriteTime -Descending | 
+                           Select-Object -Skip 3
+                if ($oldVenvs) {
+                  Log "Limpiando $($oldVenvs.Count) entornos virtuales antiguos..."
+                  $oldVenvs | ForEach-Object { 
+                    try { 
+                      Remove-Item -Recurse -Force $_.FullName -ErrorAction Stop 
+                      Log "  Eliminado: $($_.Name)"
+                    } catch {
+                      Log "  No se pudo eliminar $($_.Name): $($_.Exception.Message)"
+                    }
+                  }
+                }
+              } catch { Log "Aviso: No se pudieron limpiar venvs antiguos: $($_.Exception.Message)" }
+              
               # Validar/recrear venv (crea un venv NUEVO por despliegue para evitar bloqueos por .pyd)
               try {
                 # Crear un venv NUEVO por despliegue (evita bloqueos de .pyd en Windows)
