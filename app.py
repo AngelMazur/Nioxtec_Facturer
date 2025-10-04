@@ -374,12 +374,17 @@ db = SQLAlchemy(app)
 enable_talisman = os.getenv('ENABLE_TALISMAN', 'true').lower() in ('1', 'true', 'yes')
 if enable_talisman:
     # CSP mínimo: permite este origen, inline para plantillas simples y blobs para descargas
+    # En desarrollo, permitir cargar imágenes desde localhost:5001 (backend)
+    img_sources = ["'self'", 'data:', 'blob:']
+    if DEBUG_MODE:
+        img_sources.extend(['http://localhost:5001', 'http://127.0.0.1:5001'])
+    
     csp = {
         'default-src': ["'self'"],
         'script-src': ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
         'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
-        'img-src': ["'self'", 'data:', 'blob:'],
+        'img-src': img_sources,
             # Permitir previsualización de PDFs en iframe como blob:
             'frame-src': ["'self'", 'blob:'],
         # Permitimos conexiones desde los orígenes del frontend además de self
@@ -2487,6 +2492,14 @@ def health():
         'pdf_engine': 'wkhtmltopdf' if pdfkit else 'reportlab_fallback',
         'database': app.config.get('SQLALCHEMY_DATABASE_URI', '')
     })
+
+
+@app.route('/static/uploads/products/<path:filename>', methods=['GET'])
+def serve_product_image(filename):
+    """Sirve imágenes de productos sin autenticación (archivos públicos)."""
+    from flask import send_from_directory
+    products_folder = os.path.join(STATIC_FOLDER, 'uploads', 'products')
+    return send_from_directory(products_folder, filename)
 
 
 # -------------------------------------

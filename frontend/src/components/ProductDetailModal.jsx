@@ -17,6 +17,7 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
   const [hasChanges, setHasChanges] = useState(false)
   const [showActionsMenu, setShowActionsMenu] = useState(false)
   const [uploadingImages, setUploadingImages] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(null) // Para el lightbox de imágenes
 
   // Inicializar producto editado cuando se abre el modal
   useEffect(() => {
@@ -224,6 +225,7 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
   }
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -645,7 +647,8 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
                             key={idx}
                             className="group relative aspect-square rounded-xl overflow-hidden 
                                      border border-gray-700/50 hover:border-cyan-500/50 transition-all duration-200
-                                     bg-gradient-to-br from-white/5 to-white/[0.02]"
+                                     bg-gradient-to-br from-white/5 to-white/[0.02] cursor-pointer"
+                            onClick={() => setSelectedImage(fullImageUrl)}
                           >
                             <img
                               src={fullImageUrl}
@@ -659,7 +662,10 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent 
                                           opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-3">
                               <button
-                                onClick={() => handleRemoveImage(idx)}
+                                onClick={(e) => {
+                                  e.stopPropagation() // Evitar que abra el lightbox
+                                  handleRemoveImage(idx)
+                                }}
                                 className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg
                                          font-medium transition-colors flex items-center gap-1"
                               >
@@ -691,6 +697,46 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
         </motion.div>
       )}
     </AnimatePresence>
+
+    {/* Lightbox para ver imágenes en tamaño completo */}
+    <AnimatePresence>
+      {selectedImage && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            className="relative max-w-7xl max-h-[90vh] w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Botón cerrar */}
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute -top-12 right-0 text-white hover:text-cyan-400 transition-colors"
+            >
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            {/* Imagen */}
+            <img
+              src={selectedImage}
+              alt="Vista completa"
+              className="w-full h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   )
 }
 
