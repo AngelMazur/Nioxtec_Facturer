@@ -230,12 +230,44 @@ jobs:
               }
             } catch { Log "Backend update error: $($_.Exception.Message)" }
             try {
-              Log 'npm ci && build frontend'
+              Log 'Compilando frontend (npm ci && build)'
               Set-Location 'C:\Nioxtec\Nioxtec_Facturer\frontend'
+              
+              # Limpiar node_modules y package-lock para instalación limpia si hubo problemas previos
+              $nodeModulesOk = Test-Path 'node_modules'
+              if (-not $nodeModulesOk) {
+                Log 'node_modules no existe, instalación limpia'
+              }
+              
+              # Ejecutar npm ci (instala desde package-lock.json)
+              Log 'Ejecutando npm ci...'
               npm ci
+              if ($LASTEXITCODE -ne 0) {
+                throw "npm ci falló con código $LASTEXITCODE"
+              }
+              
+              # Configurar variable de entorno para producción
               $env:VITE_API_BASE = 'https://api.nioxtec.es'
+              
+              # Build del frontend
+              Log 'Ejecutando npm run build...'
               npm run build
-            } catch { Log "Frontend build error: $($_.Exception.Message)" }
+              if ($LASTEXITCODE -ne 0) {
+                throw "npm run build falló con código $LASTEXITCODE"
+              }
+              
+              # Verificar que dist/ fue creado correctamente
+              $distExists = Test-Path 'dist\index.html'
+              if (-not $distExists) {
+                throw 'Frontend build no generó dist/index.html'
+              }
+              
+              Log 'Frontend compilado exitosamente'
+            } catch { 
+              Write-Error "Frontend build error: $($_.Exception.Message)"
+              Log "Frontend build error: $($_.Exception.Message)"
+              exit 1
+            }
 
             # Escribir APP_VERSION, APP_ORIGIN y VENV_DIR en .env para que la app lo lea al arrancar
             try {
@@ -260,6 +292,13 @@ jobs:
             try { schtasks /End /TN "Cloudflared Tunnel" 2>$null | Out-Null } catch {}
             # Matar procesos Python viejos para evitar código cacheado
             try { Log 'Matando procesos Python para limpiar código cacheado...'; Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Seconds 2 } catch {}
+            # Limpiar caché de Python bytecode para forzar recarga del código
+            try {
+              Log 'Limpiando caché de Python (__pycache__ y .pyc)...'
+              Get-ChildItem -Path 'C:\Nioxtec\Nioxtec_Facturer' -Recurse -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq '__pycache__' } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+              Get-ChildItem -Path 'C:\Nioxtec\Nioxtec_Facturer' -Recurse -Filter '*.pyc' -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+              Log 'Caché de Python limpiado'
+            } catch { Log "Aviso: No se pudo limpiar caché Python: $($_.Exception.Message)" }
             # Arrancar servicios
             try { if ($backendStopped) { schtasks /Run /TN "Nioxtec Backend" 2>$null | Out-Null; Log 'Backend arrancado' } } catch {}
             Start-Sleep -Seconds 5
