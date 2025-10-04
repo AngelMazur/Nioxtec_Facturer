@@ -92,20 +92,6 @@ export default function Facturas() {
     }
     setSearchParams(next, { replace: true })
   }, [currentPage, searchParams, setSearchParams, DEFAULTS.page])
-  // Helpers de redondeo/conversión (2 decimales máximo)
-  const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
-  const round4 = (n) => Math.round((Number(n) + Number.EPSILON) * 10000) / 10000;
-  // Nota: para evitar perder 0,01 al recomponer el IVA en backend, enviamos neto con 4 decimales
-  const grossToNet = (gross, rate) => {
-    const r = Number(rate) || 0;
-    const g = Number(gross) || 0;
-    return r ? round4(g / (1 + r / 100)) : round4(g);
-  };
-  const netToGross = (net, rate) => {
-    const r = Number(rate) || 0;
-    const n = Number(net) || 0;
-    return r ? round2(n * (1 + r / 100)) : round2(n);
-  };
 
   const getInvoiceTypeMeta = (type) => {
     const normalized = String(type || '').toLowerCase()
@@ -276,11 +262,11 @@ export default function Facturas() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = { ...form, client_id: Number(form.client_id) };
-    // Convertir precios del formulario (brutos con IVA) a netos antes de enviar
+    // Los precios ya vienen en neto (sin IVA) del formulario
     payload.items = (payload.items || []).map((it) => ({
       description: it.description,
       units: Number(it.units),
-      unit_price: grossToNet(it.unit_price, it.tax_rate),
+      unit_price: Number(it.unit_price),
       tax_rate: Number(it.tax_rate),
       ...(it.product_id ? { product_id: Number(it.product_id) } : {}),
     }));
@@ -330,8 +316,8 @@ export default function Facturas() {
         items: (details.items || []).map((it) => ({
           description: it.description,
           units: it.units,
-           // Convertir neto del backend a bruto para el formulario (mostrar IVA incl.)
-           unit_price: netToGross(it.unit_price, it.tax_rate),
+          // Mantener el precio neto tal como viene del backend
+          unit_price: it.unit_price,
           tax_rate: it.tax_rate,
           ...(it.product_id ? { product_id: it.product_id } : {}),
         })),
@@ -428,8 +414,8 @@ export default function Facturas() {
         items: (details.items || []).map((it) => ({
           description: it.description,
           units: it.units,
-          // Convertir neto a bruto para edición
-          unit_price: netToGross(it.unit_price, it.tax_rate),
+          // Mantener el precio neto tal como viene del backend
+          unit_price: it.unit_price,
           tax_rate: it.tax_rate,
         })),
       });
@@ -447,10 +433,11 @@ export default function Facturas() {
     e.preventDefault();
     if (!editingInvoiceId) return;
     const payload = { ...form, client_id: Number(form.client_id) };
+    // Los precios ya vienen en neto (sin IVA) del formulario
     payload.items = (payload.items || []).map((it) => ({
       description: it.description,
       units: Number(it.units),
-      unit_price: grossToNet(it.unit_price, it.tax_rate),
+      unit_price: Number(it.unit_price),
       tax_rate: Number(it.tax_rate),
     }));
     if (payload.type !== 'factura') {

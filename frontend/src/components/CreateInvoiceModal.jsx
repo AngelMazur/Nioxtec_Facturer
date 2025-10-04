@@ -215,9 +215,8 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
                             if (pid) {
                               const prod = (products || []).find(p => p.id === pid)
                               if (prod) {
-                                const gross = (prod.price_net || 0) * (1 + (prod.tax_rate || 0) / 100)
                                 newItems[index].description = prod.model ? `${prod.model}${prod.sku ? ' - ' + prod.sku : ''}` : (prod.sku || '')
-                                newItems[index].unit_price = Number(gross.toFixed(2))
+                                newItems[index].unit_price = Number((prod.price_net || 0).toFixed(2))
                                 newItems[index].tax_rate = prod.tax_rate || 21
                                 const stock = Number(prod.stock_qty || 0)
                                 if (stock <= 5) {
@@ -283,7 +282,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
                     </div>
                     <div>
                       <label className="flex flex-col gap-1">
-                        <span className="text-sm text-gray-500">Precio unitario (€)</span>
+                        <span className="text-sm text-gray-500">Precio unitario SIN IVA (€)</span>
                         <input
                           type="number"
                           min="0"
