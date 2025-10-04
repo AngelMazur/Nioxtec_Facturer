@@ -255,10 +255,10 @@ export const useStore = create((set, get) => ({
 
   // Métodos para clientes (similar a gastos pero añadiendo al final)
   
-  // Método para añadir nuevo cliente al final del orden personalizado
+  // Método para añadir nuevo cliente al principio del orden personalizado
   addClientToEnd: (client) => {
     const { customClientOrder, userHasSortedClients } = get()
-    const newOrder = [...customClientOrder.filter(id => id !== client.id), client.id]
+    const newOrder = [client.id, ...customClientOrder.filter(id => id !== client.id)]
     
     // Persistir en localStorage
     if (typeof window !== 'undefined') {
@@ -298,9 +298,9 @@ export const useStore = create((set, get) => ({
     }
     
     if (customClientOrder.length === 0) {
-      // Si no hay orden personalizado, ordenar por ID ascendente (más antiguos primero)
-      // Esto mantiene los nuevos clientes al final
-      return [...clients].sort((a, b) => a.id - b.id)
+      // Si no hay orden personalizado, ordenar por ID descendente (más nuevos primero)
+      // Esto muestra los clientes más recientes al inicio
+      return [...clients].sort((a, b) => b.id - a.id)
     }
     
     // Aplicar orden personalizado
@@ -323,10 +323,10 @@ export const useStore = create((set, get) => ({
       return indexA - indexB
     })
     
-    // Ordenar los no ordenados por ID ascendente (más antiguos primero)
-    unordered.sort((a, b) => a.id - b.id)
+    // Ordenar los no ordenados por ID descendente (más nuevos primero)
+    unordered.sort((a, b) => b.id - a.id)
     
-    // Añadir los no ordenados al final
-    return [...ordered, ...unordered]
+    // Añadir los no ordenados al principio
+    return [...unordered, ...ordered]
   },
 }))
