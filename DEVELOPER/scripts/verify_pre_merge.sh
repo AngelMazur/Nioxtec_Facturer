@@ -26,7 +26,8 @@ check_endpoint() {
     
     response=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null)
     
-    if [ "$response" == "$expected_code" ] || [ "$response" == "200" ] || [ "$response" == "302" ]; then
+    # Consideramos OK: 200, 302 (redirect), 401 (protected endpoint)
+    if [ "$response" == "200" ] || [ "$response" == "302" ] || [ "$response" == "401" ]; then
         echo -e "${GREEN}✅ OK${NC} (HTTP $response)"
         ((PASSED++))
         return 0
@@ -54,19 +55,19 @@ echo ""
 echo "🔌 Verificando API endpoints..."
 echo ""
 
-check_endpoint "API Clientes" "http://localhost:5001/api/clientes"
+check_endpoint "API Clients" "http://localhost:5001/api/clients"
 sleep 1
 
-check_endpoint "API Facturas" "http://localhost:5001/api/facturas"
+check_endpoint "API Invoices" "http://localhost:5001/api/invoices"
 sleep 1
 
-check_endpoint "API Productos" "http://localhost:5001/api/productos"
+check_endpoint "API Products" "http://localhost:5001/api/products"
 sleep 1
 
-check_endpoint "API Gastos" "http://localhost:5001/api/gastos"
+check_endpoint "API Expenses" "http://localhost:5001/api/expenses"
 sleep 1
 
-check_endpoint "API Stats" "http://localhost:5001/api/stats"
+check_endpoint "API Reports Summary" "http://localhost:5001/api/reports/summary"
 sleep 1
 
 # Resumen
