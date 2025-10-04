@@ -32,6 +32,18 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
     }
   }, [product])
 
+  // Cerrar lightbox con tecla Escape
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && selectedImage) {
+        setSelectedImage(null)
+      }
+    }
+    
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [selectedImage])
+
   if (!isOpen || !product || !editedProduct) return null
 
   const tabs = [
@@ -706,31 +718,33 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 overflow-auto"
           onClick={() => setSelectedImage(null)}
         >
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
-            className="relative max-w-7xl max-h-[90vh] w-full"
+            className="relative my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Botón cerrar */}
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute -top-12 right-0 text-white hover:text-cyan-400 transition-colors"
+              className="absolute -top-12 right-0 md:-right-12 text-white hover:text-cyan-400 transition-colors
+                         bg-gray-900/50 hover:bg-gray-900/80 rounded-full p-2"
+              title="Cerrar (Esc)"
             >
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-6 h-6 md:w-8 md:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
             
-            {/* Imagen */}
+            {/* Imagen - max-w y max-h para que se ajuste a la pantalla */}
             <img
               src={selectedImage}
               alt="Vista completa"
-              className="w-full h-full object-contain rounded-lg"
+              className="max-w-[90vw] max-h-[85vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
           </motion.div>
