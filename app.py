@@ -738,26 +738,41 @@ def _generate_pdf_fallback(invoice: 'Invoice', client: 'Client', company: 'Compa
 # was removed in Flask 3【582101706213846†L169-L173】, so we explicitly initialize
 # the database here using the application context.
 with app.app_context():
-    # Crear tablas base si no existen (para desarrollo). En producción usar Alembic.
-    db.create_all()
-    # Migración ligera: añadir columna is_active a product si falta (SQLite compatible)
-    try:
-        insp = inspect(db.engine)
-        cols = [c['name'] for c in insp.get_columns('product')]
-        if 'is_active' not in cols:
-            db.session.execute(text("ALTER TABLE product ADD COLUMN is_active BOOLEAN DEFAULT 1"))
-            db.session.commit()
-    except Exception:
-        # No bloquear arranque si falla la migración ligera
-        db.session.rollback()
-        pass
-    # Usuario admin inicial opcional
+    # Crear tablas base si no existen (solo desarrollo). En producción usar Alembic.
+    app_env = (os.getenv('APP_ENV') or os.getenv('FLASK_ENV') or 'development').lower()
+    allow_create_all = os.getenv('RUN_DB_CREATE_ALL', 'false').lower() in ('1', 'true', 'yes')
+    allow_runtime_migrations = os.getenv('ALLOW_RUNTIME_MIGRATIONS', 'false').lower() in ('1', 'true', 'yes')
+
+    if app_env != 'production' or allow_create_all:
+        try:
+            db.create_all()
+        except Exception:
+            # Evitar bloquear el arranque si hay desajustes temporales de esquema
+            app.logger.warning('db.create_all() falló; confía en Alembic para crear/esquema')
+            db.session.rollback()
+
+    # Migración ligera (solo en desarrollo o si se permite explícitamente)
+    if (app_env != 'production' and allow_runtime_migrations) or allow_create_all:
+        try:
+            insp = inspect(db.engine)
+            cols = [c['name'] for c in insp.get_columns('product')]
+            if 'is_active' not in cols:
+                db.session.execute(text("ALTER TABLE product ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+                db.session.commit()
+        except Exception:
+            # No bloquear arranque si falla la migración ligera
+            db.session.rollback()
+
+    # Usuario admin inicial opcional (seguro en cualquier entorno si existen tablas)
     admin_user = os.getenv('ADMIN_USERNAME')
     admin_pass = os.getenv('ADMIN_PASSWORD')
     if admin_user and admin_pass:
-        if not User.query.filter_by(username=admin_user).first():
-            db.session.add(User(username=admin_user, password_hash=generate_password_hash(admin_pass)))
-            db.session.commit()
+        try:
+            if not User.query.filter_by(username=admin_user).first():
+                db.session.add(User(username=admin_user, password_hash=generate_password_hash(admin_pass)))
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
 
 
 @app.route('/')
