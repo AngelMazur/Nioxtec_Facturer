@@ -705,7 +705,7 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4"
           onClick={() => setSelectedImage(null)}
         >
           <motion.div
