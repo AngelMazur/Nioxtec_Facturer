@@ -25,11 +25,20 @@ instance/**
 *.sqlite
 logs/
 
+# Uploads generated at runtime
+static/uploads/**
+!static/uploads/.gitkeep
+
 # OS/editor
 .DS_Store
 .idea/
 .vscode/
 .history/
+Thumbs.db
+.cursor/
+~$*
+ChatGPT Image*
+test_download.pdf
 
 # Env/Secrets
 .env

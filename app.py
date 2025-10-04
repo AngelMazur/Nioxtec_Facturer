@@ -29,6 +29,7 @@ for generating invoices, reports and other documents【239017722105616†L83-L94
 
 from datetime import datetime, timedelta
 import os
+import time
 import re
 import unicodedata
 from docx import Document
@@ -41,7 +42,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required, get_jwt_identity,
-    set_access_cookies, unset_jwt_cookies
+    set_access_cookies, unset_jwt_cookies, verify_jwt_in_request
 )
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
@@ -122,7 +123,7 @@ except Exception:
 
 
 # -------------------------------------------------------------
-# Company config helpers
+#  config helpers
 
 def _company_from_env() -> SimpleNamespace:
     """Build a company-like object from environment variables.
@@ -373,12 +374,17 @@ db = SQLAlchemy(app)
 enable_talisman = os.getenv('ENABLE_TALISMAN', 'true').lower() in ('1', 'true', 'yes')
 if enable_talisman:
     # CSP mínimo: permite este origen, inline para plantillas simples y blobs para descargas
+    # En desarrollo, permitir cargar imágenes desde localhost:5001 (backend)
+    img_sources = ["'self'", 'data:', 'blob:']
+    if DEBUG_MODE:
+        img_sources.extend(['http://localhost:5001', 'http://127.0.0.1:5001'])
+    
     csp = {
         'default-src': ["'self'"],
         'script-src': ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
         'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
-        'img-src': ["'self'", 'data:', 'blob:'],
+        'img-src': img_sources,
             # Permitir previsualización de PDFs en iframe como blob:
             'frame-src': ["'self'", 'blob:'],
         # Permitimos conexiones desde los orígenes del frontend además de self
@@ -493,6 +499,7 @@ class Invoice(db.Model):
     payment_method = db.Column(db.String(32))  # bizum | efectivo | transferencia
     total = db.Column(db.Float, default=0.0)
     tax_total = db.Column(db.Float, default=0.0)
+    paid = db.Column(db.Boolean, default=False, nullable=False, index=True)
     client = db.relationship('Client', backref=db.backref('invoices', lazy=True))
 
 
@@ -514,6 +521,7 @@ class InvoiceItem(db.Model):
     """Line items that belong to an invoice."""
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=True, index=True)
     description = db.Column(db.String(512), nullable=False)
     units = db.Column(db.Integer, nullable=False)
     unit_price = db.Column(db.Float, nullable=False)
@@ -521,6 +529,30 @@ class InvoiceItem(db.Model):
     subtotal = db.Column(db.Float, nullable=False)
     total = db.Column(db.Float, nullable=False)
     invoice = db.relationship('Invoice', backref=db.backref('items', lazy=True))
+
+
+class Product(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String(64), nullable=False, index=True)
+    model = db.Column(db.String(128), nullable=False, index=True)
+    sku = db.Column(db.String(64), unique=True)
+    stock_qty = db.Column(db.Integer, default=0)
+    price_net = db.Column(db.Float, nullable=False, default=0.0)
+    tax_rate = db.Column(db.Float, default=21.0)
+    features = db.Column(db.JSON)
+    images = db.Column(db.JSON, default=list)  # Lista de imágenes del producto
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Soft-delete / archive flag
+    is_active = db.Column(db.Boolean, default=True, index=True)
+
+
+class StockMovement(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False, index=True)
+    qty = db.Column(db.Integer, nullable=False)
+    type = db.Column(db.String(16), nullable=False)  # 'sale' | 'manual' | 'adjust'
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class User(db.Model):
@@ -711,15 +743,41 @@ def _generate_pdf_fallback(invoice: 'Invoice', client: 'Client', company: 'Compa
 # was removed in Flask 3【582101706213846†L169-L173】, so we explicitly initialize
 # the database here using the application context.
 with app.app_context():
-    # Crear tablas base si no existen (para desarrollo). En producción usar Alembic.
-    db.create_all()
-    # Usuario admin inicial opcional
+    # Crear tablas base si no existen (solo desarrollo). En producción usar Alembic.
+    app_env = (os.getenv('APP_ENV') or os.getenv('FLASK_ENV') or 'development').lower()
+    allow_create_all = os.getenv('RUN_DB_CREATE_ALL', 'false').lower() in ('1', 'true', 'yes')
+    allow_runtime_migrations = os.getenv('ALLOW_RUNTIME_MIGRATIONS', 'false').lower() in ('1', 'true', 'yes')
+
+    if app_env != 'production' or allow_create_all:
+        try:
+            db.create_all()
+        except Exception:
+            # Evitar bloquear el arranque si hay desajustes temporales de esquema
+            app.logger.warning('db.create_all() falló; confía en Alembic para crear/esquema')
+            db.session.rollback()
+
+    # Migración ligera (solo en desarrollo o si se permite explícitamente)
+    if (app_env != 'production' and allow_runtime_migrations) or allow_create_all:
+        try:
+            insp = inspect(db.engine)
+            cols = [c['name'] for c in insp.get_columns('product')]
+            if 'is_active' not in cols:
+                db.session.execute(text("ALTER TABLE product ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+                db.session.commit()
+        except Exception:
+            # No bloquear arranque si falla la migración ligera
+            db.session.rollback()
+
+    # Usuario admin inicial opcional (seguro en cualquier entorno si existen tablas)
     admin_user = os.getenv('ADMIN_USERNAME')
     admin_pass = os.getenv('ADMIN_PASSWORD')
     if admin_user and admin_pass:
-        if not User.query.filter_by(username=admin_user).first():
-            db.session.add(User(username=admin_user, password_hash=generate_password_hash(admin_pass)))
-            db.session.commit()
+        try:
+            if not User.query.filter_by(username=admin_user).first():
+                db.session.add(User(username=admin_user, password_hash=generate_password_hash(admin_pass)))
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
 
 
 @app.route('/')
@@ -840,6 +898,9 @@ def create_invoice():
     subtotal, tax_amount, total = calculate_totals(items_data)
     # Asignar número automáticamente según fecha indicada (reinicia por año/mes)
     number = _next_sequence_atomic(invoice_type, datetime.strptime(date_str, '%Y-%m-%d'))
+    paid_flag = bool(payload.paid)
+    if invoice_type != 'factura':
+        paid_flag = False
     invoice = Invoice(
         number=number,
         date=date_obj,
@@ -848,7 +909,8 @@ def create_invoice():
         notes=notes,
         payment_method=payment_method,
         total=total,
-        tax_total=tax_amount
+        tax_total=tax_amount,
+        paid=paid_flag
     )
     db.session.add(invoice)
     try:
@@ -856,9 +918,24 @@ def create_invoice():
     except IntegrityError:
         db.session.rollback()
         return jsonify({'error': 'El número de factura ya existe'}), 409
+    # Validar stock de productos (solo para facturas reales)
+    products_to_decrement = []  # (product, qty)
+    if invoice_type == 'factura':
+        for item in items_data:
+            pid = item.get('product_id')
+            if pid:
+                prod = Product.query.get(pid)
+                if not prod:
+                    return jsonify({'error': f'Producto {pid} no existe', 'code': 400}), 400
+                qty = int(item['units'])
+                if (prod.stock_qty or 0) < qty:
+                    return jsonify({'error': f'Sin stock suficiente para producto {pid}', 'code': 409}), 409
+                products_to_decrement.append((prod, qty))
+
     for item in items_data:
         line = InvoiceItem(
             invoice_id=invoice.id,
+            product_id=item.get('product_id'),
             description=item['description'],
             units=item['units'],
             unit_price=item['unit_price'],
@@ -867,6 +944,11 @@ def create_invoice():
             total=item['units'] * item['unit_price'] * (1 + item['tax_rate'] / 100)
         )
         db.session.add(line)
+    # Descontar stock y registrar movimiento (solo 'factura')
+    if invoice_type == 'factura':
+        for prod, qty in products_to_decrement:
+            prod.stock_qty = int(prod.stock_qty or 0) - int(qty)
+            db.session.add(StockMovement(product_id=prod.id, qty=-int(qty), type='sale', invoice_id=invoice.id))
     db.session.commit()
     return jsonify({
         'id': invoice.id,
@@ -878,12 +960,14 @@ def create_invoice():
         'payment_method': invoice.payment_method,
         'total': invoice.total,
         'tax_total': invoice.tax_total,
+        'paid': bool(invoice.paid),
         'items': [
             {
                 'description': it.description,
                 'units': it.units,
                 'unit_price': it.unit_price,
                 'tax_rate': it.tax_rate,
+                'product_id': it.product_id,
                 'subtotal': it.subtotal,
                 'total': it.total,
             }
@@ -909,12 +993,12 @@ def list_invoices():
     limit = request.args.get('limit', type=int, default=10)
     offset = request.args.get('offset', type=int, default=0)
     q = (request.args.get('q') or '').strip()
-    sort = (request.args.get('sort') or 'id').strip()
+    sort = (request.args.get('sort') or 'date').strip()
     direction = (request.args.get('dir') or 'desc').strip().lower()
 
     allowed_sort = {'id', 'date', 'total', 'tax_total', 'number'}
     if sort not in allowed_sort:
-        sort = 'id'
+        sort = 'date'
     if direction not in {'asc', 'desc'}:
         direction = 'desc'
 
@@ -956,7 +1040,8 @@ def list_invoices():
             'type': inv.type,
             'payment_method': inv.payment_method,
             'total': inv.total,
-            'tax_total': inv.tax_total
+            'tax_total': inv.tax_total,
+            'paid': bool(inv.paid)
         })
     return jsonify({'items': items, 'total': total})
 
@@ -991,6 +1076,7 @@ def get_invoice(invoice_id):
         'payment_method': inv.payment_method,
         'total': inv.total,
         'tax_total': inv.tax_total,
+        'paid': bool(inv.paid),
         'items': [
             {
                 'description': it.description,
@@ -1009,6 +1095,13 @@ def get_invoice(invoice_id):
 @jwt_required()
 def delete_invoice(invoice_id):
     inv = Invoice.query.get_or_404(invoice_id)
+    # Política A: impedir borrar si hay ventas de productos asociadas
+    # Bloquea si la factura es real y tiene líneas con product_id o movimientos registrados
+    if inv.type == 'factura':
+        has_product_lines = any((it.product_id is not None) for it in inv.items)
+        has_stock_moves = StockMovement.query.filter_by(invoice_id=inv.id).count() > 0
+        if has_product_lines or has_stock_moves:
+            return jsonify({'error': 'No se puede eliminar: factura con productos vendidos'}), 409
     for it in list(inv.items):
         db.session.delete(it)
     db.session.delete(inv)
@@ -1201,6 +1294,322 @@ def list_contract_templates():
     ]
     return jsonify(templates)
 
+
+# -----------------------------
+# Products API
+# -----------------------------
+
+def _product_to_dict(p: 'Product') -> dict:
+    return {
+        'id': p.id,
+        'category': p.category,
+        'model': p.model,
+        'sku': p.sku,
+        'stock_qty': p.stock_qty,
+        'price_net': p.price_net,
+        'tax_rate': p.tax_rate,
+        'features': p.features or {},
+        'images': p.images or [],  # Incluir imágenes
+        'created_at': p.created_at.isoformat() if p.created_at else None,
+    'is_active': bool(getattr(p, 'is_active', True)),
+    }
+
+
+@app.route('/api/products', methods=['POST'])
+@jwt_required()
+def create_product():
+    data = request.get_json(force=True)
+    for field in ['category', 'model']:
+        if not data.get(field):
+            return jsonify({'error': f'{field} requerido'}), 400
+    try:
+        stock = int(data.get('stock_qty') or 0)
+        price_net = float(data.get('price_net') or 0)
+        tax_rate = float(data.get('tax_rate') or 21.0)
+    except Exception:
+        return jsonify({'error': 'stock_qty/price_net/tax_rate inválidos'}), 400
+    p = Product(
+        category=str(data['category']).strip(),
+        model=str(data['model']).strip(),
+        sku=(data.get('sku') or None),
+        stock_qty=max(0, stock),
+        price_net=max(0.0, price_net),
+        tax_rate=max(0.0, min(100.0, tax_rate)),
+        features=data.get('features') or {},
+    )
+    db.session.add(p)
+    db.session.commit()
+    return jsonify({'id': p.id}), 201
+
+
+@app.route('/api/products', methods=['GET'])
+@jwt_required()
+def list_products():
+    limit = request.args.get('limit', type=int, default=10)
+    offset = request.args.get('offset', type=int, default=0)
+    q = (request.args.get('q') or '').strip()
+    category = (request.args.get('category') or '').strip()
+    model = (request.args.get('model') or '').strip()
+    sort = (request.args.get('sort') or 'created_at').strip()
+    direction = (request.args.get('dir') or 'desc').strip().lower()
+    active_param = (request.args.get('active') or '').strip()
+    allowed_sort = {'id','category','model','sku','stock_qty','price_net','created_at'}
+    if sort not in allowed_sort: sort = 'created_at'
+    if direction not in {'asc','desc'}: direction = 'desc'
+    query = Product.query
+    if category:
+        query = query.filter(Product.category.ilike(category))
+    if model:
+        query = query.filter(Product.model.ilike(model))
+    if q:
+        like = f"%{q}%"
+        query = query.filter(db.or_(Product.model.ilike(like), Product.category.ilike(like), Product.sku.ilike(like)))
+    # Por defecto devolver solo activos; si active=0 devuelve archivados; si active=1 activos
+    if active_param in {'0','1'}:
+        query = query.filter(Product.is_active == (active_param == '1'))
+    else:
+        query = query.filter(Product.is_active == True)  # noqa: E712
+    sort_col = getattr(Product, sort)
+    if direction == 'desc': sort_col = sort_col.desc()
+    query = query.order_by(sort_col)
+    total = query.count()
+    rows = query.offset(offset).limit(limit).all()
+    return jsonify({'items': [_product_to_dict(p) for p in rows], 'total': total})
+
+
+@app.route('/api/products/<int:pid>', methods=['GET'])
+@jwt_required()
+def get_product(pid):
+    p = Product.query.get_or_404(pid)
+    return jsonify(_product_to_dict(p))
+
+
+@app.route('/api/products/<int:pid>', methods=['PUT'])
+@jwt_required()
+def update_product(pid):
+    p = Product.query.get_or_404(pid)
+    data = request.get_json(force=True)
+    # Update simple string fields, but treat SKU specially: empty -> NULL
+    for field in ['category', 'model', 'features', 'images']:
+        if field in data:
+            setattr(p, field, data[field])
+            # Si es images, marcar como modificado para SQLAlchemy
+            if field == 'images':
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(p, 'images')
+    if 'sku' in data:
+        # store NULL in DB when client sends empty/blank sku to avoid
+        # violating UNIQUE constraint for empty strings
+        sku = data.get('sku')
+        if isinstance(sku, str):
+            sku = sku.strip() or None
+        else:
+            sku = sku or None
+        p.sku = sku
+    if 'stock_qty' in data:
+        try:
+            p.stock_qty = max(0, int(data['stock_qty']))
+        except Exception:
+            return jsonify({'error': 'stock_qty inválido'}), 400
+    if 'price_net' in data:
+        try:
+            p.price_net = max(0.0, float(data['price_net']))
+        except Exception:
+            return jsonify({'error': 'price_net inválido'}), 400
+    if 'tax_rate' in data:
+        try:
+            tr = float(data['tax_rate'])
+            if tr < 0 or tr > 100: raise ValueError()
+            p.tax_rate = tr
+        except Exception:
+            return jsonify({'error': 'tax_rate inválido (0–100)'}), 400
+    if 'is_active' in data:
+        try:
+            p.is_active = bool(data['is_active'])
+        except Exception:
+            return jsonify({'error': 'is_active inválido'}), 400
+    try:
+        db.session.commit()
+    except IntegrityError as e:
+        # Likely a UNIQUE constraint on sku or similar
+        db.session.rollback()
+        return jsonify({'error': 'Integrity error updating product (possible duplicate SKU)'}), 409
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/products/<int:pid>', methods=['DELETE'])
+@jwt_required()
+def delete_product(pid):
+    p = Product.query.get_or_404(pid)
+    # Impedir borrar si tiene ventas o está referenciado en invoice items
+    ref_count = InvoiceItem.query.filter_by(product_id=p.id).count()
+    mov_count = StockMovement.query.filter_by(product_id=p.id).count()
+    if ref_count > 0 or mov_count > 0:
+        return jsonify({'error': 'No se puede borrar: referenciado en ventas o con movimientos'}), 409
+    db.session.delete(p)
+    db.session.commit()
+    return jsonify({'status': 'deleted'})
+
+
+@app.route('/api/products/summary')
+@jwt_required()
+def products_summary():
+    # Agregados por categoría y por modelo, filtrando por activos/archivados
+    active_param = (request.args.get('active') or '1').strip()
+    where_clause = "WHERE is_active = :active" if active_param in {'0','1'} else "WHERE is_active = 1"
+    cats = db.session.execute(text(
+        f"SELECT category, COUNT(*) as total FROM product {where_clause} GROUP BY category ORDER BY category"
+    ), {'active': 1 if active_param != '0' else 0}).fetchall()
+    by_cat = {}
+    for c, t in cats:
+        # Obtener suma de stock_qty y cantidad de productos por modelo
+        rows = db.session.execute(text(
+            f"""SELECT model, 
+                       COUNT(*) as cnt, 
+                       SUM(COALESCE(stock_qty, 0)) as stock_total 
+                FROM product {where_clause} AND category = :c 
+                GROUP BY model 
+                ORDER BY model"""
+        ), {'c': c, 'active': 1 if active_param != '0' else 0}).fetchall()
+        by_cat[c] = {
+            'category': c,
+            'total': int(t or 0),
+            'models': [{'model': m, 'count': int(cnt or 0), 'stock_total': int(stock_total or 0)} for m, cnt, stock_total in rows]
+        }
+    return jsonify({'categories': list(by_cat.values())})
+
+
+@app.route('/api/products/<int:pid>/adjust_stock', methods=['POST'])
+@jwt_required()
+def adjust_product_stock(pid: int):
+    """Ajuste manual del stock de un producto.
+
+    Payload JSON:
+      - qty: int (positivo para entrada, negativo para salida)
+      - type: 'manual'|'adjust' (opcional, por defecto 'adjust')
+    Reglas:
+      - No permite dejar el stock en negativo.
+      - Registra un StockMovement con la cantidad indicada.
+    """
+    p = Product.query.get_or_404(pid)
+    # No permitir ajustes si está archivado
+    if not getattr(p, 'is_active', True):
+        return jsonify({'error': 'Producto archivado: no se puede ajustar stock'}), 409
+    data = request.get_json(force=True)
+    try:
+        qty = int(data.get('qty'))
+    except Exception:
+        return jsonify({'error': 'qty requerido (entero no nulo)'}), 400
+    if qty == 0:
+        return jsonify({'error': 'qty no puede ser 0'}), 400
+    mv_type = (data.get('type') or 'adjust').strip().lower()
+    if mv_type not in {'manual', 'adjust'}:
+        mv_type = 'adjust'
+
+    new_qty = int(p.stock_qty or 0) + qty
+    if new_qty < 0:
+        return jsonify({'error': 'stock resultante no puede ser negativo'}), 409
+
+    p.stock_qty = new_qty
+    db.session.add(StockMovement(product_id=p.id, qty=int(qty), type=mv_type))
+    db.session.commit()
+    return jsonify({'status': 'ok', 'stock_qty': p.stock_qty})
+
+@app.route('/api/products/upload-image', methods=['POST', 'OPTIONS'])
+@jwt_required(optional=True)
+def upload_product_image():
+    """Subir una imagen para un producto."""
+    # Manejar preflight CORS
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response, 200
+    
+    # Verificar JWT para POST
+    verify_jwt_in_request()
+    
+    import os
+    from werkzeug.utils import secure_filename
+    
+    print("📸 DEBUG: Iniciando subida de imagen...")
+    print(f"📸 DEBUG: request.files keys: {list(request.files.keys())}")
+    print(f"📸 DEBUG: request.form keys: {list(request.form.keys())}")
+    
+    # Verificar que se envió un archivo
+    if 'file' not in request.files:
+        print("❌ DEBUG: No se encontró 'file' en request.files")
+        return jsonify({'error': 'No se envió ningún archivo'}), 400
+    
+    file = request.files['file']
+    product_id = request.form.get('product_id')
+    
+    print(f"📸 DEBUG: file.filename = {file.filename}")
+    print(f"📸 DEBUG: product_id = {product_id}")
+    
+    if file.filename == '':
+        return jsonify({'error': 'Nombre de archivo vacío'}), 400
+    
+    if not product_id:
+        return jsonify({'error': 'product_id es requerido'}), 400
+    
+    # Verificar que el producto existe
+    product = Product.query.get_or_404(int(product_id))
+    
+    # Validar extensión de archivo
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    if ext not in allowed_extensions:
+        return jsonify({'error': f'Extensión no permitida. Usa: {", ".join(allowed_extensions)}'}), 400
+    
+    # Crear directorio si no existe
+    upload_dir = os.path.join('static', 'uploads', 'products')
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Generar nombre único para el archivo
+    filename = secure_filename(file.filename)
+    unique_filename = f"{product_id}_{int(time.time())}_{filename}"
+    file_path = os.path.join(upload_dir, unique_filename)
+    
+    print(f"📸 DEBUG: Guardando en: {file_path}")
+    
+    # Guardar archivo
+    file.save(file_path)
+    
+    # URL relativa para acceder a la imagen
+    image_url = f"/static/uploads/products/{unique_filename}"
+    
+    print(f"✅ DEBUG: Imagen guardada exitosamente: {image_url}")
+    
+    # Guardar en la base de datos (actualizar campo images del producto)
+    # Verificar si el producto tiene el atributo images y si es None, inicializarlo como lista
+    try:
+        current_images = product.images if hasattr(product, 'images') and product.images else []
+    except Exception as e:
+        print(f"⚠️ DEBUG: Error al leer product.images: {e}")
+        current_images = []
+    
+    current_images.append({
+        'url': image_url,
+        'alt': file.filename
+    })
+    product.images = current_images
+    
+    # Marcar el atributo como modificado para que SQLAlchemy lo actualice
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(product, 'images')
+    
+    db.session.commit()
+    
+    print(f"✅ DEBUG: Base de datos actualizada")
+    
+    return jsonify({
+        'url': image_url,
+        'alt': file.filename,
+        'status': 'ok'
+    })
+
 @app.get('/api/contracts/templates/<template_id>/placeholders')
 @jwt_required()
 def get_template_placeholders(template_id):
@@ -1269,8 +1678,21 @@ def update_invoice(invoice_id):
         pm = (data.get('payment_method') or '').strip().lower()
         inv.payment_method = pm if inv.type == 'factura' and pm in {'efectivo','bizum','transferencia'} else (None if inv.type!='factura' else 'efectivo')
     inv.notes = data.get('notes', inv.notes)
-    # Replace items if provided
+    if 'paid' in data:
+        inv.paid = bool(data.get('paid')) if inv.type == 'factura' else False
+    # Reglas de edición de líneas
     items_data = data.get('items')
+    # Política: si es factura y hay líneas vinculadas a productos, no permitir edición de líneas
+    if items_data is not None and inv.type == 'factura':
+        # Detectar si la factura actual tiene líneas con product_id
+        if any((it.product_id is not None) for it in inv.items):
+            return jsonify({'error': 'No se pueden editar las líneas: factura con productos vinculados'}), 409
+        # Además, impedir que el payload intente establecer product_id vía edición
+        try:
+            if any(('product_id' in (item or {})) for item in items_data):
+                return jsonify({'error': 'No se pueden vincular productos al editar una factura existente'}), 409
+        except Exception:
+            pass
     if items_data is not None:
         for it in list(inv.items):
             db.session.delete(it)
@@ -1297,6 +1719,19 @@ def update_invoice(invoice_id):
     return jsonify({'status': 'ok'})
 
 
+@app.route('/api/invoices/<int:invoice_id>/paid', methods=['PATCH'])
+@jwt_required()
+def update_invoice_paid(invoice_id):
+    inv = Invoice.query.get_or_404(invoice_id)
+    if inv.type != 'factura':
+        return jsonify({'error': 'Solo se puede marcar pagado en facturas'}), 400
+    data = request.get_json(silent=True) or {}
+    paid_value = bool(data.get('paid'))
+    inv.paid = paid_value
+    db.session.commit()
+    return jsonify({'status': 'ok', 'paid': bool(inv.paid)})
+
+
 @app.route('/api/invoices/<int:invoice_id>/convert', methods=['PATCH'])
 @jwt_required()
 def convert_proforma(invoice_id):
@@ -1310,13 +1745,25 @@ def convert_proforma(invoice_id):
     if inv.type == 'factura':
         return jsonify({'error': 'El documento ya es una factura'}), 400
 
+    # Payload opcional (para método de pago)
     data = request.get_json(silent=True) or {}
-    # Método de pago opcional en la conversión
     allowed_pm = {'efectivo', 'bizum', 'transferencia'}
     pm = (data.get('payment_method') or 'efectivo').strip().lower()
     payment_method = pm if pm in allowed_pm else 'efectivo'
 
-    # Crear factura nueva
+    # 1) Validar stock por cada línea con product_id
+    items_with_product = [it for it in inv.items if getattr(it, 'product_id', None)]
+    products_and_qty: list[tuple[Product, int]] = []
+    for it in items_with_product:
+        prod = Product.query.get(it.product_id)
+        if not prod:
+            return jsonify({'error': f'Producto {it.product_id} no existe', 'code': 400}), 400
+        qty = int(it.units)
+        if int(prod.stock_qty or 0) < qty:
+            return jsonify({'error': f'Sin stock suficiente para producto {prod.id}', 'code': 409}), 409
+        products_and_qty.append((prod, qty))
+
+    # 2) Crear nueva factura (mantener proforma original)
     number = _next_sequence_atomic('factura')
     new_inv = Invoice(
         number=number,
@@ -1327,16 +1774,18 @@ def convert_proforma(invoice_id):
         payment_method=payment_method,
         total=inv.total,
         tax_total=inv.tax_total,
+        paid=False,
     )
     db.session.add(new_inv)
     db.session.flush()
 
-    # Copiar items
+    # 3) Copiar líneas de la proforma a la nueva factura
     for it in inv.items:
         line_subtotal = it.units * it.unit_price
         line_total = line_subtotal * (1 + it.tax_rate / 100)
         db.session.add(InvoiceItem(
             invoice_id=new_inv.id,
+            product_id=getattr(it, 'product_id', None),
             description=it.description,
             units=it.units,
             unit_price=it.unit_price,
@@ -1344,6 +1793,11 @@ def convert_proforma(invoice_id):
             subtotal=line_subtotal,
             total=line_total,
         ))
+
+    # 4) Descontar stock y registrar movimientos asociados a la nueva factura
+    for prod, qty in products_and_qty:
+        prod.stock_qty = int(prod.stock_qty or 0) - int(qty)
+        db.session.add(StockMovement(product_id=prod.id, qty=-int(qty), type='sale', invoice_id=new_inv.id))
     try:
         db.session.commit()
     except IntegrityError:
@@ -1362,6 +1816,7 @@ def convert_proforma(invoice_id):
             'payment_method': new_inv.payment_method,
             'total': new_inv.total,
             'tax_total': new_inv.tax_total,
+            'paid': bool(new_inv.paid),
         }
     })
 
@@ -1377,6 +1832,7 @@ def reports_summary():
             db.session.query(db.extract('month', Invoice.date).label('month'), db.func.sum(Invoice.total))
             .filter(db.extract('year', Invoice.date) == year)
             .filter(Invoice.type == 'factura')
+            .filter(Invoice.paid.is_(True))
             .group_by('month')
             .order_by('month')
             .all()
@@ -1387,7 +1843,7 @@ def reports_summary():
             text("""
                 SELECT CAST(STRFTIME('%m', date) AS INTEGER) AS month, SUM(total)
                 FROM invoice
-                WHERE type = 'factura' AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                WHERE type = 'factura' AND paid = 1 AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
                 GROUP BY month
                 ORDER BY month
             """), { 'year': year }
@@ -1410,6 +1866,7 @@ def reports_heatmap():
             .filter(db.extract('year', Invoice.date) == year)
             .filter(db.extract('month', Invoice.date) == month)
             .filter(Invoice.type == 'factura')
+            .filter(Invoice.paid.is_(True))
             .group_by(Invoice.date)
             .all()
         )
@@ -1419,6 +1876,7 @@ def reports_heatmap():
                 SELECT date as d, SUM(total) as t
                 FROM invoice
                 WHERE type = 'factura'
+                  AND paid = 1
                   AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
                   AND CAST(STRFTIME('%m', date) AS INTEGER) = :month
                 GROUP BY d
@@ -1501,6 +1959,7 @@ def reports_combined_summary():
             db.session.query(db.extract('month', Invoice.date).label('month'), db.func.sum(Invoice.total))
             .filter(db.extract('year', Invoice.date) == year)
             .filter(Invoice.type == 'factura')
+            .filter(Invoice.paid.is_(True))
             .group_by('month')
             .order_by('month')
             .all()
@@ -1510,7 +1969,7 @@ def reports_combined_summary():
             text("""
                 SELECT CAST(STRFTIME('%m', date) AS INTEGER) AS month, SUM(total)
                 FROM invoice
-                WHERE type = 'factura' AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
+                WHERE type = 'factura' AND paid = 1 AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
                 GROUP BY month
                 ORDER BY month
             """), { 'year': year }
@@ -1578,6 +2037,7 @@ def reports_monthly_summary():
             .filter(db.extract('year', Invoice.date) == year)
             .filter(db.extract('month', Invoice.date) == month)
             .filter(Invoice.type == 'factura')
+            .filter(Invoice.paid.is_(True))
             .scalar()
         )
         income_month = float(result or 0)
@@ -1586,7 +2046,8 @@ def reports_monthly_summary():
             text("""
                 SELECT SUM(total)
                 FROM invoice
-                WHERE type = 'factura' 
+                WHERE type = 'factura'
+                  AND paid = 1
                   AND CAST(STRFTIME('%Y', date) AS INTEGER) = :year
                   AND CAST(STRFTIME('%m', date) AS INTEGER) = :month
             """), { 'year': year, 'month': month }
@@ -1801,11 +2262,12 @@ def list_expenses():
             )
         )
     
-    # Apply sorting
+    # Apply sorting (with created_at as secondary sort for consistent ordering)
     sort_field = getattr(Expense, sort)
     if dir == 'desc':
-        sort_field = sort_field.desc()
-    query = query.order_by(sort_field)
+        query = query.order_by(sort_field.desc(), Expense.created_at.desc())
+    else:
+        query = query.order_by(sort_field.asc(), Expense.created_at.desc())
     
     total = query.count()
     expenses = query.offset(offset).limit(limit).all()
@@ -1895,6 +2357,35 @@ def delete_expense(expense_id):
     db.session.delete(expense)
     db.session.commit()
     return jsonify({'status': 'deleted'})
+
+
+@app.route('/api/expenses/categories', methods=['GET'])
+@jwt_required()
+def get_expense_categories():
+    """Get unique expense categories for autocomplete."""
+    categories = db.session.query(Expense.category).distinct().order_by(Expense.category).all()
+    # Filtrar categorías válidas: no vacías, mínimo 2 caracteres, contiene al menos una letra
+    valid_categories = []
+    for cat in categories:
+        if cat[0]:
+            trimmed = cat[0].strip()
+            # Debe tener al menos 2 caracteres y contener al menos una letra
+            if len(trimmed) >= 2 and any(c.isalpha() for c in trimmed):
+                valid_categories.append(trimmed)
+    return jsonify({'categories': valid_categories})
+
+
+@app.route('/api/expenses/suppliers', methods=['GET'])
+@jwt_required()
+def get_expense_suppliers():
+    """Get unique expense suppliers for autocomplete."""
+    suppliers = db.session.query(Expense.supplier).distinct().order_by(Expense.supplier).all()
+    # Filtrar proveedores válidos: no vacíos, mínimo 2 caracteres
+    valid_suppliers = []
+    for sup in suppliers:
+        if sup[0] and len(sup[0].strip()) >= 2:
+            valid_suppliers.append(sup[0].strip())
+    return jsonify({'suppliers': valid_suppliers})
 
 
 @app.route('/api/expenses/export_xlsx')
@@ -2001,6 +2492,14 @@ def health():
         'pdf_engine': 'wkhtmltopdf' if pdfkit else 'reportlab_fallback',
         'database': app.config.get('SQLALCHEMY_DATABASE_URI', '')
     })
+
+
+@app.route('/static/uploads/products/<path:filename>', methods=['GET'])
+def serve_product_image(filename):
+    """Sirve imágenes de productos sin autenticación (archivos públicos)."""
+    from flask import send_from_directory
+    products_folder = os.path.join(STATIC_FOLDER, 'uploads', 'products')
+    return send_from_directory(products_folder, filename)
 
 
 # -------------------------------------
@@ -2110,6 +2609,7 @@ def generate_contract_pdf():
     Generate PDF from contract content.
     
     Accepts DOCX template ID and form data, fills the template and generates a PDF.
+    Optionally saves the PDF as client document if client_id is provided.
     
     Returns:
         JSON: Generated filename on success
@@ -2118,9 +2618,10 @@ def generate_contract_pdf():
     template_id = data.get('template_id')
     form_data = data.get('form_data', {})
     filename = data.get('filename', 'contract.pdf')
+    client_id = data.get('client_id')  # Optional: if provided, save as client document
     
     if not template_id:
-        return jsonify({'error': 'Template ID is required'}), 400
+        return jsonify({'error': 'Template ID is required'})
     
     try:
         # Get template filename
@@ -2275,47 +2776,65 @@ def generate_contract_pdf():
                 <style>
                     body {{
                         font-family: "Cambria", "Times New Roman", serif;
-                        line-height: 1.6;
+                        line-height: 1.4;
                         margin: 1.5cm 1.2cm 1.5cm 1.2cm;
                         font-size: 11pt;
-                                        }}
+                        color: #333;
+                    }}
                     .header {{
                         display: flex;
                         justify-content: center;
                         align-items: center;
                         text-align: center;
-                        margin-bottom: 1em;
+                        margin-bottom: 1.5em;
                         page-break-inside: avoid;
                         width: 100%;
                     }}
                     .header img {{
-                        max-height: 60px;
-                        max-width: 150px;
+                        max-height: 70px;
+                        max-width: 160px;
                         object-fit: contain;
                         margin: 0 auto;
                         display: block;
                     }}
+                    /* Párrafos con mejor espaciado */
+                    p {{
+                        margin: 0.5em 0;
+                        text-align: justify;
+                    }}
+                    /* Negritas destacadas */
+                    strong {{
+                        font-weight: bold;
+                        color: #222;
+                    }}
+                    /* Jerarquía visual mejorada para títulos */
                     h1, h2, h3 {{
                         color: #65AAC3;
-                        margin-top: 1.5em;
-                        margin-bottom: 0.2em;
-                        font-family: "Cambria", "Times New Roman", serif;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                         font-weight: bold;
+                        page-break-after: avoid;
+                        line-height: 1.2;
                     }}
                     h1 {{ 
-                        font-size: 16pt; 
-                        color: #65AAC3;
-                        font-weight: bold;
+                        font-size: 14pt;
+                        margin-top: 0.5em;
+                        margin-bottom: 1.2em;
+                        letter-spacing: 0.5px;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     h2 {{ 
-                        font-size: 14pt; 
-                        color: #65AAC3;
-                        font-weight: bold;
+                        font-size: 12pt;
+                        margin-top: 2em;
+                        margin-bottom: 0.8em;
+                        padding-top: 0.5em;
+                        border-top: 2px solid #65AAC3;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     h3 {{ 
-                        font-size: 12pt; 
-                        color: #65AAC3;
-                        font-weight: bold;
+                        font-size: 10pt;
+                        margin-top: 1.2em;
+                        margin-bottom: 0.6em;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     /* Estilos específicos para títulos del contrato */
                     .contract-title {{
@@ -2323,51 +2842,73 @@ def generate_contract_pdf():
                         color: #65AAC3;
                         font-weight: bold;
                         text-align: center;
-                        margin-bottom: 1em;
+                        margin-bottom: 1.5em;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     .section-title {{
                         font-size: 14pt;
                         color: #65AAC3;
                         font-weight: bold;
-                        margin-top: 2em;
-                        margin-bottom: 0.5em;
+                        margin-top: 2.5em;
+                        margin-bottom: 1em;
+                        padding-top: 0.8em;
+                        padding-bottom: 0.3em;
+                        border-top: 2px solid #65AAC3;
+                        border-bottom: 1px solid #65AAC3;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
                     .subsection-title {{
                         font-size: 12pt;
                         color: #65AAC3;
                         font-weight: bold;
-                        margin-top: 1em;
-                        margin-bottom: 0.5em;
+                        margin-top: 1.5em;
+                        margin-bottom: 0.7em;
+                        font-family: "Cambria", "Georgia", "Times New Roman", serif;
                     }}
+                    /* Tablas mejoradas */
                     table {{
                         width: 100%;
                         border-collapse: collapse;
-                        margin: 1em 0;
+                        margin: 1.2em 0;
                         font-family: "Cambria", "Times New Roman", serif;
-                        font-size: 11pt;
+                        font-size: 10.5pt;
+                        page-break-inside: avoid;
                     }}
                     th, td {{
-                        border: 1px solid #ddd;
-                        padding: 8px;
+                        border: 1px solid #ccc;
+                        padding: 10px 12px;
                         text-align: left;
                         font-family: "Cambria", "Times New Roman", serif;
-                        font-size: 11pt;
                     }}
                     th {{
-                        background-color: #f5f5f5;
+                        background-color: #65AAC3;
+                        color: white;
                         font-weight: bold;
+                        font-size: 11pt;
                     }}
+                    td {{
+                        background-color: #fafafa;
+                    }}
+                    tr:nth-child(even) td {{
+                        background-color: #f5f5f5;
+                    }}
+                    /* Sección de firma */
                     .signature-section {{
                         margin-top: 3em;
-                        page-break-before: always;
+                        page-break-before: auto;
+                        page-break-inside: avoid;
                     }}
                     .signature-line {{
-                        border-top: 1px solid #000;
-                        margin-top: 2em;
-                        padding-top: 0.5em;
+                        border-top: 2px solid #333;
+                        margin-top: 2.5em;
+                        padding-top: 0.8em;
+                        text-align: center;
+                        font-weight: bold;
                     }}
                 </style>
-                        </head>
+            </head>
             <body>
                 <div class="header">
                     <img src="{Path(os.path.join(STATIC_FOLDER, 'contracts', 'images', 'header-right.png')).resolve().as_uri()}" alt="NIOXTEC Logo" />
@@ -2408,7 +2949,53 @@ def generate_contract_pdf():
         with open(file_path, 'wb') as f:
             f.write(pdf_bytes)
         
-        return jsonify({'filename': safe_filename})
+        # If client_id is provided, also save as client document
+        document_saved = False
+        if client_id:
+            try:
+                # Verify client exists
+                client = Client.query.get(client_id)
+                if client:
+                    # Check if document with same filename already exists for this client
+                    existing_doc = ClientDocument.query.filter_by(
+                        client_id=client_id,
+                        filename=safe_filename
+                    ).first()
+                    
+                    if not existing_doc:
+                        # Save to client documents folder
+                        base_dir = _client_upload_dir(client_id)
+                        documents_dir = os.path.join(base_dir, 'documents')
+                        os.makedirs(documents_dir, exist_ok=True)
+                        
+                        unique_name = f"{uuid4().hex}_{safe_filename}"
+                        stored_rel = os.path.join(str(client_id), 'documents', unique_name)
+                        stored_abs = os.path.join(UPLOADS_ROOT, stored_rel)
+                        
+                        with open(stored_abs, 'wb') as f:
+                            f.write(pdf_bytes)
+                        
+                        # Save document record to database
+                        doc_record = ClientDocument(
+                            client_id=client_id,
+                            category='document',
+                            filename=safe_filename,
+                            stored_path=stored_rel,
+                            content_type='application/pdf',
+                            size_bytes=len(pdf_bytes),
+                        )
+                        db.session.add(doc_record)
+                        db.session.commit()
+                        document_saved = True
+                        app.logger.info(f"Contract PDF auto-saved as client document: {safe_filename} for client {client_id}")
+            except Exception as save_error:
+                app.logger.error(f"Error auto-saving contract as client document: {save_error}")
+                # Don't fail the whole request, just log the error
+        
+        return jsonify({
+            'filename': safe_filename,
+            'document_saved': document_saved
+        })
         
     except Exception as e:
         app.logger.error(f"Error generating contract PDF: {e}")
@@ -2751,6 +3338,46 @@ def extract_placeholders_from_docx(filename):
     except Exception as e:
         return {'error': f'Error processing DOCX: {str(e)}'}
 
+def _format_paragraph_with_bold(paragraph):
+    """
+    Format paragraph text preserving bold formatting from DOCX.
+    Returns HTML with <strong> tags for bold text.
+    Handles bold that can be: True (explicit), False (explicit), or None (inherited from style).
+    """
+    html_parts = []
+    
+    # Check if paragraph style has bold by default
+    paragraph_has_bold_style = False
+    try:
+        if paragraph.style.font.bold:
+            paragraph_has_bold_style = True
+    except:
+        pass
+    
+    for run in paragraph.runs:
+        text = run.text
+        if text:
+            # Replace newlines with <br>
+            text = text.replace('\n', '<br>')
+            
+            # Determine if this run should be bold
+            is_bold = False
+            
+            if run.bold is True:
+                # Explicitly bold
+                is_bold = True
+            elif run.bold is None and paragraph_has_bold_style:
+                # Inherits bold from paragraph style
+                is_bold = True
+            # If run.bold is False, is_bold stays False (explicitly not bold)
+            
+            if is_bold:
+                html_parts.append(f'<strong>{text}</strong>')
+            else:
+                html_parts.append(text)
+    
+    return ''.join(html_parts) if html_parts else paragraph.text.replace('\n', '<br>')
+
 def _docx_to_html(docx_path):
     """Convert DOCX to HTML for PDF generation."""
     doc = Document(docx_path)
@@ -2760,58 +3387,75 @@ def _docx_to_html(docx_path):
         if paragraph.text.strip():
             text = paragraph.text.strip()
             
+            # Check if paragraph has a heading style
+            is_heading_3 = paragraph.style.name in ['Heading 3', 'Título 3', 'Heading3', 'Titulo 3']
+            
             # Debug logging
-            app.logger.info(f"Processing paragraph: '{text}' (length: {len(text)})")
-            app.logger.info(f"Text in uppercase: '{text.upper()}'")
+            app.logger.info(f"Processing paragraph: '{text}' (length: {len(text)}, style: {paragraph.style.name})")
             
             # Detectar títulos basándose en el contenido y formato
             if text.upper() == "CONTRATO DE COMPRAVENTA A PLAZOS SIN INTERESES":
                 # Título principal del contrato de compraventa
                 app.logger.info(f"Detected main title: {text}")
-                html_parts.append(f'<h1 class="contract-title" style="font-size: 16pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 0.5em;">{text}</h1>')
+                html_parts.append(f'<h1 class="contract-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 0.5em;">{text}</h1>')
             elif text.upper() == "CONTRATO DE RENTING DE PANTALLA PUBLICITARIA":
                 # Título principal del contrato de renting
                 app.logger.info(f"Detected main title: {text}")
-                html_parts.append(f'<h1 class="contract-title" style="font-size: 16pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 0.5em;">{text}</h1>')
+                html_parts.append(f'<h1 class="contract-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; text-align: center; margin-bottom: 1.5em; text-transform: uppercase; letter-spacing: 0.5px;">{text}</h1>')
             elif text.upper() == "PARTES INTERVINIENTES":
                 # Sección principal del contrato de compraventa
                 app.logger.info(f"Detected section title: {text}")
-                html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
+                html_parts.append(f'<h2 class="section-title" style="font-size: 13pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
             elif text.upper() in ["CLAUSULAS", "CLÁUSULAS"]:
                 # Sección principal del contrato de renting
                 app.logger.info(f"Detected section title: {text}")
-                html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
+                html_parts.append(f'<h2 class="section-title" style="font-size: 13pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
             elif text.upper() == "ACEPTACIÓN DEL CONTRATO":
                 # Sección principal del contrato de renting
                 app.logger.info(f"Detected section title: {text}")
-                html_parts.append(f'<h2 class="section-title" style="font-size: 14pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em;">{text}</h2>')
+                html_parts.append(f'<h2 class="section-title" style="font-size: 13pt; color: #65AAC3; font-weight: bold; margin-top: 2.5em; margin-bottom: 1em; padding-top: 0.8em; padding-bottom: 0.3em; border-top: 2px solid #65AAC3; border-bottom: 1px solid #65AAC3;">{text}</h2>')
             elif text.upper() in ["VENDEDOR", "COMPRADOR", "OBJETO DEL CONTRATO", "GARANTÍA", "IMPAGO", "PROTECCIÓN DE DATOS", "JURISDICCIÓN", "ENTREGA"]:
                 # Subsecciones del contrato de compraventa
                 # Verificar que sea un título independiente (no parte de una frase)
                 if len(text.split()) <= 3 and not any(char in text for char in ['.', ',', ':', ';']):
                     app.logger.info(f"Detected subsection title: {text}")
-                    html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.2em;">{text}</h3>')
+                    html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.7em;">{text}</h3>')
                 else:
                     # Es parte de una frase, tratarlo como texto normal
                     app.logger.info(f"Title word found in sentence, treating as normal text: {text}")
                     text = text.replace('\n', '<br>')
-                    html_parts.append(f'<p>{text}</p>')
+                    html_parts.append(f'<p style="margin: 0.5em 0; text-align: justify;">{text}</p>')
             elif text.upper() in ["1. OBJETO DEL CONTRATO", "2. DURACIÓN MÍNIMA DEL RENTING", "3. CUOTA DE RENTING Y FORMA DE PAGO", "4. CESIÓN DE PROPIEDAD", "5. USO, INSTALACIÓN Y CONTENIDOS", "6. SERVICIO TÉCNICO Y SOPORTE", "7. RESPONSABILIDAD Y BUENAS PRÁCTICAS", "8. FORMA DE PAGO Y AUTORIZACIÓN SEPA", "9. CANCELACIÓN ANTICIPADA", "10. JURISDICCIÓN"]:
-                # Subsecciones del contrato de renting
+                # Subsecciones del contrato de renting (títulos antiguos)
                 app.logger.info(f"Detected subsection title: {text}")
-                html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1em; margin-bottom: 0.2em;">{text}</h3>')
+                html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.7em;">{text}</h3>')
+            # Detectar títulos H3 por estilo de Word o por patrón de texto
+            elif is_heading_3 or (text.startswith("3.") or text.startswith("4.") or 
+                  text.startswith("5. Servicio técnico") or text.startswith("6. Responsabilidad") or 
+                  text.startswith("7. Cancelación") or text.startswith("8. Jurisdicción") or
+                  text == "Calendario de recobro"):
+                # Nuevas subsecciones del contrato de renting H3
+                app.logger.info(f"Detected new H3 subsection title: {text} (is_heading_3={is_heading_3})")
+                html_parts.append(f'<h3 class="subsection-title" style="font-size: 12pt; color: #65AAC3; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.7em;">{text}</h3>')
             else:
-                # Texto normal
-                text = text.replace('\n', '<br>')
-                html_parts.append(f'<p>{text}</p>')
+                # Texto normal - detectar negritas en runs del párrafo
+                formatted_text = _format_paragraph_with_bold(paragraph)
+                html_parts.append(f'<p style="margin: 0.5em 0; text-align: justify;">{formatted_text}</p>')
     
     for table in doc.tables:
         html_parts.append('<table border="1" style="width: 100%; border-collapse: collapse; margin: 1em 0;">')
         for row in table.rows:
             html_parts.append('<tr>')
             for cell in row.cells:
-                cell_text = cell.text.replace('\n', '<br>')
-                html_parts.append(f'<td style="padding: 8px; border: 1px solid #ddd;">{cell_text}</td>')
+                # Format cell content preserving bold
+                cell_html_parts = []
+                for paragraph in cell.paragraphs:
+                    if paragraph.text.strip():
+                        formatted_text = _format_paragraph_with_bold(paragraph)
+                        cell_html_parts.append(formatted_text)
+                
+                cell_content = '<br>'.join(cell_html_parts) if cell_html_parts else ''
+                html_parts.append(f'<td style="padding: 8px; border: 1px solid #ddd;">{cell_content}</td>')
             html_parts.append('</tr>')
         html_parts.append('</table>')
     

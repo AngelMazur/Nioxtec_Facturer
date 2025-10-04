@@ -1,4 +1,6 @@
 import React from 'react'
+import { motion, useReducedMotion, useMotionValue, useSpring } from 'framer-motion'
+import { MOTION } from '../styles/motion'
 
 const DataCard = ({
   children,
@@ -40,43 +42,78 @@ const DataCard = ({
     return spanMap[cols] || 'md:col-span-6'
   }
 
+  const reduceMotion = useReducedMotion()
+  const hasActions = actions.length > 0
+  const containerGridCols = getGridCols(hasActions ? columns + 1 : columns)
+  const contentGridCols = getGridCols(columns)
+  const contentColSpan = [
+    'col-span-1',
+    columns > 1 ? 'sm:col-span-2' : '',
+    getColSpan(columns),
+  ].filter(Boolean).join(' ')
+
+  // Subtle horizontal tilt (rotateY) following pointer X. Disabled if reduced motion.
+  const tiltY = useMotionValue(0)
+  const tiltYSpring = useSpring(tiltY, { stiffness: 200, damping: 20, mass: 0.4 })
+
+  const maxTilt = 2 // degrees
+  const handlePointerMove = (e) => {
+    if (reduceMotion) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const pctX = (x / rect.width - 0.5) * 2 // -1 .. 1
+    tiltY.set(pctX * maxTilt)
+  }
+
+  const handlePointerLeave = () => {
+    tiltY.set(0)
+  }
+
   return (
-    <div
+    <motion.div
+      variants={reduceMotion ? {
+        hidden: { opacity: 0 },
+        show: { opacity: 1 },
+      } : {
+        hidden: { opacity: 0, y: 8 },
+        show: { opacity: 1, y: 0 },
+      }}
+      transition={{ duration: MOTION.duration.base, ease: MOTION.ease.standard }}
+      style={reduceMotion || !isClickable ? undefined : { rotateY: tiltYSpring, transformPerspective: 800 }}
       className={`
-        bg-gray-800 border border-gray-700 rounded
-        transition-all duration-200
-        ${isClickable ? 'cursor-pointer hover:scale-[1.02] hover:bg-gray-800/80 active:scale-95 active:bg-gray-700' : ''}
+  niox-data-card bg-gray-800 border border-gray-700 rounded shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)]
+  transition-all duration-200 will-change-transform
+  ${isClickable ? 'cursor-pointer hover:scale-[1.02] hover:shadow-[0_20px_40px_-12px_rgba(24,180,216,0.25),_0_8px_24px_-10px_rgba(0,0,0,0.6)] hover:bg-gray-800/80 active:scale-95 active:bg-gray-700' : ''}
         ${className}
         
         /* Responsive padding */
         p-2 sm:p-3 md:p-4
       `}
       onClick={isClickable ? onClick : undefined}
+      onPointerMove={isClickable ? handlePointerMove : undefined}
+      onPointerLeave={isClickable ? handlePointerLeave : undefined}
     >
       {/* Grid principal: contenido + acciones */}
       <div className={`
         /* Móvil: 1 columna */
-        /* Tablet: 2 columnas */
-        /* Desktop: contenido + 1 columna para acciones */
-        grid grid-cols-1 sm:grid-cols-2 ${getGridCols(columns + 1)}
+        grid grid-cols-1 ${containerGridCols}
         gap-2 sm:gap-3 md:gap-4
         items-start md:items-center
       `}>
         {/* Contenido principal - se expande en todas las columnas excepto la última en desktop */}
         <div className={`
           /* Móvil: 1 columna */
-          /* Tablet: 2 columnas */
-          /* Desktop: todas las columnas excepto la última */
-          grid grid-cols-1 sm:grid-cols-2 ${getGridCols(columns)}
+          /* Tablet/Desktop: según columnas configuradas */
+          grid grid-cols-1 ${columns > 1 ? 'sm:grid-cols-2' : ''} ${contentGridCols}
           gap-2 sm:gap-3 md:gap-4
           items-start md:items-center
-          col-span-1 sm:col-span-2 ${getColSpan(columns)}
+          ${contentColSpan}
         `}>
           {children}
         </div>
 
         {/* Sección de acciones */}
-        {actions.length > 0 && (
+        {hasActions && (
           <div 
             className={`
               /* Móvil/tablet: debajo del contenido en fila horizontal */
@@ -107,7 +144,7 @@ const DataCard = ({
           </div>
         )}
       </div>
-    </div>
+  </motion.div>
   )
 }
 

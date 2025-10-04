@@ -5,7 +5,8 @@ const NeoGradientButton = ({
   onClick, 
   className = "", 
   disabled = false,
-  icon = null 
+  icon = null,
+  forceHover = false,
 }) => {
   return (
     <>
@@ -49,7 +50,8 @@ const NeoGradientButton = ({
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           text-shadow: 0 0 0 rgba(255,255,255,0);
         }
-        .neo-gradient-btn:hover .text-layer {
+  .neo-gradient-btn:hover .text-layer,
+  .neo-gradient-btn.is-hover .text-layer {
           text-shadow: 
             0 0 8px rgba(255,255,255,0.8),
             0 0 16px rgba(255,255,255,0.4),
@@ -66,13 +68,17 @@ const NeoGradientButton = ({
           border-radius: 8px;
           z-index: -1;
         }
-        .neo-gradient-btn:hover .text-layer::before {
+  .neo-gradient-btn:hover .text-layer::before,
+  .neo-gradient-btn.is-hover .text-layer::before {
           opacity: 1;
         }
         .neo-gradient-btn::before{ content:""; position:absolute; inset:-6px; border-radius:inherit; box-shadow:0 0 0 1px rgba(18,227,255,.06), 0 20px 60px rgba(0,160,210,.15); pointer-events:none; }
         .neo-gradient-btn::after{ content:""; position:absolute; right:72px; top:-10px; width:170px; height:56px; background:radial-gradient(60% 70% at 50% 50%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 70%); filter:blur(8px); opacity:.55; transform:rotate(10deg); transition:transform .6s ease, opacity .3s ease; border-radius:999px; pointer-events:none; mix-blend-mode:screen; z-index:2; }
         .neo-gradient-btn:hover{ transform:translateY(-1px); box-shadow:0 18px 36px rgba(0,0,0,.38), 0 4px 10px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.30); }
-        .neo-gradient-btn:hover::after{ transform:translateX(26px) rotate(10deg); opacity:.75; }
+  .neo-gradient-btn:hover,
+  .neo-gradient-btn.is-hover{ transform:translateY(-1px); box-shadow:0 18px 36px rgba(0,0,0,.38), 0 4px 10px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.30); }
+  .neo-gradient-btn:hover::after,
+  .neo-gradient-btn.is-hover::after{ transform:translateX(26px) rotate(10deg); opacity:.75; }
         .neo-gradient-btn:active{ transform:translateY(0); filter:saturate(1.05); }
         .neo-gradient-btn:focus-visible{ outline:none; box-shadow:0 0 0 4px rgba(255,255,255,.28), 0 12px 28px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.30); }
         .neo-gradient-btn:disabled{ opacity:0.5; cursor:not-allowed; transform:none !important; }
@@ -123,10 +129,12 @@ const NeoGradientButton = ({
           animation: rotate 3s linear infinite;
           animation-play-state: paused;
         }
-        .neo-gradient-btn:hover .neo-plus::before {
+  .neo-gradient-btn:hover .neo-plus::before,
+  .neo-gradient-btn.is-hover .neo-plus::before {
           opacity: 1;
         }
-        .neo-gradient-btn:hover .neo-plus::after {
+  .neo-gradient-btn:hover .neo-plus::after,
+  .neo-gradient-btn.is-hover .neo-plus::after {
           opacity: 1;
           animation-play-state: running;
         }
@@ -135,7 +143,8 @@ const NeoGradientButton = ({
           transition: all 0.4s ease;
           filter: drop-shadow(0 0 0 rgba(255,255,255,0));
         }
-        .neo-gradient-btn:hover .neo-plus svg {
+  .neo-gradient-btn:hover .neo-plus svg,
+  .neo-gradient-btn.is-hover .neo-plus svg {
           stroke: #ffffff;
           filter: drop-shadow(0 0 8px rgba(255,255,255,0.8)) drop-shadow(0 0 16px rgba(255,255,255,0.4));
           transform: scale(1.15);
@@ -154,8 +163,9 @@ const NeoGradientButton = ({
           /* un solo segmento brillante que recorre toda la línea */
           stroke-dasharray:120 9999; stroke-dashoffset:0; animation:travel 2.6s linear infinite; animation-play-state:paused; }
         .pcb .pulse.b{ animation-duration:3.1s; animation-delay:.2s; stroke-dasharray:90 9999; }
-        .pcb .pulse.c{ animation-duration:2.1s; animation-delay:.55s; stroke-dasharray:70 9999; }
-        .neo-gradient-btn:hover .pcb .pulse{ opacity:.95; animation-play-state:running; }
+  .pcb .pulse.c{ animation-duration:2.1s; animation-delay:.55s; stroke-dasharray:70 9999; }
+  .neo-gradient-btn:hover .pcb .pulse,
+  .neo-gradient-btn.is-hover .pcb .pulse{ opacity:.95; animation-play-state:running; }
         .neo-gradient-btn:disabled:hover .pcb .pulse{ opacity:0; animation-play-state:paused; }
         @keyframes travel{ to{ stroke-dashoffset:-1200; } }
         
@@ -198,7 +208,8 @@ const NeoGradientButton = ({
             height: 4px;
           }
         }
-        .neo-gradient-btn:hover .particle {
+  .neo-gradient-btn:hover .particle,
+  .neo-gradient-btn.is-hover .particle {
           animation-play-state: running;
         }
         .neo-gradient-btn .particle:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
@@ -238,7 +249,7 @@ const NeoGradientButton = ({
       `}</style>
 
       <button 
-        className={`neo-gradient-btn ${className}`}
+  className={`neo-gradient-btn ${forceHover ? 'is-hover' : ''} ${className}`}
         onClick={onClick}
         disabled={disabled}
         aria-label={typeof children === 'string' ? children : 'Acción'}

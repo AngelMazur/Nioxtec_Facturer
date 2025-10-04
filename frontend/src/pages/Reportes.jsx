@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../store/store'
 import { apiGet, apiGetBlob } from '../lib/api'
 import CustomSkeleton from "../components/CustomSkeleton"
+import CountUp from "../components/CountUp"
 import { 
   BarChart, 
   Bar, 
@@ -256,7 +257,7 @@ export default function Reportes() {
             </div>
           ) : (
             <div className={`text-2xl font-semibold text-center ${getCardColor(card1Type)}`}>
-              {getCardValue(card1Type).toFixed(2)} €
+              <CountUp value={getCardValue(card1Type)} durationMs={700} format={(v)=>`${v.toFixed(2)} €`} />
             </div>
           )}
           
@@ -292,7 +293,7 @@ export default function Reportes() {
             </div>
           ) : (
             <div className={`text-2xl font-semibold text-center ${getCardColor(card2Type)}`}>
-              {getCardValue(card2Type).toFixed(2)} €
+              <CountUp value={getCardValue(card2Type)} durationMs={700} format={(v)=>`${v.toFixed(2)} €`} />
             </div>
           )}
           

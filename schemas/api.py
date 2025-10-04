@@ -21,6 +21,7 @@ class InvoiceItem(BaseModel):
     units: confloat(gt=0)
     unit_price: confloat(ge=0)
     tax_rate: confloat(ge=0, le=100)
+    product_id: Optional[int] = None
 
 
 class InvoiceCreateRequest(BaseModel):
@@ -30,6 +31,7 @@ class InvoiceCreateRequest(BaseModel):
     client_id: conint(gt=0)
     notes: Optional[str] = ''
     payment_method: Optional[Literal['efectivo', 'bizum', 'transferencia']] = None
+    paid: Optional[bool] = False
     items: conlist(InvoiceItem, min_length=1)
 
 

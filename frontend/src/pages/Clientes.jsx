@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { MOTION } from '../styles/motion'
 import { formatDateES } from '../lib/format'
 import { useStore } from '../store/store'
 import { apiGet, apiPost, apiDelete, apiGetBlob, apiPut } from '../lib/api'
@@ -8,6 +10,7 @@ import CustomSkeleton from "../components/CustomSkeleton"
 import CreateClientModal from "../components/CreateClientModal"
 import NeoGradientButton from "../components/NeoGradientButton"
 import DataCard from "../components/DataCard"
+import Pagination from "../components/Pagination"
 
 export default function Clientes() {
   const { 
@@ -36,10 +39,14 @@ export default function Clientes() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedClientForContract, setSelectedClientForContract] = useState(null)
   const [selectedClientForEdit, setSelectedClientForEdit] = useState(null)
+  const [openMenuId, setOpenMenuId] = useState(null)
   const invoicesPageSize = 10
   const imagesPageSize = 6
   const docsPageSize = 5
   const apiBase = (import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')
+  const [forceHoverBtn, setForceHoverBtn] = useState(true)
+  const hoverTimeoutRef = useRef(null)
+  const reduceMotion = useReducedMotion()
 
   // Función para manejar el ordenamiento
   const handleSort = (field) => {
@@ -61,6 +68,28 @@ export default function Clientes() {
     }
     if (token) load()
   }, [setClients, token])
+
+  // Limpieza del timeout del botón
+  useEffect(() => () => { if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current) }, [])
+
+  // Cerrar menú contextual al hacer clic fuera o presionar Escape
+  useEffect(() => {
+    if (!openMenuId) return
+    const handlePointerDown = (event) => {
+      const menuRoot = event.target.closest('[data-client-menu-root]')
+      if (menuRoot?.dataset?.clientMenuRoot === String(openMenuId)) return
+      setOpenMenuId(null)
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setOpenMenuId(null)
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [openMenuId])
 
   async function openClientModal(client) {
     setSelectedClient(client)
@@ -215,9 +244,10 @@ export default function Clientes() {
     <main className="mx-auto max-w-6xl p-4 space-y-8">
       <h2 className="text-2xl font-semibold tracking-tight text-white/90">Clientes</h2>
       {/* Botón Crear Cliente */}
-      <div className="flex justify-center">
+    <div className="flex justify-center">
         <NeoGradientButton
           onClick={() => setShowCreateModal(true)}
+      forceHover={forceHoverBtn}
           icon={
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14"/>
@@ -227,10 +257,14 @@ export default function Clientes() {
           Crear Cliente
         </NeoGradientButton>
       </div>
-      <section>
-         <h3 className="text-xl font-semibold mb-2">Listado</h3>
+      <section className="space-y-3">
+        <div className="mx-auto w-full max-w-4xl">
+          <h3 className="text-xl font-semibold">Listado</h3>
+        </div>
         {loading ? (
-          <CustomSkeleton count={5} height={30} className="mb-2" />
+          <div className="mx-auto w-full max-w-4xl">
+            <CustomSkeleton count={5} height={30} />
+          </div>
         ) : (
           <>
            {(() => {
@@ -296,119 +330,207 @@ export default function Clientes() {
                     </ul>
                   </div>
 
-                  {/* Labels externos solo en desktop */}
-                  <div className={`
-                    hidden md:grid md:grid-cols-5
-                    gap-2 sm:gap-3 md:gap-4
-                    mb-2 sm:mb-2.5 md:mb-3
-                    text-xs text-gray-500 font-medium
-                  `}>
-                    <div>
-                      <button 
-                        className="hover:underline cursor-pointer" 
+                  <div className="mx-auto w-full max-w-4xl">
+                    {/* Labels externos solo en desktop */}
+                    <div className={`
+                      hidden md:grid
+                      md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_104px]
+                      md:h-10
+                      items-center
+                      gap-2 sm:gap-3 md:gap-4
+                      text-xs text-gray-500 font-medium
+                    `}>
+                      <button
+                        className="text-left pl-4 hover:underline"
                         onClick={() => handleSort('name')}
                       >
                         Nombre {sort.field === 'name' && (sort.dir === 'asc' ? '↑' : '↓')}
                       </button>
-                    </div>
-                    <div>
-                      <button 
-                        className="hover:underline cursor-pointer" 
-                        onClick={() => handleSort('cif')}
-                      >
-                        CIF/NIF {sort.field === 'cif' && (sort.dir === 'asc' ? '↑' : '↓')}
-                      </button>
-                    </div>
-                    <div>Contacto</div>
-                    <div>
-                      <button 
-                        className="hover:underline cursor-pointer" 
+                      <button
+                        className="justify-self-center text-center hover:underline"
                         onClick={() => handleSort('created_at')}
                       >
                         Creado {sort.field === 'created_at' && (sort.dir === 'asc' ? '↑' : '↓')}
                       </button>
+                      <div className="text-right pr-4">Acciones</div>
                     </div>
-                    <div>Acciones</div>
-                  </div>
 
-                  {/* Cards responsive */}
-                  <div className="space-y-2">
-                     {pageItems.map((client) => (
-                                              <DataCard
-                         key={client.id}
-                         onClick={()=>openClientModal(client)}
-                                                 actions={[
-                          {
-                            label: 'Editar',
-                            className: 'text-brand focus:ring-brand',
-                            onClick: () => openEditModal(client)
-                          },
-                          {
-                            label: 'Eliminar',
-                            className: 'text-red-600 focus:ring-red-500',
-                            onClick: () => deleteClient(client)
-                          }
-                        ]}
-                        columns={4}
-                        >
-                          <div>
-                            <div className="text-xs text-gray-500 md:hidden">Nombre</div>
-                            <div className="font-medium text-left">{client.name}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500 md:hidden">CIF/NIF</div>
-                            <div className="text-gray-300">{client.cif}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500 md:hidden">Contacto</div>
-                            <div className="text-sm text-gray-400 break-words">
-                              <div>{client.email}</div>
-                              <div>{client.phone}</div>
+                    {/* Cards responsive con stagger */}
+                    <motion.div
+                      initial="hidden"
+                      animate="show"
+                      variants={{
+                        hidden: { opacity: 1 },
+                        show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
+                      }}
+                      className="space-y-2"
+                      onAnimationStart={() => {
+                        const staggerChildren = 0.08
+                        const delayChildren = 0.04
+                        const childDuration = MOTION?.duration?.base ?? 0.35
+                        const itemsCount = pageItems.length
+                        const totalMs = Math.max(200, Math.round((delayChildren + Math.max(0, itemsCount - 1) * staggerChildren + childDuration) * 1000))
+              // Informar al Header de la duración total para el logo
+                        try { window.dispatchEvent(new CustomEvent('route-stagger', { detail: { totalMs } })) } catch { /* noop */ }
+                        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+                        hoverTimeoutRef.current = setTimeout(() => setForceHoverBtn(false), totalMs)
+                      }}
+                    >
+                      {pageItems.map((client) => {
+                        const menuOpen = openMenuId === client.id
+                        return (
+                          <DataCard
+                            key={client.id}
+                            isClickable={false}
+                            columns={1}
+                            className={`relative overflow-visible !px-4 !py-3 md:!px-4 md:!py-3 ${menuOpen ? 'z-50' : 'z-0'}`}
+                            style={menuOpen ? { isolation: 'isolate' } : undefined}
+                          >
+                            <div className="grid grid-cols-1 gap-3 text-center md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_104px] md:items-center md:gap-4">
+                            <div className="flex flex-col items-center gap-2 text-center md:flex-row md:items-center md:text-left md:gap-3 min-w-0">
+                                <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand/30 bg-[radial-gradient(circle_at_30%_30%,rgba(8,180,216,0.22),rgba(11,60,93,0.12),rgba(11,60,93,0.05))] shadow-[0_10px_26px_-14px_rgba(8,180,216,0.45)]">
+                                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Z" />
+                                    <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+                                  </svg>
+                                  <span className="absolute inset-0 rounded-full bg-brand/15 blur-[12px]"></span>
+                                </div>
+                                <div className="min-w-0 w-full max-w-[16rem] md:max-w-[280px]">
+                                  <div className="mb-0.5 text-xs text-gray-500 md:hidden">Nombre</div>
+                                  <p className="truncate font-semibold leading-tight text-gray-100">
+                                    {client.name}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col items-center justify-center gap-0.5 text-center md:w-full md:flex md:flex-col md:items-center md:justify-center md:justify-self-center md:text-center">
+                                <div className="text-xs text-gray-500 md:hidden">Creado</div>
+                                <p className="text-sm text-gray-300 md:leading-tight">
+                                  {client.created_at ? formatDateES(client.created_at) : ''}
+                                </p>
+                              </div>
+
+                              <div
+                                className="relative flex items-center justify-center gap-2 md:justify-end md:justify-self-end"
+                                data-client-menu-root={String(client.id)}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null)
+                                    openClientModal(client)
+                                  }}
+                                  className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-700/70 bg-gray-900/60 text-gray-200 transition-all duration-200 hover:border-brand/60 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+                                  aria-label={`Ver detalles de ${client.name}`}
+                                >
+                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M1.5 12s3.5-7 10.5-7 10.5 7 10.5 7-3.5 7-10.5 7-10.5-7-10.5-7Z" />
+                                    <circle cx="12" cy="12" r="3.5" />
+                                  </svg>
+                                </button>
+                                <div className="relative z-50">
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenMenuId(menuOpen ? null : client.id)}
+                                    className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-700/70 bg-gray-900/60 text-gray-200 transition-all duration-200 hover:border-brand/60 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${menuOpen ? 'border-brand/60 text-brand' : ''}`}
+                                    aria-haspopup="menu"
+                                    aria-expanded={menuOpen}
+                                    aria-label={`Más acciones para ${client.name}`}
+                                  >
+                                    <span className="flex flex-col gap-0.5">
+                                      <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                      <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                      <span className="block h-1 w-1 rounded-full bg-current"></span>
+                                    </span>
+                                  </button>
+                                  {menuOpen && (
+                                    <div className="absolute right-0 top-10 z-[60] w-40 rounded-lg border border-gray-700/70 bg-gray-900/95 shadow-[0_18px_36px_-12px_rgba(8,180,216,0.45)] backdrop-blur-sm">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenMenuId(null)
+                                          openEditModal(client)
+                                        }}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-200 transition-colors hover:bg-gray-800/80 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+                                      >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="m12 20h9" />
+                                          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                        </svg>
+                                        Editar
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenMenuId(null)
+                                          deleteClient(client)
+                                        }}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-500 transition-colors hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                                      >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M3 6h18" />
+                                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                          <path d="M10 11v6" />
+                                          <path d="M14 11v6" />
+                                          <path d="M5 6h14l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2Z" />
+                                        </svg>
+                                        Eliminar
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500 md:hidden">Creado</div>
-                            <div className="text-gray-300">{client.created_at ? formatDateES(client.created_at) : ''}</div>
-                          </div>
-                        </DataCard>
-                     ))}
+                          </DataCard>
+                        )
+                      })}
+                    </motion.div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 mt-3">
-                   {safePage > 1 ? (
-                     <button className="bg-secondary text-white px-3 py-1 rounded" onClick={()=>setCurrentPage(p=>Math.max(1,p-1))}>Anterior</button>
-                   ) : <span />}
-                   <div className="flex items-center gap-1">
-                     {Array.from({ length: totalPages }).map((_, i)=>{
-                       const page = i+1
-                       const isActive = page === safePage
-                       return (
-                         <button
-                           key={page}
-                           onClick={()=>setCurrentPage(page)}
-                           className={isActive ? 'bg-primary text-white px-3 py-1 rounded' : 'px-3 py-1 rounded border border-gray-700 text-gray-300 hover:text-brand'}
-                         >
-                           {page}
-                         </button>
-                       )
-                     })}
-                   </div>
-                   {safePage < totalPages ? (
-                     <button className="bg-primary text-white px-3 py-1 rounded" onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))}>Siguiente</button>
-                   ) : <span />}
-                 </div>
+                  <motion.div
+                    key={`clientes-pagination-${safePage}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    className="w-full"
+                  >
+                    <Pagination
+                      canPrev={safePage > 1}
+                      canNext={safePage < totalPages}
+                      onPrev={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      onNext={(page) => setCurrentPage(page)}
+                      onSelect={(page) => setCurrentPage(page)}
+                      pages={Array.from({ length: totalPages }, (_, idx) => idx + 1)}
+                      current={safePage}
+                    />
+                  </motion.div>
                </>
              )
            })()}
           </>
         )}
-      </section>
-      {selectedClient && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={()=>setSelectedClient(null)}>
-          <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
+  </section>
+  <AnimatePresence>
+        {selectedClient && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={()=>setSelectedClient(null)}
+          >
+            <motion.div
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 12 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 12 }}
+              transition={reduceMotion ? { duration: 0.15 } : { type: 'spring', damping: 26, stiffness: 320 }}
+              className="bg-gray-900 border border-gray-700 rounded-lg p-4 w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+              onClick={e=>e.stopPropagation()}
+              role="dialog" aria-modal="true" aria-labelledby="client-details-title"
+            >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h4 className="text-xl font-semibold">{selectedClient.name}</h4>
+                  <h4 id="client-details-title" className="text-xl font-semibold">{selectedClient.name}</h4>
                 <div className="text-gray-400 text-sm">{selectedClient.cif}</div>
               </div>
               <button className="text-gray-400 hover:text-white" onClick={()=>setSelectedClient(null)}>Cerrar</button>
@@ -435,215 +557,225 @@ export default function Clientes() {
                 Documentacion
               </button>
             </div>
-            {tab==='facturas' && (
-              <div className="mt-4">
-                {clientInvoices.loading ? <CustomSkeleton count={3} height={24} /> : (
-                  clientInvoices.items.length ? (
-                    <>
-                      <ul className="divide-y divide-gray-800">
-                        {(() => {
-                          const totalPages = Math.max(1, Math.ceil(clientInvoices.items.length / invoicesPageSize))
-                          const safePage = Math.min(invoicesPage, totalPages)
-                          const start = (safePage - 1) * invoicesPageSize
-                          const pageItems = clientInvoices.items.slice(start, start + invoicesPageSize)
-                          return pageItems.map(inv => (
-                            <li key={inv.id} onClick={()=>downloadClientInvoice(inv)} className="py-2 flex items-center justify-between rounded px-2 hover:bg-gray-800/80 cursor-pointer hover:scale-[1.02] transition-all duration-200">
-                              <div className="space-x-3">
-                                <span className="font-medium">{inv.number}</span>
-                                <span className="text-gray-400">{formatDateES(inv.date)}</span>
-                                <span className="text-gray-400">{inv.type}</span>
-                                <span className="text-gray-400 tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={tab}
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                transition={{ duration: reduceMotion ? 0.12 : 0.22, ease: 'easeOut' }}
+              >
+                {tab==='facturas' ? (
+                  <div className="mt-4">
+                    {clientInvoices.loading ? <CustomSkeleton count={3} height={24} /> : (
+                      clientInvoices.items.length ? (
+                        <>
+                          <ul className="divide-y divide-gray-800">
+                            {(() => {
+                              const totalPages = Math.max(1, Math.ceil(clientInvoices.items.length / invoicesPageSize))
+                              const safePage = Math.min(invoicesPage, totalPages)
+                              const start = (safePage - 1) * invoicesPageSize
+                              const pageItems = clientInvoices.items.slice(start, start + invoicesPageSize)
+                              return pageItems.map(inv => (
+                                <li key={inv.id} onClick={()=>downloadClientInvoice(inv)} className="py-2 flex items-center justify-between rounded px-2 hover:bg-gray-800/80 cursor-pointer hover:scale-[1.02] transition-all duration-200">
+                                  <div className="space-x-3">
+                                    <span className="font-medium">{inv.number}</span>
+                                    <span className="text-gray-400">{formatDateES(inv.date)}</span>
+                                    <span className="text-gray-400">{inv.type}</span>
+                                    <span className="text-gray-400 tabular-nums">{(inv.total ?? 0).toFixed(2)} €</span>
+                                  </div>
+                                  <div className="text-brand text-sm">Descargar</div>
+                                </li>
+                              ))
+                            })()}
+                          </ul>
+                          {(() => {
+                            const totalPages = Math.max(1, Math.ceil(clientInvoices.items.length / invoicesPageSize))
+                            const safePage = Math.min(invoicesPage, totalPages)
+                            return totalPages > 1 ? (
+                              <div className="flex items-center justify-center gap-2 mt-4">
+                                <button
+                                  onClick={() => setInvoicesPage(Math.max(1, safePage - 1))}
+                                  disabled={safePage <= 1}
+                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                >
+                                  Anterior
+                                </button>
+                                {[...Array(totalPages)].map((_, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => setInvoicesPage(i + 1)}
+                                    className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
+                                      safePage === i + 1 
+                                        ? 'bg-brand text-white' 
+                                        : 'bg-gray-700 text-white hover:bg-gray-600'
+                                    }`}
+                                  >
+                                    {i + 1}
+                                  </button>
+                                ))}
+                                <button
+                                  onClick={() => setInvoicesPage(Math.min(totalPages, safePage + 1))}
+                                  disabled={safePage >= totalPages}
+                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                >
+                                  Siguiente
+                                </button>
                               </div>
-                              <div className="text-brand text-sm">Descargar</div>
-                            </li>
-                          ))
-                        })()}
-                      </ul>
-                      {(() => {
-                        const totalPages = Math.max(1, Math.ceil(clientInvoices.items.length / invoicesPageSize))
-                        const safePage = Math.min(invoicesPage, totalPages)
-                        return totalPages > 1 ? (
-                          <div className="flex items-center justify-center gap-2 mt-4">
-                            <button
-                              onClick={() => setInvoicesPage(Math.max(1, safePage - 1))}
-                              disabled={safePage <= 1}
-                              className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                            >
-                              Anterior
-                            </button>
-                            {[...Array(totalPages)].map((_, i) => (
-                              <button
-                                key={i}
-                                onClick={() => setInvoicesPage(i + 1)}
-                                className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
-                                  safePage === i + 1 
-                                    ? 'bg-brand text-white' 
-                                    : 'bg-gray-700 text-white hover:bg-gray-600'
-                                }`}
-                              >
-                                {i + 1}
-                              </button>
-                            ))}
-                            <button
-                              onClick={() => setInvoicesPage(Math.min(totalPages, safePage + 1))}
-                              disabled={safePage >= totalPages}
-                              className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                            >
-                              Siguiente
-                            </button>
-                          </div>
-                        ) : null
-                      })()}
-                    </>
-                  ) : <div className="text-gray-400">Sin facturas</div>
+                            ) : null
+                          })()}
+                        </>
+                      ) : <div className="text-gray-400">Sin facturas</div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-6">
+                    <div>
+                      <h5 className="font-semibold mb-2">Documentos <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='document').length}</span></h5>
+                      {clientDocs.loading ? <CustomSkeleton count={2} height={20} /> : (
+                        <>
+                          {(() => {
+                            const documents = clientDocs.items.filter(d=>d.category==='document')
+                            const totalPages = Math.max(1, Math.ceil(documents.length / docsPageSize))
+                            const safePage = Math.min(docsPage, totalPages)
+                            const start = (safePage - 1) * docsPageSize
+                            const pageItems = documents.slice(start, start + docsPageSize)
+                            return (
+                              <>
+                                <div className="space-y-2">
+                                  {pageItems.map(d => (
+                                    <div key={d.id} className="flex items-center justify-between">
+                                      <a className="underline text-brand hover:scale-105 transition-all duration-200 inline-block" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer">{d.filename}</a>
+                                      <button className="text-red-500 underline hover:scale-105 transition-transform duration-200 inline-block" onClick={async()=>{
+                                        if(!window.confirm('¿Eliminar documento?')) return;
+                                        try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                                      }}>Eliminar</button>
+                                    </div>
+                                  ))}
+                                                              <div className="flex gap-2 mt-2">
+                                  <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200">
+                                    <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
+                                    Subir PDF
+                                  </label>
+                                  <button
+                                    onClick={() => openContractModal(selectedClient)}
+                                    className="inline-flex items-center gap-2 bg-primary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200"
+                                  >
+                                    Crear Contrato
+                                  </button>
+                                </div>
+                                </div>
+                                {totalPages > 1 && (
+                                  <div className="flex items-center justify-center gap-2 mt-4">
+                                    <button
+                                      onClick={() => setDocsPage(Math.max(1, safePage - 1))}
+                                      disabled={safePage <= 1}
+                                      className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                    >
+                                      Anterior
+                                    </button>
+                                    {[...Array(totalPages)].map((_, i) => (
+                                      <button
+                                        key={i}
+                                        onClick={() => setDocsPage(i + 1)}
+                                        className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
+                                          safePage === i + 1 
+                                            ? 'bg-brand text-white' 
+                                            : 'bg-gray-700 text-white hover:bg-gray-600'
+                                        }`}
+                                      >
+                                        {i + 1}
+                                      </button>
+                                    ))}
+                                    <button
+                                      onClick={() => setDocsPage(Math.min(totalPages, safePage + 1))}
+                                      disabled={safePage >= totalPages}
+                                      className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                    >
+                                      Siguiente
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
+                        </>
+                      )}
+                    </div>
+                    <div>
+                      <h5 className="font-semibold mb-2">Imagenes <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='image').length}</span></h5>
+                      {clientDocs.loading ? <CustomSkeleton count={2} height={20} /> : (
+                        <>
+                          {(() => {
+                            const images = clientDocs.items.filter(d=>d.category==='image')
+                            const totalPages = Math.max(1, Math.ceil(images.length / imagesPageSize))
+                            const safePage = Math.min(imagesPage, totalPages)
+                            const start = (safePage - 1) * imagesPageSize
+                            const pageItems = images.slice(start, start + imagesPageSize)
+                            return (
+                              <>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                  {pageItems.map(d => (
+                                    <div key={d.id} className="group relative">
+                                      <a href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300">
+                                        <img src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} alt={d.filename} className="w-full h-32 object-cover rounded border border-gray-700" />
+                                      </a>
+                                      <button className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 hover:scale-105 transition-all duration-200" onClick={async()=>{
+                                        if(!window.confirm('¿Eliminar imagen?')) return;
+                                        try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                                      }}>Eliminar</button>
+                                    </div>
+                                  ))}
+                                </div>
+                                {totalPages > 1 && (
+                                  <div className="flex items-center justify-center gap-2 mt-4">
+                                    <button
+                                      onClick={() => setImagesPage(Math.max(1, safePage - 1))}
+                                      disabled={safePage <= 1}
+                                      className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                    >
+                                      Anterior
+                                    </button>
+                                    {[...Array(totalPages)].map((_, i) => (
+                                      <button
+                                        key={i}
+                                        onClick={() => setImagesPage(i + 1)}
+                                        className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
+                                          safePage === i + 1 
+                                            ? 'bg-brand text-white' 
+                                            : 'bg-gray-700 text-white hover:bg-gray-600'
+                                        }`}
+                                      >
+                                        {i + 1}
+                                      </button>
+                                    ))}
+                                    <button
+                                      onClick={() => setImagesPage(Math.min(totalPages, safePage + 1))}
+                                      disabled={safePage >= totalPages}
+                                      className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
+                                    >
+                                      Siguiente
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
+                          <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-4 hover:scale-105 transition-all duration-200">
+                            <input type="file" accept="image/*" className="hidden" onChange={(e)=>handleUpload(e,'image')} disabled={uploading} />
+                            Subir imagen
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 )}
-              </div>
-            )}
-            {tab==='documentos' && (
-              <div className="mt-4 space-y-6">
-                <div>
-                  <h5 className="font-semibold mb-2">Documentos <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='document').length}</span></h5>
-                  {clientDocs.loading ? <CustomSkeleton count={2} height={20} /> : (
-                    <>
-                      {(() => {
-                        const documents = clientDocs.items.filter(d=>d.category==='document')
-                        const totalPages = Math.max(1, Math.ceil(documents.length / docsPageSize))
-                        const safePage = Math.min(docsPage, totalPages)
-                        const start = (safePage - 1) * docsPageSize
-                        const pageItems = documents.slice(start, start + docsPageSize)
-                        return (
-                          <>
-                            <div className="space-y-2">
-                              {pageItems.map(d => (
-                                <div key={d.id} className="flex items-center justify-between">
-                                  <a className="underline text-brand hover:scale-105 transition-all duration-200 inline-block" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer">{d.filename}</a>
-                                  <button className="text-red-500 underline hover:scale-105 transition-transform duration-200 inline-block" onClick={async()=>{
-                                    if(!window.confirm('¿Eliminar documento?')) return;
-                                    try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
-                                  }}>Eliminar</button>
-                                </div>
-                              ))}
-                                                          <div className="flex gap-2 mt-2">
-                              <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200">
-                                <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
-                                Subir PDF
-                              </label>
-                              <button
-                                onClick={() => openContractModal(selectedClient)}
-                                className="inline-flex items-center gap-2 bg-primary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200"
-                              >
-                                Crear Contrato
-                              </button>
-                            </div>
-                            </div>
-                            {totalPages > 1 && (
-                              <div className="flex items-center justify-center gap-2 mt-4">
-                                <button
-                                  onClick={() => setDocsPage(Math.max(1, safePage - 1))}
-                                  disabled={safePage <= 1}
-                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                                >
-                                  Anterior
-                                </button>
-                                {[...Array(totalPages)].map((_, i) => (
-                                  <button
-                                    key={i}
-                                    onClick={() => setDocsPage(i + 1)}
-                                    className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
-                                      safePage === i + 1 
-                                        ? 'bg-brand text-white' 
-                                        : 'bg-gray-700 text-white hover:bg-gray-600'
-                                    }`}
-                                  >
-                                    {i + 1}
-                                  </button>
-                                ))}
-                                <button
-                                  onClick={() => setDocsPage(Math.min(totalPages, safePage + 1))}
-                                  disabled={safePage >= totalPages}
-                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                                >
-                                  Siguiente
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        )
-                      })()}
-                    </>
-                  )}
-                </div>
-                <div>
-                  <h5 className="font-semibold mb-2">Imagenes <span className="ml-2 text-xs bg-gray-800 border border-gray-700 rounded px-2 py-0.5 align-middle">{clientDocs.items.filter(d=>d.category==='image').length}</span></h5>
-                  {clientDocs.loading ? <CustomSkeleton count={2} height={20} /> : (
-                    <>
-                      {(() => {
-                        const images = clientDocs.items.filter(d=>d.category==='image')
-                        const totalPages = Math.max(1, Math.ceil(images.length / imagesPageSize))
-                        const safePage = Math.min(imagesPage, totalPages)
-                        const start = (safePage - 1) * imagesPageSize
-                        const pageItems = images.slice(start, start + imagesPageSize)
-                        return (
-                          <>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                              {pageItems.map(d => (
-                                <div key={d.id} className="group relative">
-                                  <a href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300">
-                                    <img src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} alt={d.filename} className="w-full h-32 object-cover rounded border border-gray-700" />
-                                  </a>
-                                  <button className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 hover:scale-105 transition-all duration-200" onClick={async()=>{
-                                    if(!window.confirm('¿Eliminar imagen?')) return;
-                                    try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
-                                  }}>Eliminar</button>
-                                </div>
-                              ))}
-                            </div>
-                            {totalPages > 1 && (
-                              <div className="flex items-center justify-center gap-2 mt-4">
-                                <button
-                                  onClick={() => setImagesPage(Math.max(1, safePage - 1))}
-                                  disabled={safePage <= 1}
-                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                                >
-                                  Anterior
-                                </button>
-                                {[...Array(totalPages)].map((_, i) => (
-                                  <button
-                                    key={i}
-                                    onClick={() => setImagesPage(i + 1)}
-                                    className={`px-3 py-1 rounded hover:scale-105 transition-transform duration-200 ${
-                                      safePage === i + 1 
-                                        ? 'bg-brand text-white' 
-                                        : 'bg-gray-700 text-white hover:bg-gray-600'
-                                    }`}
-                                  >
-                                    {i + 1}
-                                  </button>
-                                ))}
-                                <button
-                                  onClick={() => setImagesPage(Math.min(totalPages, safePage + 1))}
-                                  disabled={safePage >= totalPages}
-                                  className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform duration-200"
-                                >
-                                  Siguiente
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        )
-                      })()}
-                      <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-4 hover:scale-105 transition-all duration-200">
-                        <input type="file" accept="image/*" className="hidden" onChange={(e)=>handleUpload(e,'image')} disabled={uploading} />
-                        Subir imagen
-                      </label>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+              </motion.div>
+            </AnimatePresence>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Contract Generator Modal */}
       <ContractGeneratorModal

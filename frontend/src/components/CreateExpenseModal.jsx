@@ -1,15 +1,55 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ExpenseAutocomplete from './ExpenseAutocomplete'
 
-const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
+const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm, onOpenCSV }) => {
+  const dialogRef = React.useRef(null)
+  const lastActiveRef = React.useRef(null)
+  // Keep a stable reference to onClose to avoid re-running effects on each render
+  const onCloseRef = React.useRef(onClose)
+  React.useEffect(() => { onCloseRef.current = onClose }, [onClose])
+  // Debounced change handler to prevent rapid re-renders that can steal focus
+  const changeTimeout = React.useRef(null)
   const handleChange = (e) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    const { name, type, value, checked } = e.target
+    const newVal = type === 'checkbox' ? checked : value
+    if (changeTimeout.current) clearTimeout(changeTimeout.current)
+    changeTimeout.current = setTimeout(() => {
+      setForm(prev => ({ ...prev, [name]: newVal }))
+    }, 0)
   }
+  React.useEffect(() => () => { if (changeTimeout.current) clearTimeout(changeTimeout.current) }, [])
 
   const handleSubmit = (e) => {
     e.preventDefault()
     onSubmit(e)
   }
+
+  // Focus management and Escape key
+  React.useEffect(() => {
+    if (!isOpen) return
+    lastActiveRef.current = document.activeElement
+    const dialogEl = dialogRef.current
+    if (!dialogEl) return
+    const selectors = ['a[href]','button:not([disabled])','textarea:not([disabled])','input:not([disabled])','select:not([disabled])','[tabindex]:not([tabindex="-1"])']
+    const q = () => Array.from(dialogEl.querySelectorAll(selectors.join(',')))
+    const focusFirst = () => { const f = q(); if (f.length) f[0].focus() }
+    focusFirst()
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current?.(); return }
+      if (e.key === 'Tab') {
+        const f = q(); if (!f.length) return
+        const first = f[0], last = f[f.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      if (lastActiveRef.current?.focus) lastActiveRef.current.focus()
+    }
+  }, [isOpen])
 
   return (
     <AnimatePresence>
@@ -19,7 +59,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={onClose}
+          // Do not close on backdrop click to avoid accidental input blur/close while typing
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -27,13 +67,17 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-expense-title"
+            ref={dialogRef}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Crear Nuevo Gasto</h3>
+              <h3 id="create-expense-title" className="text-xl font-semibold text-white">Crear Nuevo Gasto</h3>
               <button
-                onClick={onClose}
+                onClick={() => onCloseRef.current?.()}
                 className="text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-gray-800 rounded-lg"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,14 +114,11 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                 >
                   <label className="flex flex-col gap-1">
                     <span className="text-sm text-gray-500">Categoría *</span>
-                    <input
-                      type="text"
-                      required
-                      maxLength={64}
-                      name="category"
+                    <ExpenseAutocomplete
                       value={form.category}
-                      onChange={handleChange}
-                      className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                      onChange={(value) => setForm(prev => ({ ...prev, category: value }))}
+                      type="categories"
+                      placeholder="Escribe una categoría o selecciona del desplegable..."
                     />
                   </label>
                 </motion.div>
@@ -109,14 +150,11 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                 >
                   <label className="flex flex-col gap-1">
                     <span className="text-sm text-gray-500">Proveedor *</span>
-                    <input
-                      type="text"
-                      required
-                      maxLength={128}
-                      name="supplier"
+                    <ExpenseAutocomplete
                       value={form.supplier}
-                      onChange={handleChange}
-                      className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                      onChange={(value) => setForm(prev => ({ ...prev, supplier: value }))}
+                      type="suppliers"
+                      placeholder="Escribe un proveedor o selecciona del desplegable..."
                     />
                   </label>
                 </motion.div>
@@ -134,7 +172,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                       min="0"
                       step="0.01"
                       name="base_amount"
-                      value={form.base_amount}
+                      value={String(form.base_amount ?? '')}
                       onChange={handleChange}
                       className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
                     />
@@ -154,7 +192,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                       max="100"
                       step="0.1"
                       name="tax_rate"
-                      value={form.tax_rate}
+                      value={String(form.tax_rate ?? '')}
                       onChange={handleChange}
                       className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
                     />
@@ -183,7 +221,7 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
-                className="flex gap-2 pt-4"
+                className="flex gap-2 pt-4 flex-wrap"
               >
                 <button
                   type="submit"
@@ -193,14 +231,14 @@ const CreateExpenseModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setForm({ date: '', category: '', description: '', supplier: '', base_amount: '', tax_rate: 21.0, paid: false })}
-                  className="bg-secondary hover:opacity-90 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-brand focus:ring-opacity-50"
+                  onClick={() => onOpenCSV && onOpenCSV()}
+                  className="bg-amber-600 hover:bg-amber-500 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-amber-400 focus:ring-opacity-50"
                 >
-                  Limpiar
+                  Subir CSV
                 </button>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => onCloseRef.current?.()}
                   className="bg-gray-600 hover:bg-gray-700 hover:scale-105 transition-all duration-200 text-white px-4 py-2 rounded focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
                 >
                   Cancelar

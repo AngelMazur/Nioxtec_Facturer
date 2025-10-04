@@ -1,15 +1,58 @@
 import React from 'react'
+import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients, mode = 'create', onDelete }) => {
+const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients, products = [], mode = 'create', onDelete }) => {
+  const [searchTerms, setSearchTerms] = React.useState({})
+  const dialogRef = React.useRef(null)
+  const lastActiveRef = React.useRef(null)
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
+
+  // Keep searchTerms in sync when items are removed/added
+  React.useEffect(() => {
+    const keys = Object.keys(searchTerms).map(k => Number(k))
+    const maxIndex = form.items.length - 1
+    const next = { ...searchTerms }
+    for (const k of keys) {
+      if (k > maxIndex) delete next[k]
+    }
+    if (Object.keys(next).length !== Object.keys(searchTerms).length) setSearchTerms(next)
+  }, [form.items.length, searchTerms])
 
   const handleSubmit = (e) => {
     e.preventDefault()
     onSubmit(e)
   }
+
+  // Focus trap + Escape key + restore focus
+  const onCloseRef = React.useRef(onClose)
+  React.useEffect(() => { onCloseRef.current = onClose }, [onClose])
+  React.useEffect(() => {
+    if (!isOpen) return
+    lastActiveRef.current = document.activeElement
+    const dialogEl = dialogRef.current
+    if (!dialogEl) return
+    const selectors = ['a[href]','button:not([disabled])','textarea:not([disabled])','input:not([disabled])','select:not([disabled])','[tabindex]:not([tabindex="-1"])']
+    const q = () => Array.from(dialogEl.querySelectorAll(selectors.join(',')))
+    const focusFirst = () => { const f = q(); if (f.length) f[0].focus() }
+    focusFirst()
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current?.(); return }
+      if (e.key === 'Tab') {
+        const f = q(); if (!f.length) return
+        const first = f[0], last = f[f.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      if (lastActiveRef.current?.focus) lastActiveRef.current.focus()
+    }
+  }, [isOpen])
 
   return (
     <AnimatePresence>
@@ -19,7 +62,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={onClose}
+          onClick={() => onCloseRef.current?.()}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -27,13 +70,17 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-invoice-title"
+            ref={dialogRef}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">{mode === 'edit' ? 'Editar Documento' : 'Crear Nueva Factura'}</h3>
+              <h3 id="create-invoice-title" className="text-xl font-semibold text-white">{mode === 'edit' ? 'Editar Documento' : 'Crear Nueva Factura'}</h3>
               <button
-                onClick={onClose}
+                onClick={() => onCloseRef.current?.()}
                 className="text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-gray-800 rounded-lg"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,39 +201,84 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
               >
                 <h4 className="font-semibold text-white">Líneas de {form.type === 'proforma' ? 'proforma' : 'factura'}</h4>
                 {form.items.map((item, index) => (
-                  <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
+                  <div key={index} className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
                     <div>
                       <label className="flex flex-col gap-1">
-                        <span className="text-sm text-gray-500">Descripción</span>
-                        <textarea
-                          rows={3}
-                          className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand resize-y"
-                          value={item.description}
+                        <span className="text-sm text-gray-500">Producto</span>
+                        <select
+                          className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                          value={item.product_id || ''}
                           onChange={(e) => {
+                            const pid = e.target.value ? Number(e.target.value) : ''
                             const newItems = [...form.items]
-                            newItems[index].description = e.target.value
+                            newItems[index].product_id = pid
+                            if (pid) {
+                              const prod = (products || []).find(p => p.id === pid)
+                              if (prod) {
+                                const gross = (prod.price_net || 0) * (1 + (prod.tax_rate || 0) / 100)
+                                newItems[index].description = prod.model ? `${prod.model}${prod.sku ? ' - ' + prod.sku : ''}` : (prod.sku || '')
+                                newItems[index].unit_price = Number(gross.toFixed(2))
+                                newItems[index].tax_rate = prod.tax_rate || 21
+                                const stock = Number(prod.stock_qty || 0)
+                                if (stock <= 5) {
+                                  toast(stock <= 0 ? 'Producto sin stock' : `Stock bajo (${stock}) — considerar reponer`)
+                                }
+                              }
+                            }
                             setForm(prev => ({ ...prev, items: newItems }))
                           }}
-                          required
-                        />
+                        >
+                          <option value="">Seleccionar producto (opcional)</option>
+                          {Array.isArray(products) ? (
+                            products.map(prod => (
+                              <option key={prod.id} value={prod.id} disabled={Number(prod.stock_qty || 0) <= 0}>
+                                {prod.model ? `${prod.model}${prod.sku ? ' - ' + prod.sku : ''}` : (prod.sku || prod.id)}{typeof prod.stock_qty !== 'undefined' ? ` — stock: ${prod.stock_qty}` : ''}
+                              </option>
+                            ))
+                          ) : (
+                            (console && console.warn && console.warn('CreateInvoiceModal: products is not an array', products), null)
+                          )}
+                        </select>
+                      </label>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2">
+                        <div className="flex-1 flex flex-col gap-1">
+                          <span className="text-sm text-gray-500">Descripción</span>
+                          <textarea
+                            rows={3}
+                            className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand resize-y"
+                            value={item.description}
+                            onChange={(e) => {
+                              const newItems = [...form.items]
+                              newItems[index].description = e.target.value
+                              setForm(prev => ({ ...prev, items: newItems }))
+                            }}
+                            required
+                          />
+                        </div>
+                        {/* badge removed from here; it will be shown next to 'Unidades' to avoid duplicate visual elements */}
                       </label>
                     </div>
                     <div>
                       <label className="flex flex-col gap-1">
                         <span className="text-sm text-gray-500">Unidades</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
-                          value={item.units}
-                          onChange={(e) => {
-                            const newItems = [...form.items]
-                            newItems[index].units = e.target.value
-                            setForm(prev => ({ ...prev, items: newItems }))
-                          }}
-                          required
-                        />
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="flex-1 border border-gray-300 dark:border-gray-600 p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                            value={item.units}
+                            onChange={(e) => {
+                              const newItems = [...form.items]
+                              newItems[index].units = e.target.value
+                              setForm(prev => ({ ...prev, items: newItems }))
+                            }}
+                            required
+                          />
+                          {/* stock badge removed from modal per request; Productos.jsx tendrá el badge */}
+                        </div>
                       </label>
                     </div>
                     <div>
@@ -283,7 +375,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSubmit, form, setForm, clients,
                 )}
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => onCloseRef.current?.()}
                   className="px-6 py-3 border border-gray-600 text-gray-300 hover:text-white hover:bg-gray-800 active:scale-95 transition-all duration-200 rounded-lg font-medium"
                 >
                   Cancelar

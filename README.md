@@ -147,6 +147,8 @@ Nioxtec_Facturer/
 ├── templates/               # Plantillas HTML (facturas)
 ├── static/                  # Archivos estáticos
 └── DEVELOPER/scripts/       # Scripts de despliegue
+
+Documentación ampliada: ver `docs/README.md`.
 ```
 
 ## 🎯 Funcionalidades
@@ -279,7 +281,7 @@ curl http://localhost:5173
 ## 📞 Soporte
 
 - **Issues**: GitHub Issues
-- **Documentación**: Ver `DEVELOPER/README_DEVELOPER.md`
+ - **Documentación**: ver `docs/README.md` (índice) y `DEVELOPER/README_DEVELOPER.md` (runbook del servidor Windows)
 - **Scripts**: Ver `DEVELOPER/scripts/`
 
 ---

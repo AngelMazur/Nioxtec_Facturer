@@ -36,7 +36,12 @@ function getHeaders(token) {
  */
 export async function apiGet(path, token) {
   const res = await fetch(`${API_BASE}/api${path}`, { headers: getHeaders(token), credentials: 'include' })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.json()
 }
 
@@ -46,17 +51,37 @@ export async function apiGet(path, token) {
  * @param {string} path - API endpoint path (without /api prefix)
  * @param {Object} body - Request payload to send as JSON
  * @param {string} token - JWT token for authentication
+ * @param {Object} customHeaders - Optional custom headers (for multipart/form-data)
  * @returns {Promise<Object>} JSON response data
  * @throws {Error} API error message
  */
-export async function apiPost(path, body, token) {
+export async function apiPost(path, body, token, customHeaders = null) {
+  const headers = customHeaders || getHeaders(token)
+  
+  // Si customHeaders tiene Content-Type multipart/form-data, no incluir Content-Type
+  // para que el navegador lo añada automáticamente con el boundary
+  const finalHeaders = { ...headers }
+  if (customHeaders && customHeaders['Content-Type'] === 'multipart/form-data') {
+    delete finalHeaders['Content-Type']
+  }
+  
+  // Si es Authorization solo, añadirlo
+  if (token && !finalHeaders.Authorization) {
+    finalHeaders.Authorization = `Bearer ${token}`
+  }
+  
   const res = await fetch(`${API_BASE}/api${path}`, {
     method: 'POST',
-    headers: getHeaders(token),
+    headers: finalHeaders,
     credentials: 'include',
-    body: JSON.stringify(body),
+    body: body instanceof FormData ? body : JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.json()
 }
 
@@ -70,7 +95,12 @@ export async function apiPost(path, body, token) {
  */
 export async function apiGetBlob(path, token) {
   const res = await fetch(`${API_BASE}/api${path}`, { headers: getHeaders(token), credentials: 'include' })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.blob()
 }
 
@@ -80,7 +110,12 @@ export async function apiDelete(path, token) {
     headers: getHeaders(token),
     credentials: 'include',
   })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.json()
 }
 
@@ -91,7 +126,17 @@ export async function apiPut(path, body, token) {
     credentials: 'include',
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    // Debug: log full response body (use clone so safeError can still read it)
+    try {
+      const bodyText = await res.clone().text()
+      if (typeof console !== 'undefined' && console.error) console.error('API PUT error response body:', bodyText)
+  } catch (__) { void __ }
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.json()
 }
 
@@ -102,7 +147,12 @@ export async function apiPatch(path, body, token) {
     credentials: 'include',
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(await safeError(res))
+  if (!res.ok) {
+    const msg = await safeError(res)
+    const e = new Error(msg)
+    e.status = res.status
+    throw e
+  }
   return res.json()
 }
 
@@ -115,6 +165,22 @@ export async function apiPatch(path, body, token) {
  * @returns {Promise<string>} Error message
  */
 async function safeError(res) {
-  try { const j = await res.json(); return j.error || res.statusText } catch { return res.statusText }
+  try {
+    // Try JSON first
+    const j = await res.json()
+    // If server provides structured error fields, prefer them
+    if (j && (j.error || j.message)) return j.error || j.message
+    // otherwise stringify the JSON
+    return JSON.stringify(j)
+  } catch {
+    try {
+      // fallback to plain text body
+      const txt = await res.text()
+      if (txt) return txt
+  } catch {
+      // ignore
+    }
+    return res.statusText
+  }
 }
 

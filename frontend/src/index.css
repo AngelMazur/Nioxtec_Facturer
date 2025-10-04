@@ -12,7 +12,15 @@ html, body, #root {
 }
 
 body {
-  @apply bg-gray-950 text-gray-100;
+  @apply bg-gray-950 text-gray-100 font-sans;
+  /* Fondo con imagen global + glow inferior sutil (no bloquea si falta el asset) */
+  background-image:
+    radial-gradient(60% 40% at 50% 110%, rgba(0, 150, 255, 0.22), rgba(0,0,0,0) 70%),
+    url('/bg.avif');
+  background-repeat: no-repeat, no-repeat;
+  background-size: 1200px 520px, cover;
+  background-position: center 120%, center top;
+  background-attachment: scroll, scroll; /* evita jank en móviles */
 }
 
 /* Fallback explícito por si 'animate-spin' no se aplica por build/caché */
@@ -20,9 +28,103 @@ body {
 .niox-animate-spin { animation: niox-spin 0.8s linear infinite; }
 
 /* Contenedor principal reutilizable */
-.container-page {
-  @apply mx-auto max-w-6xl px-4;
-}
+.container-page { margin-left: auto; margin-right: auto; padding-left: 1rem; padding-right: 1rem; max-width: 1200px; }
 
 /* Overrides SOLO para la tarjeta de login */
 .login-card { padding: 2.5rem !important; border-width: 5px !important; border-radius: 1.5rem !important; }
+
+/* Accesibilidad: respeta preferencias del usuario */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* DataCard: fondo de puntos + luz inferior estilo 3D suave */
+.niox-data-card{
+  position: relative;
+  background-image: url('/bg-dots.avif');
+  background-repeat: repeat;
+  background-size: 320px 320px;
+  background-position: center;
+}
+.niox-data-card::before{
+  /* Spotlight que sigue el cursor */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(160px 160px at var(--mx, -999px) var(--my, -999px), rgba(24,180,216,.12), rgba(24,180,216,0.08) 35%, rgba(24,180,216,0.04) 60%, transparent 70%);
+  opacity: 0; transition: opacity .2s ease;
+}
+.niox-data-card::after{
+  content: "";
+  position: absolute;
+  left: -8px; right: -8px; bottom: -8px; height: 80px;
+  pointer-events: none;
+  background: radial-gradient(60% 120% at 50% 120%, rgba(24,180,216,0.18) 0%, rgba(24,180,216,0.08) 40%, transparent 70%);
+  filter: blur(10px);
+  opacity: .9;
+  z-index: 0;
+}
+/* asegurar contenido encima */
+.niox-data-card > *{ position: relative; z-index: 1; }
+
+/* STYLE: Spotlight desactivado por solicitud; mantenemos el pseudo-elemento oculto */
+/* .niox-data-card:hover::before, .niox-data-card:focus-within::before{ opacity: 1; } */
+
+/* Subrayado animado para navegación */
+.nav-underline{ position: relative; }
+.nav-underline::after{
+  content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 2px;
+  background: linear-gradient(90deg, rgba(24,180,216,0.0), rgba(24,180,216,0.8), rgba(24,180,216,0.0));
+  transform: scaleX(0); transform-origin: 50% 100%; transition: transform .25s ease;
+}
+.nav-underline:hover::after, .nav-underline:focus-visible::after, .nav-underline--active::after{ transform: scaleX(1); }
+
+/* Shimmer animations for skeletons */
+@keyframes shimmer-move {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.animate-shimmer{ animation: shimmer-move 1.6s linear infinite; }
+.animate-shimmer-delayed{ animation: shimmer-move 2.2s linear infinite; opacity: .7; }
+
+@keyframes shimmer-bottom-up {
+  0% { transform: translateY(100%); opacity: 0; }
+  30% { opacity: .6; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+.animate-shimmer-bottom-up{ animation: shimmer-bottom-up 1.8s ease-in-out infinite; }
+.animate-shimmer-bottom-up-delayed{ animation: shimmer-bottom-up 2.4s ease-in-out infinite; opacity: .6; }
+
+/* Global noise overlay (opcional) */
+.noise-overlay{
+  position: fixed; inset: 0; pointer-events: none; z-index: 60; opacity: .015; mix-blend-mode: soft-light;
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAQAAACq9V7WAAAAW0lEQVR4Ae3QsQkAMAwAsWf//5ZkL9yCwqYk0Q3w4cY9C8QYb8VgJQ3c5dS0y2i7f3jW9q8p4yNw3C6W0a3mQ8dO7Jqz9k1t+eG1r6qE0g3w0nPn9Y8E4X5zvZ6V7Qk4zZr6o2k8Gd3b0gAAAP8C1iGQz1m5gQAAAABJRU5ErkJggg==');
+}
+
+/* Custom scrollbar para modales y áreas de scroll */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(24, 180, 216, 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(24, 180, 216, 0.5);
+}
+
+/* Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(24, 180, 216, 0.3) rgba(255, 255, 255, 0.02);
+}
+

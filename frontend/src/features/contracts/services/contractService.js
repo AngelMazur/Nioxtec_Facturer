@@ -26,19 +26,32 @@ export async function loadContractPlaceholders(templateId, token) {
  * @param {Object} formData - Form data with placeholder values
  * @param {string} filename - Desired filename
  * @param {string} token - JWT token
- * @returns {Promise<Blob>} PDF blob
+ * @param {number} clientId - Optional client ID to auto-save as client document
+ * @returns {Promise<Object>} Object with pdfBlob and documentSaved flag
  */
-export async function generateContractPDF(templateId, formData, filename, token) {
+export async function generateContractPDF(templateId, formData, filename, token, clientId = null) {
   try {
-    const response = await apiPost('/contracts/generate-pdf', {
+    const requestData = {
       template_id: templateId,
       form_data: formData,
       filename: filename
-    }, token)
+    }
+    
+    // Add client_id if provided for auto-save
+    if (clientId) {
+      requestData.client_id = clientId
+    }
+    
+    const response = await apiPost('/contracts/generate-pdf', requestData, token)
     
     // Get the PDF blob
     const pdfBlob = await apiGetBlob(`/contracts/download/${response.filename}`, token)
-    return pdfBlob
+    
+    return {
+      pdfBlob,
+      documentSaved: response.document_saved || false,
+      filename: response.filename
+    }
   } catch (error) {
     console.error('Error generating PDF:', error)
     throw new Error('Error al generar el PDF del contrato')
