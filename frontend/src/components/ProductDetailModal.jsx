@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useStore } from '../store/store'
@@ -698,14 +699,14 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
       )}
     </AnimatePresence>
 
-    {/* Lightbox para ver imágenes en tamaño completo */}
-    <AnimatePresence>
-      {selectedImage && (
+    {/* Lightbox para ver imágenes en tamaño completo - Renderizado con Portal para estar por encima de todo */}
+    {selectedImage && createPortal(
+      <AnimatePresence>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4"
           onClick={() => setSelectedImage(null)}
         >
           <motion.div
@@ -734,8 +735,9 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
             />
           </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
     </>
   )
 }
