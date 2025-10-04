@@ -1342,8 +1342,8 @@ def create_product():
     return jsonify({'id': p.id}), 201
 
 
-@app.route('/api/products', methods=['GET'])
-@jwt_required()
+@app.route('/api/products', methods=['GET', 'OPTIONS'])
+@jwt_required(optional=True)
 def list_products():
     limit = request.args.get('limit', type=int, default=10)
     offset = request.args.get('offset', type=int, default=0)
@@ -1451,8 +1451,8 @@ def delete_product(pid):
     return jsonify({'status': 'deleted'})
 
 
-@app.route('/api/products/summary')
-@jwt_required()
+@app.route('/api/products/summary', methods=['GET', 'OPTIONS'])
+@jwt_required(optional=True)
 def products_summary():
     # Agregados por categoría y por modelo, filtrando por activos/archivados
     active_param = (request.args.get('active') or '1').strip()
