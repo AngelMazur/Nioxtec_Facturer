@@ -1,0 +1,38 @@
+# Backend Dockerfile for Nioxtec Facturer (Flask)
+FROM python:3.11-slim AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# System deps required for wkhtmltopdf and fonts for PDF rendering
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       wkhtmltopdf \
+       fonts-dejavu-core \
+       ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python deps
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir gunicorn
+
+# Copy application code
+COPY . .
+
+# Create necessary directories (also created at runtime by app)
+RUN mkdir -p /app/instance /app/downloads /app/static
+
+# Environment sensible defaults for containers
+ENV PORT=5000 \
+    FLASK_ENV=production \
+    WKHTMLTOPDF_PATH=/usr/bin/wkhtmltopdf \
+    FORCE_HTTPS=false
+
+EXPOSE 5000
+
+# Use gunicorn in containers for better concurrency
+CMD ["gunicorn", "-w", "3", "-b", "0.0.0.0:5000", "app:app"]
+
