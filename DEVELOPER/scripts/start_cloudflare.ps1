@@ -1,35 +1,57 @@
 # Script para iniciar Cloudflare cuando esté caído
 # Uso: Cuando el túnel de Cloudflare no se conecta automáticamente al reiniciar
 
-Write-Host "=== INICIANDO CLOUDFLARE TUNNEL ===" -ForegroundColor Cyan
+# Función para mostrar progreso visual
+function Show-Progress {
+    param(
+        [string]$Step,
+        [string]$Message,
+        [string]$Status = "INFO"
+    )
+    $timestamp = Get-Date -Format 'HH:mm:ss'
+    $color = switch ($Status) {
+        "START"   { "Cyan" }
+        "SUCCESS" { "Green" }
+        "ERROR"   { "Red" }
+        "WARNING" { "Yellow" }
+        default   { "White" }
+    }
+    $icon = switch ($Status) {
+        "START"   { "⏳" }
+        "SUCCESS" { "✓" }
+        "ERROR"   { "✗" }
+        "WARNING" { "⚠" }
+        default   { "ℹ" }
+    }
+    Write-Host "[$timestamp] $icon [$Step] $Message" -ForegroundColor $color
+}
+
+Show-Progress "CLOUDFLARE" "Iniciando túnel Cloudflare..." "START"
 
 # Ejecutar la tarea programada de Cloudflare
 try {
-    schtasks /Run /TN "Cloudflared Tunnel"
-    Write-Host "OK: Tarea Cloudflared Tunnel ejecutada" -ForegroundColor Green
+    schtasks /Run /TN "Cloudflared Tunnel" | Out-Null
+    Show-Progress "CLOUDFLARE" "Tarea ejecutada correctamente" "SUCCESS"
 } catch {
-    Write-Host "ERROR: Error ejecutando tarea Cloudflared Tunnel: $($_.Exception.Message)" -ForegroundColor Red
+    Show-Progress "CLOUDFLARE" "Error ejecutando tarea: $($_.Exception.Message)" "ERROR"
     exit 1
 }
 
 # Esperar a que se conecte
-Write-Host "Esperando a que Cloudflare se conecte..." -ForegroundColor Yellow
+Show-Progress "CLOUDFLARE" "Esperando conexión (15 segundos)..." "START"
 Start-Sleep -Seconds 15
 
 # Verificar que funciona
-Write-Host "Verificando conexión..." -ForegroundColor Cyan
+Show-Progress "CLOUDFLARE" "Verificando conectividad..." "START"
 try {
     $response = Invoke-WebRequest https://api.nioxtec.es/health -UseBasicParsing -TimeoutSec 10
     if ($response.StatusCode -eq 200) {
-        Write-Host "OK: Cloudflare funcionando correctamente" -ForegroundColor Green
-        Write-Host "API responde: $($response.StatusCode)" -ForegroundColor Green
+        Show-Progress "CLOUDFLARE" "Túnel funcionando correctamente (HTTP $($response.StatusCode))" "SUCCESS"
     } else {
-        Write-Host "AVISO: API responde con código: $($response.StatusCode)" -ForegroundColor Yellow
+        Show-Progress "CLOUDFLARE" "API responde con código: $($response.StatusCode)" "WARNING"
     }
 } catch {
-    Write-Host "ERROR: Cloudflare no responde: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "INFO: Puede tardar más tiempo en conectarse" -ForegroundColor Gray
+    Show-Progress "CLOUDFLARE" "Sin respuesta: $($_.Exception.Message)" "WARNING"
+    Show-Progress "CLOUDFLARE" "El túnel puede tardar más tiempo en conectarse" "INFO"
     exit 1
 }
-
-Write-Host "=== CLOUDFLARE INICIADO ===" -ForegroundColor Green
