@@ -34,6 +34,31 @@ cp .env.docker.example .env
 nano .env  # Ajusta JWT_SECRET_KEY, COMPANY_*, etc.
 ```
 
+### 2.1 Generar claves seguras (.env)
+
+Para producción, genera claves aleatorias fuertes para `JWT_SECRET_KEY` y `SECRET_KEY` y colócalas en `.env`.
+
+```bash
+# Generar claves seguras (64 bytes url-safe)
+JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(64))")
+SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(64))")
+
+# Sustituir en .env (requiere que existan las líneas JWT_SECRET_KEY= y SECRET_KEY=)
+sed -i "s|^JWT_SECRET_KEY=.*|JWT_SECRET_KEY=${JWT_SECRET}|" .env
+sed -i "s|^SECRET_KEY=.*|SECRET_KEY=${SECRET_KEY}|" .env
+
+# Asegurar deshabilitado el modo debug en producción
+sed -i "s|^FLASK_DEBUG=.*|FLASK_DEBUG=false|" .env || echo "FLASK_DEBUG=false" >> .env
+
+# Opcional: fijar dominio de cookies si la API está en subdominio dedicado
+# echo "JWT_COOKIE_DOMAIN=api.nioxtec.es" >> .env
+```
+
+Notas de seguridad:
+- No subas `.env` al repositorio (ya está en `.gitignore`).
+- Guarda una copia segura de las claves generadas.
+- Cambiar estas claves invalida sesiones JWT activas.
+
 Notas:
 - En Docker el backend corre en `PORT=5000` y Nginx expone `80`.
 - La variable `WKHTMLTOPDF_PATH` ya apunta al binario dentro del contenedor.
