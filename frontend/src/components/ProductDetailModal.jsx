@@ -392,12 +392,12 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
               </div>
 
               {/* Tabs */}
-              <div className="flex gap-2 mt-4">
+              <div className="mt-4 grid grid-cols-3 gap-2 w-full sm:flex sm:w-auto">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 w-full flex items-center justify-center min-w-0 text-center sm:w-auto sm:flex-none
                               ${activeTab === tab.id 
                                 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50' 
                                 : 'text-gray-400 hover:text-gray-300 hover:bg-white/5'}`}
@@ -510,6 +510,45 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
                     exit={{ opacity: 0, x: 20 }}
                     className="space-y-6"
                   >
+                    {/* Lista de características */}
+                    {editedProduct.features && Object.keys(editedProduct.features).length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {Object.entries(editedProduct.features).map(([key, value]) => (
+                          <div 
+                            key={key}
+                            className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] 
+                                     border border-gray-700/50 hover:border-cyan-500/30 transition-all duration-200
+                                     group relative"
+                          >
+                            <button
+                              onClick={() => handleRemoveFeature(key)}
+                              className="absolute top-2 right-2 p-1 rounded-md bg-red-500/10 
+                                       hover:bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100
+                                       transition-all duration-200"
+                              title="Eliminar característica"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                      d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                            <p className="text-xs text-gray-400 mb-1 group-hover:text-cyan-400 transition-colors pr-8">
+                              {key}
+                            </p>
+                            <p className="text-base font-medium text-white">{value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="text-6xl mb-4">📝</div>
+                        <p className="text-gray-400">No hay características registradas</p>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Agrega características usando el formulario al final
+                        </p>
+                      </div>
+                    )}
+
                     {/* Formulario para agregar características */}
                     <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 
                                   border border-cyan-500/30">
@@ -554,45 +593,6 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
                         </button>
                       </div>
                     </div>
-
-                    {/* Lista de características */}
-                    {editedProduct.features && Object.keys(editedProduct.features).length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {Object.entries(editedProduct.features).map(([key, value]) => (
-                          <div 
-                            key={key}
-                            className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] 
-                                     border border-gray-700/50 hover:border-cyan-500/30 transition-all duration-200
-                                     group relative"
-                          >
-                            <button
-                              onClick={() => handleRemoveFeature(key)}
-                              className="absolute top-2 right-2 p-1 rounded-md bg-red-500/10 
-                                       hover:bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100
-                                       transition-all duration-200"
-                              title="Eliminar característica"
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                      d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                            <p className="text-xs text-gray-400 mb-1 group-hover:text-cyan-400 transition-colors pr-8">
-                              {key}
-                            </p>
-                            <p className="text-base font-medium text-white">{value}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12">
-                        <div className="text-6xl mb-4">📝</div>
-                        <p className="text-gray-400">No hay características registradas</p>
-                        <p className="text-sm text-gray-500 mt-2">
-                          Agrega características usando el formulario arriba
-                        </p>
-                      </div>
-                    )}
                   </motion.div>
                 )}
 
