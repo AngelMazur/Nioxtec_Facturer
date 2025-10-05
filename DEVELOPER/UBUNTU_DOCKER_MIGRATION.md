@@ -38,6 +38,21 @@ nano .env  # Ajusta JWT_SECRET_KEY, COMPANY_*, etc.
 
 Para producción, genera claves aleatorias fuertes para `JWT_SECRET_KEY` y `SECRET_KEY` y colócalas en `.env`.
 
+Opción A (recomendada): usar script automático
+
+```bash
+# Crear/actualizar .env, generar claves y forzar FLASK_DEBUG=false
+./DEVELOPER/scripts/generate_env.sh
+
+# Rotar claves si ya existen
+./DEVELOPER/scripts/generate_env.sh --rotate
+
+# Opcional: fijar dominio de cookies (si API en subdominio)
+./DEVELOPER/scripts/generate_env.sh --cookie-domain=api.nioxtec.es
+```
+
+Opción B (manual): comandos directos
+
 ```bash
 # Generar claves seguras (64 bytes url-safe)
 JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(64))")
