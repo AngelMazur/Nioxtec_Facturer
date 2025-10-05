@@ -179,3 +179,34 @@ Errores comunes:
 ---
 
 Con esto, la migración a Ubuntu queda simplificada y reproducible usando contenedores Docker. 🚀
+
+---
+
+## 👩‍💻 Desarrollo local (opcional) con override
+
+Para desarrollar con hot-reload sin tocar la configuración de producción:
+
+1) Crear `.env` para dev (puedes reutilizar tu `.env` actual de macOS):
+
+```env
+FLASK_ENV=development
+FLASK_DEBUG=true
+JWT_SECRET_KEY=dev_solo_para_local
+PORT=5001
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+2) Arrancar solo backend (5001) y frontend dev (5173):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.override.yml up -d backend frontend-dev
+
+# Verificar
+curl http://127.0.0.1:5001/health
+open http://localhost:5173
+```
+
+Notas:
+- El servicio `web` (Nginx) queda sin puertos publicados en el override.
+- El frontend dev usa Vite con HMR en 5173 y resuelve el backend en 5001 automáticamente.
+- Producción sigue igual (Cloudflare a 5000/8080). Para prod, usa solo `docker compose up -d` (sin el override ni el servicio `frontend-dev`).

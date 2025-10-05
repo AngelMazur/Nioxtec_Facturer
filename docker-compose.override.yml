@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  # Backend en modo desarrollo (hot-reload), usa puerto 5001
+  backend:
+    command: ["python", "app.py"]
+    environment:
+      FLASK_ENV: development
+      FLASK_DEBUG: "true"
+      PORT: 5001
+      FORCE_HTTPS: "false"
+    volumes:
+      - ./:/app
+      - app_instance:/app/instance
+      - app_downloads:/app/downloads
+    ports:
+      - "127.0.0.1:5001:5001"
+
+  # Deshabilitar publicación del Nginx de prod cuando trabajas en dev
+  web:
+    ports: []
+
+  # Frontend en modo Vite (dev server con HMR) en 5173
+  frontend-dev:
+    image: node:20-alpine
+    working_dir: /app/frontend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ./:/app
+    ports:
+      - "5173:5173"
+    environment:
+      # En dev, api.js ya resuelve a :5001 si detecta puerto 5173
+      VITE_API_BASE: ""
+
