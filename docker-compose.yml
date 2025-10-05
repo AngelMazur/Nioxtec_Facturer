@@ -14,10 +14,12 @@ services:
       WKHTMLTOPDF_PATH: /usr/bin/wkhtmltopdf
       FORCE_HTTPS: "false"
     volumes:
-      # Persist database and uploaded files
-      - app_instance:/app/instance
+      # Persist database and client documents (instance/)
+      - ./instance:/app/instance
       # Persist generated files (PDFs, downloads)
-      - app_downloads:/app/downloads
+      - ./downloads:/app/downloads
+      # Persist product images and dynamic uploads
+      - ./static/uploads:/app/static/uploads
     ports:
       # Exponer solo en loopback del host (Cloudflared accede a localhost)
       - "127.0.0.1:5000:5000"
@@ -41,5 +43,3 @@ networks:
     driver: bridge
 
 volumes:
-  app_instance:
-  app_downloads:

@@ -102,27 +102,39 @@ Rutas:
 
 ## 4) Persistencia de datos
 
-Se crean volúmenes nombrados para:
-- `app_instance` → `/app/instance` (SQLite y uploads)
-- `app_downloads` → `/app/downloads` (PDFs generados)
-
-Comandos útiles:
-```bash
-docker volume ls
-docker volume inspect Nioxtec_Facturer_app_instance
-```
-
-Si prefieres rutas del host, puedes editar `docker-compose.yml` y reemplazar volúmenes por bind mounts, por ejemplo:
-```yaml
-    volumes:
-      - ./instance:/app/instance
-      - ./downloads:/app/downloads
-```
+Persistimos datos con bind mounts (directorios del host):
+- `./instance` → `/app/instance` (SQLite y documentos de clientes)
+- `./downloads` → `/app/downloads` (PDFs generados)
+- `./static/uploads` → `/app/static/uploads` (imágenes de productos y otros uploads dinámicos)
 
 ## 5) Migración de datos
 
-- Si vienes de SQLite (Windows): copia tu `instance/app.db` anterior dentro del volumen `app_instance`.
-- Si usas PostgreSQL: configura `DATABASE_URL` en `.env` y añade un servicio `db` (opcional) o usa un servidor externo.
+Si vienes de SQLite (Windows) y tienes imágenes/productos:
+
+1) Base de datos (SQLite):
+```bash
+# En tu equipo Windows (PowerShell):
+scp C:\\Nioxtec\\Nioxtec_Facturer\\instance\\app.db usuario@ubuntu:/opt/nioxtec/Nioxtec_Facturer/instance/app.db
+```
+
+2) Documentos de clientes (instance/uploads):
+```bash
+scp -r C:\\Nioxtec\\Nioxtec_Facturer\\instance\\uploads usuario@ubuntu:/opt/nioxtec/Nioxtec_Facturer/instance/
+```
+
+3) Imágenes de productos (static/uploads/products):
+```bash
+scp -r C:\\Nioxtec\\Nioxtec_Facturer\\static\\uploads\\products usuario@ubuntu:/opt/nioxtec/Nioxtec_Facturer/static/uploads/
+```
+
+Permisos recomendados en Ubuntu:
+```bash
+cd /opt/nioxtec/Nioxtec_Facturer
+chmod 644 instance/app.db
+chmod -R 755 instance/uploads static/uploads
+```
+
+Si usas PostgreSQL: configura `DATABASE_URL` en `.env` y añade un servicio `db` (opcional) o usa un servidor externo.
 
 ## 6) HTTPS y dominio
 
