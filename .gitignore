@@ -43,6 +43,7 @@ test_download.pdf
 # Env/Secrets
 .env
 .env.*
+!.env.docker.example
 ~/
 
 # Conversations (Codex logs)
