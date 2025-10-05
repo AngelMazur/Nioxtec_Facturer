@@ -1315,9 +1315,17 @@ def _product_to_dict(p: 'Product') -> dict:
     }
 
 
-@app.route('/api/products', methods=['POST'])
-@jwt_required()
+@app.route('/api/products', methods=['POST', 'OPTIONS'])
+@jwt_required(optional=True)
 def create_product():
+    # Handle CORS preflight early to avoid JWT checks
+    if request.method == 'OPTIONS':
+        return '', 200
+
+    user_identity = get_jwt_identity()
+    if not user_identity:
+        return jsonify({'error': 'Autenticación requerida'}), 401
+
     data = request.get_json(force=True)
     for field in ['category', 'model']:
         if not data.get(field):

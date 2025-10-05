@@ -681,8 +681,8 @@ export default function Productos() {
                           <p className="text-xs text-brand">Haz clic para crear el primer producto</p>
                         </div>
                       ) : (
-                        <div className="space-y-3">
-                          {categoryData.models.slice(0, 3).map((modelData) => {
+                        <div className="space-y-3 max-h-[22rem] overflow-y-auto pr-1 custom-scrollbar">
+                          {categoryData.models.map((modelData) => {
                             const stockVal = typeof modelData.stock_total !== 'undefined'
                               ? Number(modelData.stock_total)
                               : (typeof modelData.stock_qty !== 'undefined' ? Number(modelData.stock_qty) : (typeof modelData.stock !== 'undefined' ? Number(modelData.stock) : (typeof modelData.count !== 'undefined' ? Number(modelData.count) : 0)))
