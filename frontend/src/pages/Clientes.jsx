@@ -33,6 +33,9 @@ export default function Clientes() {
   const [clientInvoices, setClientInvoices] = useState({ loading: false, items: [], total: 0 })
   const [clientDocs, setClientDocs] = useState({ loading: false, items: [] })
   const [uploading, setUploading] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewType, setPreviewType] = useState(null) // 'image'|'pdf'
+  const [previewUrl, setPreviewUrl] = useState(null)
   const [invoicesPage, setInvoicesPage] = useState(1)
   const [imagesPage, setImagesPage] = useState(1)
   const [docsPage, setDocsPage] = useState(1)
@@ -212,6 +215,7 @@ export default function Clientes() {
       if (!res.ok) throw new Error('Error al descargar el documento')
       
       const blob = await res.blob()
+      // By default behavior: download file
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -224,6 +228,38 @@ export default function Clientes() {
     } catch (err) {
       toast.error(err?.message || 'Error al abrir el documento')
     }
+  }
+
+  // Preview handlers: image or pdf
+  async function previewDocument(doc) {
+    if (!selectedClient) return
+    try {
+      const res = await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${doc.id}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+        credentials: 'include'
+      })
+      if (!res.ok) throw new Error('Error al obtener documento')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      if (doc.mime_type && doc.mime_type.startsWith('image/')) {
+        setPreviewType('image')
+      } else {
+        setPreviewType('pdf')
+      }
+      setPreviewUrl(url)
+      setPreviewOpen(true)
+    } catch (err) {
+      toast.error(err?.message || 'Error al previsualizar documento')
+    }
+  }
+
+  function closePreview() {
+    setPreviewOpen(false)
+    if (previewUrl) {
+      try { window.URL.revokeObjectURL(previewUrl) } catch (e) { /* noop */ }
+    }
+    setPreviewUrl(null)
+    setPreviewType(null)
   }
 
 
@@ -674,7 +710,7 @@ export default function Clientes() {
                                 <div className="space-y-2">
                                   {pageItems.map(d => (
                                     <div key={d.id} className="flex items-center justify-between">
-                                      <button className="underline text-brand hover:scale-105 transition-all duration-200 inline-block text-left" onClick={() => handleDocumentClick(d.id, d.filename)}>{d.filename}</button>
+                                      <button className="underline text-brand hover:scale-105 transition-all duration-200 inline-block text-left" onClick={() => previewDocument(d)}>{d.filename}</button>
                                       <button className="text-red-500 underline hover:scale-105 transition-transform duration-200 inline-block" onClick={async()=>{
                                         if(!window.confirm('¿Eliminar documento?')) return;
                                         try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
@@ -746,7 +782,7 @@ export default function Clientes() {
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                   {pageItems.map(d => (
                                     <div key={d.id} className="group relative">
-                                      <button onClick={() => handleDocumentClick(d.id, d.filename)} className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300 w-full">
+                                      <button onClick={() => previewDocument(d)} className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300 w-full">
                                         <AuthenticatedImage 
                                           src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`}
                                           alt={d.filename}
@@ -812,6 +848,39 @@ export default function Clientes() {
       </AnimatePresence>
 
       {/* Contract Generator Modal */}
+      {/* Preview Modal for client documents (image or PDF) */}
+      <AnimatePresence>
+        {previewOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[70]"
+            onClick={closePreview}
+          >
+            <motion.div
+              initial={{ scale: 0.98, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.98, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-gray-900 border border-gray-700 rounded-lg p-4 w-full max-w-4xl max-h-[90vh] overflow-auto"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-lg font-semibold text-white">Vista previa</h4>
+                <button onClick={closePreview} className="text-gray-400 hover:text-white">Cerrar</button>
+              </div>
+              <div className="w-full h-[70vh]">
+                {previewType === 'image' ? (
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
+                ) : (
+                  <iframe src={previewUrl} title="PDF preview" className="w-full h-full" />
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <ContractGeneratorModal
         isOpen={showContractModal}
         onClose={() => setShowContractModal(false)}
