@@ -202,6 +202,30 @@ export default function Clientes() {
     }
   }
 
+  // Función para descargar/abrir documentos con autenticación
+  async function handleDocumentClick(docId, filename) {
+    try {
+      const res = await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${docId}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+        credentials: 'include'
+      })
+      if (!res.ok) throw new Error('Error al descargar el documento')
+      
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.target = '_blank'
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      toast.error(err?.message || 'Error al abrir el documento')
+    }
+  }
+
 
 
   const handleSubmit = async (formData) => {
@@ -650,7 +674,7 @@ export default function Clientes() {
                                 <div className="space-y-2">
                                   {pageItems.map(d => (
                                     <div key={d.id} className="flex items-center justify-between">
-                                      <a className="underline text-brand hover:scale-105 transition-all duration-200 inline-block" href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer">{d.filename}</a>
+                                      <button className="underline text-brand hover:scale-105 transition-all duration-200 inline-block text-left" onClick={() => handleDocumentClick(d.id, d.filename)}>{d.filename}</button>
                                       <button className="text-red-500 underline hover:scale-105 transition-transform duration-200 inline-block" onClick={async()=>{
                                         if(!window.confirm('¿Eliminar documento?')) return;
                                         try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
@@ -722,14 +746,14 @@ export default function Clientes() {
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                   {pageItems.map(d => (
                                     <div key={d.id} className="group relative">
-                                      <a href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300">
+                                      <button onClick={() => handleDocumentClick(d.id, d.filename)} className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300 w-full">
                                         <AuthenticatedImage 
                                           src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`}
                                           alt={d.filename}
                                           className="w-full h-32 object-cover rounded border border-gray-700"
                                           token={token}
                                         />
-                                      </a>
+                                      </button>
                                       <button className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 hover:scale-105 transition-all duration-200" onClick={async()=>{
                                         if(!window.confirm('¿Eliminar imagen?')) return;
                                         try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
