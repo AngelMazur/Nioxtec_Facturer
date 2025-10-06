@@ -314,7 +314,9 @@ CORS(
 def _add_cors_headers(response: Response) -> Response:
     try:
         origin = request.headers.get('Origin')
-        if origin and origin in allowed_origins:
+        # En desarrollo, reflejamos cualquier Origin solo si se activa explícitamente
+        # mediante ENABLE_DEV_PERMISSIVE_CORS además de DEBUG_MODE.
+        if origin and (origin in allowed_origins or (DEBUG_MODE and ENABLE_DEV_PERMISSIVE_CORS)):
             response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Vary'] = 'Origin'
             response.headers['Access-Control-Allow-Credentials'] = 'true'
@@ -324,10 +326,46 @@ def _add_cors_headers(response: Response) -> Response:
         pass
     return response
 
+
+# Explicit preflight handler: some endpoints short-circuit OPTIONS or
+# decorators (jwt_required) may return early and the browser receives
+# no CORS headers. Ensure we always respond to OPTIONS with the proper
+# CORS headers when the Origin is allowed (important for dev with Vite).
+@app.before_request
+def _handle_preflight():
+    if request.method != 'OPTIONS':
+        return None
+    origin = request.headers.get('Origin')
+    # Build a minimal response for preflight
+    resp = app.make_response(('', 200))
+    try:
+        if origin and (origin in allowed_origins or (DEBUG_MODE and ENABLE_DEV_PERMISSIVE_CORS)):
+            resp.headers['Access-Control-Allow-Origin'] = origin
+            resp.headers['Vary'] = 'Origin'
+            resp.headers['Access-Control-Allow-Credentials'] = 'true'
+            resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+            resp.headers['Access-Control-Max-Age'] = '86400'
+        else:
+            # If origin not allowed, still respond with allowed methods to avoid browser hanging
+            resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+    except Exception:
+        pass
+    return resp
+
 # JWT
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'change-this-secret')
 # Flag de debug (usado también para relajar X-Frame-Options solo en local)
 DEBUG_MODE = os.getenv('FLASK_DEBUG', 'true').lower() in ('1','true','yes')
+
+# Require explicit opt-in to permissive CORS reflection in development
+ENABLE_DEV_PERMISSIVE_CORS = os.getenv('ENABLE_DEV_PERMISSIVE_CORS', 'false').lower() in ('1','true','yes')
+
+# Log simple startup information useful for debugging CORS/env issues
+try:
+    app.logger.info(f"Startup: DEBUG_MODE={DEBUG_MODE} CORS_ORIGINS={os.getenv('CORS_ORIGINS')} allowed_defaults={','.join(allowed_origins[:10])}")
+except Exception:
+    pass
 
 # Permitir token en query (?token=...) solo si está habilitado explícitamente.
 # En desarrollo: permitido por defecto; en producción: deshabilitado por defecto.
