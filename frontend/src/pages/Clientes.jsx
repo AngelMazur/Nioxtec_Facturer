@@ -870,10 +870,13 @@ export default function Clientes() {
                 <h4 className="text-lg font-semibold text-white">Vista previa</h4>
                 <button onClick={closePreview} className="text-gray-400 hover:text-white">Cerrar</button>
               </div>
-              <div className="w-full h-[70vh] flex items-center justify-center">
+              <div className="w-full max-h-[70vh] flex items-center justify-center overflow-auto">
                 {previewType === 'image' ? (
-                  // Show image at natural size up to container limits (no forced enlargement)
-                  <img src={previewUrl} alt="Preview" className="max-w-full max-h-full w-auto h-auto mx-auto" />
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="max-w-full max-h-full object-contain"
+                  />
                 ) : (
                   <iframe src={previewUrl} title="PDF preview" className="w-full h-full" />
                 )}
