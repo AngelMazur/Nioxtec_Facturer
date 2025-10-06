@@ -1,0 +1,16 @@
+# Configuración de Cloudflare Tunnel - SOLO app.nioxtec.es
+# El backend está accesible vía proxy de Nginx en /api
+#
+# Para aplicar esta configuración:
+# 1. sudo cp /etc/cloudflared/config.yml /etc/cloudflared/config.yml.backup
+# 2. sudo cp cloudflared-config-fixed.yml /etc/cloudflared/config.yml
+# 3. sudo systemctl restart cloudflared
+
+tunnel: 478db0c4-6db4-4094-9896-52622211f7c1
+credentials-file: /etc/cloudflared/478db0c4-6db4-4094-9896-52622211f7c1.json
+ingress:
+  # SOLO el frontend - Nginx hace proxy de /api al backend
+  - hostname: app.nioxtec.es
+    service: http://localhost:8080
+  # Catch-all (requerido)
+  - service: http_status:404

@@ -1,10 +1,17 @@
-version: "3.9"
+# ========================================
+# DOCKER COMPOSE - PRODUCCIÓN
+# ========================================
+# Backend: Puerto 5000 (Gunicorn)
+# Web: Puerto 8080 (Nginx + React build)
+# Acceso externo: https://app.nioxtec.es
+# ========================================
 
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
+    restart: unless-stopped
     env_file:
       - .env
     environment:
@@ -30,6 +37,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+    restart: unless-stopped
     depends_on:
       - backend
     ports:
@@ -42,4 +50,3 @@ networks:
   app_net:
     driver: bridge
 
-volumes:

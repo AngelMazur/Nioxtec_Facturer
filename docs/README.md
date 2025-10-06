@@ -5,7 +5,8 @@ Este índice agrupa la documentación técnica y operativa del proyecto en una e
 ## Guías de Inicio
 - Desarrollo local: `README_DEV.md`
 - Visión general del proyecto: `README.md`
- - Scripts de desarrollo: `DEVELOPER/scripts/README.md`
+- Scripts de desarrollo: `DEVELOPER/scripts/README.md`
+- Puertos y Scripts: `docs/PUERTOS_Y_SCRIPTS.md`
 
 ## Features
 - Productos e Inventario: `docs/features/products.md`
@@ -19,6 +20,7 @@ Este índice agrupa la documentación técnica y operativa del proyecto en una e
 - Checklist de release: `docs/operations/RELEASE_CHECKLIST.md`
 - Plan de releases/fases: `docs/operations/RELEASE_PLAN.md`
 - Changelog del proyecto: `docs/operations/CHANGELOG.md`
+- Autoarranque en Odroid: `DEVELOPER/AUTOSTART_DOCKER.md`
 
 ## Notas
 - Documentos históricos y resúmenes han sido consolidados en los apartados anteriores; consulta el historial de Git si necesitas versiones previas.

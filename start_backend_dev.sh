@@ -1,4 +1,11 @@
 #!/bin/bash
+# ========================================
+# SCRIPT DE DESARROLLO - Backend
+# ========================================
+# Puerto: 5001
+# Modo: Desarrollo (Flask debug)
+# Hot reload: SÍ
+# ========================================
 
 # Script para iniciar el backend Flask en modo desarrollo
 # Configura automáticamente CORS para desarrollo local

@@ -11,6 +11,7 @@ import CreateClientModal from "../components/CreateClientModal"
 import NeoGradientButton from "../components/NeoGradientButton"
 import DataCard from "../components/DataCard"
 import Pagination from "../components/Pagination"
+import AuthenticatedImage from "../components/AuthenticatedImage"
 
 export default function Clientes() {
   const { 
@@ -43,7 +44,11 @@ export default function Clientes() {
   const invoicesPageSize = 10
   const imagesPageSize = 6
   const docsPageSize = 5
-  const apiBase = (import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')
+  // Obtener URL base API (solo usa puerto en desarrollo local)
+  const apiBase = (import.meta.env.VITE_API_BASE || 
+    (location.hostname === 'localhost' && location.port === '5173' 
+      ? `${location.protocol}//${location.hostname}:5001` 
+      : '')).replace(/\/$/, '')
   const [forceHoverBtn, setForceHoverBtn] = useState(true)
   const hoverTimeoutRef = useRef(null)
   const reduceMotion = useReducedMotion()
@@ -718,7 +723,12 @@ export default function Clientes() {
                                   {pageItems.map(d => (
                                     <div key={d.id} className="group relative">
                                       <a href={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300">
-                                        <img src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`} alt={d.filename} className="w-full h-32 object-cover rounded border border-gray-700" />
+                                        <AuthenticatedImage 
+                                          src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`}
+                                          alt={d.filename}
+                                          className="w-full h-32 object-cover rounded border border-gray-700"
+                                          token={token}
+                                        />
                                       </a>
                                       <button className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 hover:scale-105 transition-all duration-200" onClick={async()=>{
                                         if(!window.confirm('¿Eliminar imagen?')) return;

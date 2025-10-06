@@ -1,4 +1,12 @@
 #!/bin/bash
+# ========================================
+# SCRIPT DE DESARROLLO - Frontend
+# ========================================
+# Puerto: 5173
+# Modo: Desarrollo (Vite HMR)
+# Hot reload: SÍ
+# API: http://localhost:5001
+# ========================================
 
 # Script para iniciar el frontend con la versión correcta de Node.js
 cd "$(dirname "$0")/frontend"

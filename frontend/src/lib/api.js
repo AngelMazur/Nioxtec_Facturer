@@ -8,10 +8,15 @@
  * - JSON content-type headers
  */
 
-const defaultBase = typeof window !== 'undefined' && (window.location.port === '8080' || window.location.port === '5173')
+// En desarrollo local (puerto 5173), conectar al backend en puerto 5001
+// En producción o acceso remoto, usar rutas relativas (proxy de Nginx)
+const defaultBase = typeof window !== 'undefined' 
+  && window.location.hostname === 'localhost' 
+  && window.location.port === '5173'
   ? `${window.location.protocol}//${window.location.hostname}:5001`
-  : '' // En producción, usar rutas relativas
-// Permite configurar una URL completa del backend por env (recomendado en acceso externo)
+  : '' // Producción: usar rutas relativas (proxy de Nginx)
+  
+// Permite configurar una URL completa del backend por env (solo desarrollo)
 const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '') || defaultBase
 
 /**

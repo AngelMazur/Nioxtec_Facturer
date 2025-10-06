@@ -1,4 +1,10 @@
 #!/bin/bash
+# ========================================
+# SCRIPT DE DESARROLLO - Todo
+# ========================================
+# Inicia Backend (5001) + Frontend (5173)
+# Modo: Desarrollo (sin Docker)
+# ========================================
 
 # Script para iniciar el proyecto completo en modo desarrollo
 # Inicia tanto el backend Flask como el frontend React

@@ -1,0 +1,32 @@
+[Unit]
+Description=Nioxtec Facturer - Docker Compose Application
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/nioxtec/Nioxtec_Facturer
+User=nioxtec
+Group=nioxtec
+
+# Cargar variables de entorno si existen
+EnvironmentFile=-/opt/nioxtec/Nioxtec_Facturer/.env
+
+# Comando de inicio
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+
+# Comando de parada
+ExecStop=/usr/bin/docker compose down
+
+# Reintentar si falla
+Restart=on-failure
+RestartSec=10
+
+# Timeout
+TimeoutStartSec=300
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

@@ -17,6 +17,14 @@ export default defineConfig({
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0'
+    },
+    // Configuración de host para acceso remoto
+    host: '0.0.0.0', // Permite acceso desde la red local
+    port: 5173,
+    strictPort: true, // No cambiar de puerto si está ocupado
+    // Hot Module Replacement optimizado
+    hmr: {
+      overlay: true // Mostrar errores en overlay
     }
   },
   build: {

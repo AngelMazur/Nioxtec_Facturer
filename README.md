@@ -11,11 +11,12 @@ Sistema de gestión de facturas y contratos con backend Flask y frontend React.
 - **Base de datos**: SQLite local
 
 ### 🖥️ Producción
-- **Sistema**: Windows Server (servidor local)
+- **Sistema**: Windows Server / Linux (Odroid) con Docker
 - **Backend**: Puerto 5000
-- **Frontend**: Puerto 8080 (archivos estáticos)
-- **Base de datos**: PostgreSQL
+- **Frontend**: Puerto 8080 (archivos estáticos/Nginx)
+- **Base de datos**: PostgreSQL / SQLite
 - **Acceso**: Túneles Cloudflare (api.nioxtec.es, app.nioxtec.es)
+- **Autoarranque**: Servicio systemd en Linux (ver `DEVELOPER/AUTOSTART_DOCKER.md`)
 
 ## 🚀 Inicio Rápido
 
@@ -49,8 +50,18 @@ cd ..
 ./start_frontend.sh
 ```
 
-### Producción (Windows Server)
+### Producción (Windows Server / Linux)
 
+**Con Docker (Linux/Odroid - Recomendado):**
+```bash
+# Despliegue con Docker Compose
+docker compose up -d
+
+# Para habilitar autoarranque
+sudo bash deploy/install_autostart.sh
+```
+
+**Windows Server:**
 ```powershell
 # Despliegue automático
 .\DEVELOPER\scripts\deploy_prod.ps1
@@ -265,7 +276,7 @@ curl http://localhost:5173
 
 ## 📝 Convenciones
 
-- **Commits**: Conventional Commits (`feat:`, `fix:`, `chore:`)
+- **Commits**: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`)
 - **Código**: Comentado y con docstrings
 - **Estilos**: Exclusivamente Tailwind CSS
 - **Precisión**: Máximo 2 decimales
@@ -281,8 +292,10 @@ curl http://localhost:5173
 ## 📞 Soporte
 
 - **Issues**: GitHub Issues
- - **Documentación**: ver `docs/README.md` (índice) y `DEVELOPER/README_DEVELOPER.md` (runbook del servidor Windows)
+- **Documentación**: ver `docs/README.md` (índice) y `DEVELOPER/README_DEVELOPER.md`
 - **Scripts**: Ver `DEVELOPER/scripts/`
+- **Puertos**: Ver `docs/PUERTOS_Y_SCRIPTS.md`
+- **Autoarranque (Linux)**: Ver `DEVELOPER/AUTOSTART_DOCKER.md`
 
 ---
 

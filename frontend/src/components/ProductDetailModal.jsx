@@ -94,8 +94,11 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
     setUploadingImages(true)
     
     try {
-      // Obtener la URL base de la API
-      const apiBase = (import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')
+      // Obtener la URL base de la API (solo usa puerto en desarrollo local)
+      const apiBase = (import.meta.env.VITE_API_BASE || 
+        (location.hostname === 'localhost' && location.port === '5173' 
+          ? `${location.protocol}//${location.hostname}:5001` 
+          : '')).replace(/\/$/, '')
       
       console.log('🔵 Iniciando subida de imágenes...', { fileCount: files.length, productId: product.id, apiBase })
       
@@ -649,8 +652,11 @@ const ProductDetailModal = ({ isOpen, onClose, product, onSave, onEdit, onArchiv
                     {editedProduct.images && editedProduct.images.length > 0 ? (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {editedProduct.images.map((image, idx) => {
-                          // Obtener apiBase para las imágenes
-                          const apiBase = (import.meta.env.VITE_API_BASE || `${location.protocol}//${location.hostname}:5001`).replace(/\/$/, '')
+                          // Obtener apiBase para las imágenes (solo usa puerto en desarrollo local)
+                          const apiBase = (import.meta.env.VITE_API_BASE || 
+                            (location.hostname === 'localhost' && location.port === '5173' 
+                              ? `${location.protocol}//${location.hostname}:5001` 
+                              : '')).replace(/\/$/, '')
                           const imageUrl = image.url || image
                           // Si la URL es relativa, agregar el apiBase
                           const fullImageUrl = imageUrl.startsWith('/') ? `${apiBase}${imageUrl}` : imageUrl

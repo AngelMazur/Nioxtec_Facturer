@@ -1,0 +1,41 @@
+# ========================================
+# DOCKER COMPOSE - DESARROLLO
+# ========================================
+# Backend: Puerto 5001 (Flask debug)
+# Frontend: Puerto 5173 (Vite HMR)
+# Web: Deshabilitado
+# ========================================
+# Para activar: mv docker-compose.override.yml.dev docker-compose.override.yml
+# Para desactivar: mv docker-compose.override.yml docker-compose.override.yml.dev
+# ========================================
+
+services:
+  backend:
+    command: ["python", "app.py"]
+    environment:
+      FLASK_ENV: development
+      FLASK_DEBUG: "true"
+      PORT: 5001
+      FORCE_HTTPS: "false"
+    volumes:
+      - ./:/app
+      - ./instance:/app/instance
+      - ./downloads:/app/downloads
+      - ./static/uploads:/app/static/uploads
+    ports:
+      - "127.0.0.1:5001:5001"
+
+  web:
+    ports: []
+
+  frontend-dev:
+    image: node:20-alpine
+    working_dir: /app/frontend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ./:/app
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE: ""
+
