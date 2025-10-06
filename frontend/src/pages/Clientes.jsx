@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { MOTION } from '../styles/motion'
 import { formatDateES } from '../lib/format'
@@ -36,6 +37,7 @@ export default function Clientes() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewType, setPreviewType] = useState(null) // 'image'|'pdf'
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [selectedImage, setSelectedImage] = useState(null) // Para lightbox de imágenes
   const [invoicesPage, setInvoicesPage] = useState(1)
   const [imagesPage, setImagesPage] = useState(1)
   const [docsPage, setDocsPage] = useState(1)
@@ -241,13 +243,21 @@ export default function Clientes() {
       if (!res.ok) throw new Error('Error al obtener documento')
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
-      if (doc.mime_type && doc.mime_type.startsWith('image/')) {
-        setPreviewType('image')
+      
+      // Intentar detectar si es imagen por category o mime_type o filename
+      const isImage = doc.mime_type?.startsWith('image/') || 
+                     doc.category === 'image' ||
+                     /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(doc.filename)
+      
+      // Si es imagen, usar el nuevo lightbox
+      if (isImage) {
+        setSelectedImage(url)
       } else {
+        // Si es PDF u otro, usar la modal antigua
         setPreviewType('pdf')
+        setPreviewUrl(url)
+        setPreviewOpen(true)
       }
-      setPreviewUrl(url)
-      setPreviewOpen(true)
     } catch (err) {
       toast.error(err?.message || 'Error al previsualizar documento')
     }
@@ -260,6 +270,29 @@ export default function Clientes() {
     }
     setPreviewUrl(null)
     setPreviewType(null)
+  }
+
+  // Cerrar lightbox de imágenes con tecla Escape y limpiar blob URL
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && selectedImage) {
+        if (selectedImage) {
+          try { window.URL.revokeObjectURL(selectedImage) } catch (e) { /* noop */ }
+        }
+        setSelectedImage(null)
+      }
+    }
+    
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [selectedImage])
+
+  // Función para cerrar lightbox de imágenes
+  const closeImageLightbox = () => {
+    if (selectedImage) {
+      try { window.URL.revokeObjectURL(selectedImage) } catch (e) { /* noop */ }
+    }
+    setSelectedImage(null)
   }
 
 
@@ -781,19 +814,39 @@ export default function Clientes() {
                               <>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                   {pageItems.map(d => (
-                                    <div key={d.id} className="group relative">
-                                      <button onClick={() => previewDocument(d)} className="block overflow-hidden rounded hover:scale-110 transition-transform duration-300 w-full">
+                                    <div 
+                                      key={d.id} 
+                                      className="group relative aspect-square rounded-xl overflow-hidden 
+                                                 border border-gray-700/50 hover:border-cyan-500/50 transition-all duration-200
+                                                 bg-gradient-to-br from-white/5 to-white/[0.02] cursor-pointer"
+                                      onClick={() => previewDocument(d)}
+                                    >
+                                      <div className="block overflow-hidden w-full h-full pointer-events-none">
                                         <AuthenticatedImage 
                                           src={`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`}
                                           alt={d.filename}
-                                          className="w-full h-32 object-cover rounded border border-gray-700"
+                                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                           token={token}
                                         />
-                                      </button>
-                                      <button className="absolute top-1 right-1 text-xs text-red-100 bg-red-600/80 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 hover:scale-105 transition-all duration-200" onClick={async()=>{
-                                        if(!window.confirm('¿Eliminar imagen?')) return;
-                                        try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
-                                      }}>Eliminar</button>
+                                      </div>
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent 
+                                                    opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-3">
+                                        <button 
+                                          className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg
+                                                   font-medium transition-colors flex items-center gap-1" 
+                                          onClick={async(e)=>{
+                                            e.stopPropagation() // Evitar que abra el lightbox
+                                            if(!window.confirm('¿Eliminar imagen?')) return;
+                                            try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminada'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                                          }}
+                                        >
+                                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                          </svg>
+                                          Eliminar
+                                        </button>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
@@ -848,37 +901,50 @@ export default function Clientes() {
       </AnimatePresence>
 
       {/* Contract Generator Modal */}
-      {/* Preview Modal for client documents (image or PDF) */}
+      {/* Preview Modal for client documents (PDFs only - images use lightbox) */}
       <AnimatePresence>
         {previewOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[70]"
+            className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[9998]"
             onClick={closePreview}
           >
             <motion.div
-              initial={{ scale: 0.98, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.98, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
               transition={{ type: 'spring', stiffness: 300, damping: 28 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-gray-900 border border-gray-700 rounded-lg p-4 w-full max-w-4xl max-h-[90vh] overflow-auto"
+              className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700/50 rounded-2xl 
+                         w-full max-w-6xl h-[90vh] overflow-hidden shadow-2xl shadow-cyan-500/10"
             >
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-lg font-semibold text-white">Vista previa</h4>
-                <button onClick={closePreview} className="text-gray-400 hover:text-white">Cerrar</button>
+              <div className="flex items-center justify-between p-4 border-b border-gray-700/50 
+                            bg-gradient-to-r from-cyan-500/10 via-transparent to-cyan-500/10">
+                <div className="flex items-center gap-3">
+                  <svg className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <h4 className="text-lg font-semibold text-white">Vista previa del documento</h4>
+                </div>
+                <button 
+                  onClick={closePreview} 
+                  className="text-gray-400 hover:text-white p-2 hover:bg-white/5 rounded-lg transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <div className="w-full max-h-[70vh] flex items-center justify-center overflow-auto">
-                {previewType === 'image' ? (
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="max-w-full max-h-full object-contain"
+              <div className="w-full h-[calc(90vh-73px)] bg-gray-950/50">
+                {previewType === 'pdf' && previewUrl && (
+                  <iframe 
+                    src={previewUrl} 
+                    title="Vista previa del documento" 
+                    className="w-full h-full border-0"
                   />
-                ) : (
-                  <iframe src={previewUrl} title="PDF preview" className="w-full h-full" />
                 )}
               </div>
             </motion.div>
@@ -905,6 +971,46 @@ export default function Clientes() {
         setForm={setForm}
         isEditing={!!selectedClientForEdit}
       />
+
+      {/* Lightbox para ver imágenes en tamaño completo - Renderizado con Portal para estar por encima de todo */}
+      {createPortal(
+        <AnimatePresence>
+          {selectedImage && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4"
+              onClick={closeImageLightbox}
+            >
+              {/* Botón cerrar */}
+              <button
+                onClick={closeImageLightbox}
+                className="absolute top-4 right-4 p-2 rounded-full bg-gray-900/90 backdrop-blur-md 
+                         border border-gray-700/50 hover:bg-red-500/20 transition-colors text-white 
+                         hover:text-red-400 z-[10000]"
+                title="Cerrar (Esc o click fuera)"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* Imagen */}
+              <motion.img
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                src={selectedImage}
+                alt="Vista completa"
+                className="max-w-[95vw] max-h-[95vh] object-contain rounded-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </main>
   )
 }
