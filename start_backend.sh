@@ -36,7 +36,7 @@ fi
 export FLASK_DEBUG=1
 export FLASK_ENV=development
 export CORS_ORIGINS="http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080"
-HOST_IP=$(hostname -I | awk '{print $1}')
+HOST_IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1)
 if [ -n "$HOST_IP" ]; then
   export CORS_ORIGINS="$CORS_ORIGINS,http://$HOST_IP:5173,http://$HOST_IP:8080"
 fi
