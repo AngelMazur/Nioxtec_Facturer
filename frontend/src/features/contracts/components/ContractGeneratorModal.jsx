@@ -346,7 +346,7 @@ export default function ContractGeneratorModal({ isOpen, onClose, selectedClient
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.22, ease: 'easeOut' }}
-                  className="w-full p-3 lg:p-4 overflow-y-auto"
+                  className="w-full p-3 lg:p-4 overflow-y-auto pb-32 md:pb-24 lg:pb-10"
                   style={{ maxHeight: 'calc(90vh - 220px)' }}
                 >
                   {activeTab === 'form' ? (

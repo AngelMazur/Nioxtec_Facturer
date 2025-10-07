@@ -633,10 +633,10 @@ export default function Clientes() {
               </div>
               <button className="text-gray-400 hover:text-white" onClick={()=>setSelectedClient(null)}>Cerrar</button>
             </div>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2">
               <button 
                 onClick={()=>onTabChange('facturas')} 
-                className={`px-4 py-2 rounded transition-all duration-200 focus:ring-2 focus:ring-opacity-50 ${
+                className={`inline-flex w-full items-center justify-center rounded px-4 py-3 text-sm font-semibold transition-all duration-200 focus:ring-2 focus:ring-opacity-50 ${
                   tab==='facturas' 
                     ? 'bg-primary text-white focus:ring-brand hover:opacity-90 active:scale-95' 
                     : 'border border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white active:scale-95 focus:ring-gray-500'
@@ -646,7 +646,7 @@ export default function Clientes() {
               </button>
               <button 
                 onClick={()=>onTabChange('documentos')} 
-                className={`px-4 py-2 rounded transition-all duration-200 focus:ring-2 focus:ring-opacity-50 ${
+                className={`inline-flex w-full items-center justify-center rounded px-4 py-3 text-sm font-semibold transition-all duration-200 focus:ring-2 focus:ring-opacity-50 ${
                   tab==='documentos' 
                     ? 'bg-primary text-white focus:ring-brand hover:opacity-90 active:scale-95' 
                     : 'border border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white active:scale-95 focus:ring-gray-500'
@@ -740,28 +740,49 @@ export default function Clientes() {
                             const pageItems = documents.slice(start, start + docsPageSize)
                             return (
                               <>
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                   {pageItems.map(d => (
-                                    <div key={d.id} className="flex items-center justify-between">
-                                      <button className="underline text-brand hover:scale-105 transition-all duration-200 inline-block text-left" onClick={() => previewDocument(d)}>{d.filename}</button>
-                                      <button className="text-red-500 underline hover:scale-105 transition-transform duration-200 inline-block" onClick={async()=>{
-                                        if(!window.confirm('¿Eliminar documento?')) return;
-                                        try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
-                                      }}>Eliminar</button>
+                                    <div
+                                      key={d.id}
+                                      className="rounded-xl border border-gray-800/70 bg-gray-900/70 px-3 py-3"
+                                    >
+                                      <button
+                                        type="button"
+                                        className="block w-full text-left text-sm font-medium text-brand underline underline-offset-2 transition-colors duration-200 break-words hover:text-sky-300"
+                                        onClick={() => previewDocument(d)}
+                                      >
+                                        {d.filename}
+                                      </button>
+                                      <div className="mt-3 flex flex-col gap-2 text-sm text-gray-400 sm:flex-row sm:items-center sm:justify-between">
+                                        <span className="flex items-center gap-2">
+                                          <span className="h-2 w-2 rounded-full bg-brand/70" />
+                                          PDF
+                                        </span>
+                                        <button
+                                          type="button"
+                                          className="self-start text-sm font-semibold text-red-400 underline underline-offset-2 transition-transform duration-200 hover:scale-[1.02] sm:self-auto"
+                                          onClick={async()=>{
+                                            if(!window.confirm('¿Eliminar documento?')) return;
+                                            try { await fetch(`${apiBase}/api/clients/${selectedClient.id}/documents/${d.id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' }, credentials: 'include' }); toast.success('Eliminado'); loadClientDocs(selectedClient.id) } catch { toast.error('No se pudo eliminar') }
+                                          }}
+                                        >
+                                          Eliminar
+                                        </button>
+                                      </div>
                                     </div>
                                   ))}
-                                                              <div className="flex gap-2 mt-2">
-                                  <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200">
-                                    <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
-                                    Subir PDF
-                                  </label>
-                                  <button
-                                    onClick={() => openContractModal(selectedClient)}
-                                    className="inline-flex items-center gap-2 bg-primary text-white px-3 py-2 rounded cursor-pointer hover:scale-105 transition-all duration-200"
-                                  >
-                                    Crear Contrato
-                                  </button>
-                                </div>
+                                  <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
+                                    <label className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-secondary px-3 py-3 text-sm text-white transition-all duration-200 hover:scale-[1.02] sm:w-auto">
+                                      <input type="file" accept="application/pdf" className="hidden" onChange={(e)=>handleUpload(e,'document')} disabled={uploading} />
+                                      Subir PDF
+                                    </label>
+                                    <button
+                                      onClick={() => openContractModal(selectedClient)}
+                                      className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-3 py-3 text-sm text-white transition-all duration-200 hover:scale-[1.02] sm:w-auto"
+                                    >
+                                      Crear Contrato
+                                    </button>
+                                  </div>
                                 </div>
                                 {totalPages > 1 && (
                                   <div className="flex items-center justify-center gap-2 mt-4">
@@ -884,7 +905,7 @@ export default function Clientes() {
                               </>
                             )
                           })()}
-                          <label className="inline-flex items-center gap-2 bg-secondary text-white px-3 py-2 rounded cursor-pointer mt-4 hover:scale-105 transition-all duration-200">
+                          <label className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-secondary px-3 py-3 text-sm text-white transition-all duration-200 hover:scale-[1.02] sm:w-auto">
                             <input type="file" accept="image/*" className="hidden" onChange={(e)=>handleUpload(e,'image')} disabled={uploading} />
                             Subir imagen
                           </label>
